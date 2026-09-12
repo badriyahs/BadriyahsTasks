@@ -525,7 +525,7 @@ window.Ledger = (function(){
       '</div>';
 
     var linkHTML = '<div class="cell linkcell">' +
-      '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="Paste a link…" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
+      '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
       (isURL(t.link) ? '<a class="linkopen" href="'+escapeHTML(t.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
       '</div>';
 
@@ -559,7 +559,7 @@ window.Ledger = (function(){
       linkHTML +
       cellEditableHTML(t.id,'dependency',t.dependency,'') +
       cellEditableHTML(t.id,'owner',t.owner,'') +
-      cellEditableHTML(t.id,'details',t.details,'Notes — Enter for a new bullet','wrap') +
+      cellEditableHTML(t.id,'details',t.details,'','wrap') +
       actionsHTML +
       '</div>';
   }
