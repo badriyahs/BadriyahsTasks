@@ -508,16 +508,12 @@ window.Ledger = (function(){
   function rowHTML(t, mode, confirmingId){
     var depth = depthOf(t.no);
     var isMain = depth === 0;
-    var isSub1 = depth === 1;
     var catStyle = catClassStyle(t.category);
     var overdue = t.due && t.due < todayISO() && !t.archived;
     var confirming = confirmingId === t.id;
-    var rowClasses = 'row' + (isMain?' main':'') + (isSub1?' sub1':'') + (t.archived?' archived':'') + (t.struck?' struck':'');
-    var rowStyle = '';
-    if(isMain || isSub1){
-      var band = sectionColor(t.no);
-      rowStyle = ' style="--row-band:'+band.bg+';--row-band-fg:'+band.fg+'"';
-    }
+    var rowClasses = 'row' + (isMain?' main':' sub') + (t.archived?' archived':'') + (t.struck?' struck':'');
+    var band = sectionColor(t.no);
+    var rowStyle = ' style="--row-band:'+band.bg+';--row-band-fg:'+band.fg+'"';
 
     var catHTML = '<div class="cell" data-id="'+t.id+'">' +
       '<span class="tag" contenteditable="true" data-id="'+t.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(t.category)+'</span>' +

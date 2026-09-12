@@ -146,18 +146,18 @@ body{
 }
 .row:not(.head):hover .cell{background:#F3F5FC;}
 
-/* Main tasks (no dot in "no") and their first-level subtasks get the
-   section's color band; a top border on main rows marks where a new
-   section starts. Only main rows are bold — sub1 rows share the color
-   but read as regular weight. Anything deeper (sub-subtasks and below)
-   stays plain white, uncolored. */
-.row.main .cell,.row.sub1 .cell{
+/* Main tasks (no dot in "no") get a full colored cell background, bold
+   text, and a top border marking where a new section starts. Every
+   subtask under that section (any depth) gets the SAME section color
+   applied to its text only — the cell itself stays white. */
+.sheet .row.main .cell{
   background:var(--row-band, var(--parent-tint));
   color:var(--row-band-fg, var(--ink));
-}
-.row.main .cell{
   font-weight:700;
   border-top:2px solid var(--line-strong);
+}
+.sheet .row.sub .cell{
+  color:var(--row-band-fg, var(--ink));
 }
 
 .row.archived .cell{background:var(--archived-tint);color:var(--faint);}
@@ -169,7 +169,6 @@ body{
 }
 
 .cell.no{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;}
-.row.main .cell.no{color:var(--ink);}
 
 .cell.desc-wrap{display:flex;align-items:center;gap:6px;}
 .bullet{flex:none;color:var(--faint);font-size:12px;}
