@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Ledger — Tasks</title>
+<title>The Ledger — Archive</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -15,13 +15,12 @@
   <div class="spacer"></div>
 </div>
 
-<div class="view" id="view-tasks">
+<div class="view" id="view-archive">
   <div class="toolbar">
     <div class="search">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="searchbox" type="text" placeholder="Search tasks, owners, details…" autocomplete="off">
+      <input id="searchbox" type="text" placeholder="Search archived tasks…" autocomplete="off">
     </div>
-    <div class="chips" id="catchips"></div>
     <div class="count" id="rowcount"></div>
   </div>
   <div class="sheet-scroll">
@@ -43,9 +42,9 @@
 </div>
 
 <div class="tabbar">
-  <a class="tab active" href="index.html">Tasks</a>
+  <a class="tab" href="index.html">Tasks</a>
   <a class="tab" href="calendar.html">Calendar</a>
-  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab active" href="archive.html">Archive</a>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -58,7 +57,6 @@
 
   var els = {
     sheet: document.getElementById('sheet'),
-    catchips: document.getElementById('catchips'),
     rowcount: document.getElementById('rowcount'),
     searchbox: document.getElementById('searchbox'),
     syncdot: document.getElementById('syncdot'),
@@ -66,8 +64,6 @@
   };
 
   var search = '';
-  var catFilter = null;
-  var confirmDeleteId = null;
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
@@ -81,70 +77,21 @@
   });
 
   function matches(t){
-    if(catFilter && t.category !== catFilter) return false;
     if(!search) return true;
     var hay = [t.no,t.category,t.description,t.owner,t.dependency,t.details,t.link].join(' ').toLowerCase();
     return hay.indexOf(search) !== -1;
   }
 
-  function renderChips(activeTasks){
-    var cats = [];
-    activeTasks.forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
-    els.catchips.innerHTML = cats.map(function(c){
-      var s = L.catClassStyle(c);
-      var active = catFilter === c;
-      return '<button class="chip'+(active?' active':'')+'" data-cat="'+L.escapeHTML(c)+'" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(c)+'</button>';
-    }).join('');
-    els.catchips.querySelectorAll('.chip').forEach(function(chip){
-      chip.addEventListener('click', function(){
-        var c = chip.dataset.cat;
-        catFilter = (catFilter === c) ? null : c;
-        render();
-      });
-    });
-  }
-
   function render(){
-    var activeTasks = L.state.tasks.filter(function(t){ return !t.archived; });
-    renderChips(activeTasks);
-    var visible = activeTasks.filter(matches);
-    els.rowcount.textContent = visible.length + (visible.length===1?' task':' tasks');
+    var archived = L.state.tasks.filter(function(t){ return t.archived; });
+    var visible = archived.filter(matches);
+    els.rowcount.textContent = visible.length + (visible.length===1?' archived task':' archived tasks');
 
-    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'active', confirmDeleteId); }).join('');
-    var addRowHTML = '<div class="addrow"><button id="addtaskbtn">+ Add task</button></div>';
+    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'archived', null); }).join('');
     var headHTML = els.sheet.querySelector('.row.head').outerHTML;
-    els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">No tasks match — try clearing the search or filter.</div>') + addRowHTML;
-
-    var btn = document.getElementById('addtaskbtn');
-    if(btn) btn.addEventListener('click', L.addTopLevel);
-
-    var focusId = L.focusIdOnce();
-    if(focusId){
-      requestAnimationFrame(function(){
-        var el = els.sheet.querySelector('.desc-text[data-id="'+focusId+'"]');
-        if(el){ el.focus(); }
-      });
-    }
-
-    jumpToHash();
+    els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">Nothing archived yet. Cross out a task from the Tasks tab to send it here.</div>');
   }
 
-  var jumped = false;
-  function jumpToHash(){
-    if(jumped) return;
-    var m = /^#task-(.+)$/.exec(location.hash);
-    if(!m) return;
-    var row = els.sheet.querySelector('.row[data-row-id="'+m[1]+'"]');
-    if(!row) return;
-    jumped = true;
-    requestAnimationFrame(function(){
-      row.scrollIntoView({block:'center', behavior:'smooth'});
-      row.querySelectorAll('.cell').forEach(function(c){ c.classList.add('flash'); });
-      setTimeout(function(){ row.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('flash'); }); }, 1700);
-    });
-  }
-
-  // ---------- event delegation ----------
   els.sheet.addEventListener('focusout', function(e){
     var el = e.target;
     if(el.matches && el.matches('[contenteditable="true"]')){
@@ -166,18 +113,8 @@
     var btn = e.target.closest('button[data-action]');
     if(!btn) return;
     var action = btn.dataset.action, id = btn.dataset.id;
-    if(action === 'addsub'){ L.addSubtask(id); }
-    else if(action === 'archive'){ L.archiveTask(id); }
-    else if(action === 'del'){
-      confirmDeleteId = id;
-      render();
-      setTimeout(function(){
-        if(confirmDeleteId === id){ confirmDeleteId = null; render(); }
-      }, 3500);
-    } else if(action === 'confirmdel'){
-      L.deleteTask(id);
-      confirmDeleteId = null;
-    }
+    if(action === 'restore'){ L.restoreTask(id); }
+    else if(action === 'del'){ L.deleteTask(id); }
   });
 
   L.onChange(render);

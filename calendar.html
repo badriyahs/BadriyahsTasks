@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ledger — Calendar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>The Ledger</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+</div>
+
+<div class="view" id="view-cal">
+  <div class="calnav">
+    <button class="navbtn" id="calprev" aria-label="Previous month">‹</button>
+    <button class="navbtn" id="calnext" aria-label="Next month">›</button>
+    <h2 id="calmonth"></h2>
+    <button class="todaybtn" id="caltoday">Today</button>
+    <div class="legend" id="callegend"></div>
+  </div>
+  <div class="cal-scroll">
+    <div class="calgrid" id="calgrid"></div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <a class="tab" href="index.html">Tasks</a>
+  <a class="tab active" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="app.js"></script>
+<script>
+(function(){
+  "use strict";
+  var L = window.Ledger;
+
+  var els = {
+    calgrid: document.getElementById('calgrid'),
+    calmonth: document.getElementById('calmonth'),
+    callegend: document.getElementById('callegend'),
+    syncdot: document.getElementById('syncdot'),
+    syncstate: document.getElementById('syncstate')
+  };
+
+  var calMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  var expandedDays = {};
+
+  L.onStatus(function(kind, text){
+    els.syncdot.classList.remove('off','err');
+    if(kind !== 'ok') els.syncdot.classList.add(kind);
+    els.syncstate.textContent = text;
+  });
+
+  document.getElementById('calprev').addEventListener('click', function(){
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()-1, 1);
+    render();
+  });
+  document.getElementById('calnext').addEventListener('click', function(){
+    calMonth = new Date(calMonth.getFullYear(), calMonth.getMonth()+1, 1);
+    render();
+  });
+  document.getElementById('caltoday').addEventListener('click', function(){
+    var n = new Date();
+    calMonth = new Date(n.getFullYear(), n.getMonth(), 1);
+    render();
+  });
+
+  var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  function activeTasks(){ return L.state.tasks.filter(function(t){ return !t.archived; }); }
+
+  function eventsByDate(){
+    var map = {};
+    activeTasks().forEach(function(t){
+      if(!t.due) return;
+      (map[t.due] = map[t.due] || []).push(t);
+    });
+    return map;
+  }
+
+  function renderLegend(){
+    var cats = [];
+    activeTasks().forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
+    els.callegend.innerHTML = cats.map(function(c){
+      var s = L.catClassStyle(c);
+      return '<span class="tag" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(c)+'</span>';
+    }).join('');
+  }
+
+  function render(){
+    var y = calMonth.getFullYear(), m = calMonth.getMonth();
+    els.calmonth.textContent = MONTH_NAMES[m] + ' ' + y;
+    renderLegend();
+
+    var first = new Date(y, m, 1);
+    var startOffset = (first.getDay() + 6) % 7;
+    var gridStart = new Date(y, m, 1 - startOffset);
+    var todayStr = L.todayISO();
+    var evMap = eventsByDate();
+
+    var html = DAY_NAMES.map(function(d){ return '<div class="calhead">'+d+'</div>'; }).join('');
+
+    for(var i=0;i<42;i++){
+      var d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i);
+      var iso = L.fmtISO(d);
+      var outside = d.getMonth() !== m;
+      var isToday = iso === todayStr;
+      var dayEvents = evMap[iso] || [];
+      var expanded = !!expandedDays[iso];
+      var visibleEvents = expanded ? dayEvents : dayEvents.slice(0,3);
+      var extra = dayEvents.length - visibleEvents.length;
+
+      var chipsHTML = visibleEvents.map(function(t){
+        var s = L.catClassStyle(t.category);
+        var label = (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled task');
+        return '<button class="evt" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(t.description||'')+'">'+label+'</button>';
+      }).join('');
+      var moreHTML = extra>0 ? '<button class="more" data-expand="'+iso+'">+'+extra+' more</button>' : (expanded && dayEvents.length>3 ? '<button class="more" data-collapse="'+iso+'">Show less</button>' : '');
+
+      html += '<div class="day'+(outside?' outside':'')+(isToday?' today':'')+'">' +
+        '<div class="daynum">'+d.getDate()+(isToday?'<span class="todaypill">Today</span>':'')+'</div>' +
+        chipsHTML + moreHTML +
+        '</div>';
+    }
+
+    els.calgrid.innerHTML = html;
+
+    els.calgrid.querySelectorAll('[data-goto]').forEach(function(el){
+      el.addEventListener('click', function(){ window.location.href = 'index.html#task-'+el.dataset.goto; });
+    });
+    els.calgrid.querySelectorAll('[data-expand]').forEach(function(el){
+      el.addEventListener('click', function(){ expandedDays[el.dataset.expand]=true; render(); });
+    });
+    els.calgrid.querySelectorAll('[data-collapse]').forEach(function(el){
+      el.addEventListener('click', function(){ delete expandedDays[el.dataset.collapse]; render(); });
+    });
+  }
+
+  L.onChange(render);
+})();
+</script>
+</body>
+</html>

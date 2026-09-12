@@ -1,0 +1,310 @@
+/* Shared data layer + helpers for The Ledger (tasks.html, calendar.html, archive.html) */
+window.Ledger = (function(){
+  "use strict";
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M",
+    authDomain: "badriyahstasks.firebaseapp.com",
+    projectId: "badriyahstasks",
+    storageBucket: "badriyahstasks.firebasestorage.app",
+    messagingSenderId: "97057321631",
+    appId: "1:97057321631:web:fa339e1352631ecb9d68aa"
+  };
+
+  var SEED = [
+    {no:"1",category:"SAT",description:"Sharjah Architecture Triennial",due:"",link:"",dependency:"",owner:"",details:"",order:10},
+    {no:"1.1",category:"SAT",description:"Tent Design",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:20},
+    {no:"1.2",category:"SAT",description:"Steel plate design",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:30},
+    {no:"1.3",category:"SAT",description:"Wall Text",due:"2026-09-17",link:"link",dependency:"",owner:"",details:"200-300 words",order:40},
+    {no:"1.4",category:"SAT",description:"Prepare Presentations",due:"",link:"",dependency:"meeting with sharmeen",owner:"",details:"",order:50},
+    {no:"1.5",category:"",description:"Photo captions",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"",order:60},
+    {no:"1.6",category:"",description:"Participant Credits",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"Credit laura for theory mentorship, my mom, dina for project management and coordination",order:70},
+    {no:"1.7",category:"",description:"Publication materials",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:80},
+    {no:"2",category:"",description:"CAA-Getty",due:"",link:"",dependency:"",owner:"",details:"",order:90},
+    {no:"2.1",category:"",description:"Access and bookmark your Speaker's Corner",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:100},
+    {no:"2.2",category:"",description:"Review all modules and sign Participant agreement in your Speaker's Corner",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:110},
+    {no:"2.3",category:"",description:"Set your recording permissions (if applicable) and confirm your intent to participate",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:120},
+    {no:"2.4",category:"",description:"Download your CAA Letter of Acceptance and Support from your Speaker's Corner (for Chairs, Workshop Leaders and Presenters)",due:"2026-09-25",link:"",dependency:"",owner:"",details:"May be used to support funding and travel requests",order:130},
+    {no:"2.5",category:"",description:"More tasks",due:"2026-10-01",link:"",dependency:"",owner:"",details:"",order:140},
+    {no:"3",category:"",description:"Freelance",due:"",link:"",dependency:"",owner:"",details:"",order:150},
+    {no:"3.1",category:"",description:"Figure out company license",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:160},
+    {no:"3.1.1",category:"",description:"Talk to lawyer",due:"2026-09-16",link:"",dependency:"",owner:"",details:"",order:170},
+    {no:"3.1.2",category:"",description:"Figure out what services I offer",due:"",link:"",dependency:"",owner:"",details:"Explain to Jad",order:180},
+    {no:"3.2",category:"",description:"Jenya Akademy thing?",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:190},
+    {no:"3.3",category:"",description:"Marriott",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:200},
+    {no:"3.4",category:"",description:"Business card printing (simple). Design is done. Just send to printers.",due:"",link:"",dependency:"",owner:"",details:"Due date TBD",order:210},
+    {no:"3.5",category:"",description:"Set up (fake) employee emails",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:220},
+    {no:"4",category:"",description:"Work - Map design",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:230},
+    {no:"4.1",category:"SAFIR",description:"Fiverr freelancer",due:"",link:"",dependency:"",owner:"",details:"",order:240},
+    {no:"4.1.1",category:"",description:"Speak to him and make an agreement",due:"",link:"",dependency:"",owner:"",details:"",order:250},
+    {no:"5",category:"",description:"AlUla Artwork",due:"2026-09-22",link:"",dependency:"",owner:"",details:"",order:260},
+    {no:"5.1",category:"",description:"Wait on reply from Mizuho/Daniella",due:"2026-09-22",link:"",dependency:"",owner:"",details:"",order:270},
+    {no:"6",category:"Writing",description:"Website/Writing",due:"",link:"",dependency:"",owner:"",details:"",order:280},
+    {no:"6.1",category:"",description:"Finish the actual website",due:"2026-10-01",link:"",dependency:"",owner:"",details:"",order:290},
+    {no:"7",category:"",description:"Seoul nomination",due:"2026-09-26",link:"email link",dependency:"",owner:"",details:"",order:300},
+    {no:"7.1",category:"",description:"A description of the work and the artist",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:310},
+    {no:"7.1.1",category:"",description:"Write a description",due:"2026-09-24",link:"",dependency:"",owner:"",details:"",order:320},
+    {no:"7.2",category:"",description:"2-5 images of the work",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:330},
+    {no:"7.2.1",category:"",description:"Ask DAF for materials",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:340},
+    {no:"7.3",category:"",description:"A video of the work",due:"2026-09-26",link:"",dependency:"Ask from DAF",owner:"",details:"",order:350},
+    {no:"8",category:"",description:"PhD application",due:"",link:"",dependency:"",owner:"",details:"Reach out for rec letters",order:360},
+    {no:"8.1",category:"TESTING",description:"Register for GRE - test by mid October",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:370},
+    {no:"8.1.1",category:"",description:"Ask Harvard if I am exempt from TOEFL",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:380},
+    {no:"8.2",category:"RECOMMENDERS",description:"Reach out to Laura, Dalal, Danielle",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:390},
+    {no:"8.3",category:"PROPOSAL",description:"Read for 1-2 hours a day at 6am or on weekends",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:400},
+    {no:"8.3.1",category:"",description:"Draft core research question + methodology",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:410},
+    {no:"8.3.2",category:"",description:"Write full first draft, referencing professors by name",due:"2026-10-15",link:"",dependency:"",owner:"",details:"",order:420},
+    {no:"8.3.3",category:"",description:"Get feedback, revise",due:"2026-10-18",link:"",dependency:"",owner:"",details:"",order:430},
+    {no:"8.3.4",category:"",description:"",due:"",link:"",dependency:"",owner:"",details:"",order:440},
+    {no:"8.4",category:"PORTFOLIO",description:"Pull together portfolio",due:"2026-11-22",link:"",dependency:"",owner:"",details:"",order:450},
+    {no:"8.5",category:"TRANSCRIPTS",description:"Make sure to have from Columbia and KU",due:"2026-11-22",link:"",dependency:"",owner:"",details:"",order:460},
+    {no:"8.6",category:"ESSAYS",description:"Draft Essays",due:"2026-11-20",link:"",dependency:"",owner:"",details:"",order:470},
+    {no:"8.7",category:"CV",description:"Fully update CV",due:"2026-11-21",link:"",dependency:"",owner:"",details:"",order:480},
+    {no:"8.8",category:"",description:"Final review, compile all, etc",due:"2026-12-15",link:"",dependency:"",owner:"",details:"",order:490},
+    {no:"9",category:"",description:"Research",due:"",link:"",dependency:"",owner:"",details:"",order:500},
+    {no:"9.1",category:"",description:"Read 1 paper a day",due:"",link:"",dependency:"",owner:"",details:"",order:510},
+    {no:"9.2",category:"",description:"Talk to Sudanese tutor for Azmina and Amkina",due:"",link:"",dependency:"",owner:"",details:"",order:520},
+    {no:"9.3",category:"",description:"Submit LoI for IAU Symposia",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"",order:530},
+    {no:"10",category:"",description:"Mini DAF model",due:"",link:"",dependency:"",owner:"",details:"",order:540},
+    {no:"10.1",category:"",description:"TO First Tuition help",due:"",link:"",dependency:"",owner:"",details:"",order:550},
+    {no:"10.2",category:"",description:"Second tuition help",due:"",link:"",dependency:"",owner:"",details:"",order:560},
+    {no:"10.3",category:"",description:"Dalal Alsayer",due:"",link:"",dependency:"",owner:"",details:"",order:570},
+    {no:"11",category:"",description:"DAF Tasks",due:"",link:"",dependency:"",owner:"",details:"",order:580},
+    {no:"11.1",category:"",description:"Invoices",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:590},
+    {no:"12",category:"",description:"Follow Ups",due:"",link:"",dependency:"",owner:"",details:"",order:600},
+    {no:"12.1",category:"",description:"Send email to Laura about Uzbekistan & DAF",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:610},
+    {no:"12.2",category:"",description:"Send email to Danielle also",due:"",link:"",dependency:"",owner:"",details:"",order:620}
+  ];
+  SEED.forEach(function(t){ t.archived = false; });
+
+  var CATS = 8;
+  function catIndex(name){
+    if(!name) return null;
+    var h = 0;
+    for(var i=0;i<name.length;i++){ h = (h*31 + name.charCodeAt(i)) >>> 0; }
+    return h % CATS;
+  }
+  function catClassStyle(name){
+    var idx = catIndex(name);
+    if(idx === null) return {bg:'transparent', fg:'var(--muted)'};
+    return {bg:'var(--cat'+idx+'-bg)', fg:'var(--cat'+idx+'-fg)'};
+  }
+  function fmtISO(d){
+    var y=d.getFullYear(), m=('0'+(d.getMonth()+1)).slice(-2), day=('0'+d.getDate()).slice(-2);
+    return y+'-'+m+'-'+day;
+  }
+  function todayISO(){ return fmtISO(new Date()); }
+  function escapeHTML(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function isURL(s){ return /^https?:\/\//i.test((s||'').trim()); }
+  function depthOf(no){ return no ? (no.split('.').length - 1) : 0; }
+
+  var state = { tasks: [] };
+  var listeners = [];
+  var statusListeners = [];
+  var ready = false;
+
+  function notify(){ listeners.forEach(function(fn){ fn(); }); }
+  function notifyStatus(kind, text){ statusListeners.forEach(function(fn){ fn(kind, text); }); }
+
+  function onChange(fn){ listeners.push(fn); if(ready) fn(); }
+  function onStatus(fn){ statusListeners.push(fn); }
+
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+  var tasksCol = db.collection('tasks');
+
+  tasksCol.limit(1).get().then(function(snap){
+    if(snap.empty){
+      var batch = db.batch();
+      SEED.forEach(function(t){ batch.set(tasksCol.doc(), t); });
+      return batch.commit();
+    }
+  }).catch(function(e){ console.error('Seed check failed', e); });
+
+  tasksCol.orderBy('order','asc').onSnapshot(function(snap){
+    state.tasks = snap.docs.map(function(d){
+      var data = d.data() || {};
+      return {
+        id: d.id,
+        no: data.no || '',
+        category: data.category || '',
+        description: data.description || '',
+        due: data.due || '',
+        link: data.link || '',
+        dependency: data.dependency || '',
+        owner: data.owner || '',
+        details: data.details || '',
+        order: typeof data.order === 'number' ? data.order : 0,
+        archived: !!data.archived
+      };
+    });
+    ready = true;
+    notifyStatus('ok', 'Live — anyone with this link can edit');
+    notify();
+  }, function(err){
+    notifyStatus('err', 'Connection error (' + (err && err.code ? err.code : 'unknown') + ') — check Firestore is enabled');
+    console.error(err);
+  });
+
+  // ---------- hierarchy helpers ----------
+  function hasChildren(no){
+    if(!no) return false;
+    var prefix = no + '.';
+    return state.tasks.some(function(t){ return t.no && t.no.indexOf(prefix) === 0; });
+  }
+  function nextTopLevelNumber(){
+    var max = 0;
+    state.tasks.forEach(function(t){
+      if(t.no && t.no.indexOf('.') === -1){
+        var n = parseInt(t.no, 10);
+        if(!isNaN(n) && n > max) max = n;
+      }
+    });
+    return max + 1;
+  }
+  function nextChildNumber(parentNo){
+    var max = 0;
+    var prefix = parentNo + '.';
+    state.tasks.forEach(function(t){
+      if(t.no && t.no.indexOf(prefix) === 0){
+        var rest = t.no.slice(prefix.length);
+        if(rest.indexOf('.') === -1){
+          var n = parseInt(rest, 10);
+          if(!isNaN(n) && n > max) max = n;
+        }
+      }
+    });
+    return max + 1;
+  }
+  function insertOrderForChild(parentTask){
+    var list = state.tasks;
+    var idx = list.findIndex(function(t){ return t.id === parentTask.id; });
+    if(idx === -1) return (list.length ? list[list.length-1].order + 10 : 10);
+    var endIdx = idx;
+    for(var i = idx+1; i < list.length; i++){
+      if(list[i].no && parentTask.no && list[i].no.indexOf(parentTask.no + '.') === 0){ endIdx = i; }
+      else break;
+    }
+    var afterOrder = list[endIdx].order;
+    var beforeOrder = (endIdx+1 < list.length) ? list[endIdx+1].order : null;
+    return beforeOrder === null ? afterOrder + 10 : (afterOrder + beforeOrder) / 2;
+  }
+
+  // ---------- mutations ----------
+  var pendingFocusId = null;
+  function focusIdOnce(){ var id = pendingFocusId; pendingFocusId = null; return id; }
+
+  function updateField(id, field, value){
+    var patch = {}; patch[field] = value;
+    tasksCol.doc(id).update(patch).catch(function(e){ console.error(e); });
+  }
+
+  function addTopLevel(){
+    var no = String(nextTopLevelNumber());
+    var maxOrder = state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0);
+    tasksCol.add({
+      no:no, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+      order: maxOrder + 10, archived:false
+    }).then(function(ref){ pendingFocusId = ref.id; notify(); }).catch(function(e){ console.error(e); });
+  }
+
+  function addSubtask(parentId){
+    var parent = state.tasks.find(function(t){ return t.id === parentId; });
+    if(!parent) return;
+    var childNo = parent.no ? (parent.no + '.' + nextChildNumber(parent.no)) : String(nextTopLevelNumber());
+    var ord = insertOrderForChild(parent);
+    tasksCol.add({
+      no:childNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+      order: ord, archived:false
+    }).then(function(ref){ pendingFocusId = ref.id; notify(); }).catch(function(e){ console.error(e); });
+  }
+
+  function archiveTask(id){ tasksCol.doc(id).update({archived:true}).catch(function(e){ console.error(e); }); }
+  function restoreTask(id){ tasksCol.doc(id).update({archived:false}).catch(function(e){ console.error(e); }); }
+  function deleteTask(id){ tasksCol.doc(id).delete().catch(function(e){ console.error(e); }); }
+
+  // ---------- shared row markup ----------
+  function cellEditableHTML(id, field, value, ph, extraClass){
+    return '<div class="cell'+(extraClass?(' '+extraClass):'')+'" contenteditable="true" data-id="'+id+'" data-field="'+field+'" data-ph="'+ph+'">'+escapeHTML(value)+'</div>';
+  }
+
+  function rowHTML(t, mode, confirmingId){
+    var depth = depthOf(t.no);
+    var isParent = hasChildren(t.no);
+    var catStyle = catClassStyle(t.category);
+    var overdue = t.due && t.due < todayISO() && !t.archived;
+    var confirming = confirmingId === t.id;
+    var rowClasses = 'row' + (isParent?' parent':'') + (t.archived?' archived':'');
+
+    var catHTML = '<div class="cell" data-id="'+t.id+'">' +
+      '<span class="tag" contenteditable="true" data-id="'+t.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(t.category)+'</span>' +
+      '</div>';
+
+    var bulletHTML = depth>0 ? '<span class="bullet">'+(depth>1?'∙':'–')+'</span>' : '';
+    var descHTML = '<div class="cell desc-wrap" style="padding-left:'+(10+depth*18)+'px">' + bulletHTML +
+      '<div class="desc-text" contenteditable="true" data-id="'+t.id+'" data-field="description" data-ph="Untitled task">'+escapeHTML(t.description)+'</div>' +
+      '</div>';
+
+    var linkHTML = '<div class="cell linkcell">' +
+      '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="—" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
+      (isURL(t.link) ? '<a class="linkopen" href="'+escapeHTML(t.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
+      '</div>';
+
+    var dateHTML = '<div class="cell datecell'+(overdue?' overdue':'')+'">' +
+      '<input type="date" data-id="'+t.id+'" data-field="due" value="'+escapeHTML(t.due)+'">' +
+      '</div>';
+
+    var actionsHTML;
+    if(confirming){
+      actionsHTML = '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button></div>';
+    } else if(mode === 'archived'){
+      actionsHTML = '<div class="cell rowactions">' +
+        '<button class="restore" data-action="restore" data-id="'+t.id+'" title="Restore"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>' +
+        '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete permanently"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+        '</div>';
+    } else {
+      actionsHTML = '<div class="cell rowactions">' +
+        '<button data-action="addsub" data-id="'+t.id+'" title="Add subtask"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
+        '<button data-action="archive" data-id="'+t.id+'" title="Cross out / archive"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg></button>' +
+        '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+        '</div>';
+    }
+
+    return '<div class="'+rowClasses+'" data-row-id="'+t.id+'">' +
+      cellEditableHTML(t.id,'no',t.no,'—','no') +
+      catHTML +
+      descHTML +
+      dateHTML +
+      linkHTML +
+      cellEditableHTML(t.id,'dependency',t.dependency,'—') +
+      cellEditableHTML(t.id,'owner',t.owner,'—') +
+      cellEditableHTML(t.id,'details',t.details,'—','wrap') +
+      actionsHTML +
+      '</div>';
+  }
+
+  return {
+    state: state,
+    onChange: onChange,
+    onStatus: onStatus,
+    updateField: updateField,
+    addTopLevel: addTopLevel,
+    addSubtask: addSubtask,
+    archiveTask: archiveTask,
+    restoreTask: restoreTask,
+    deleteTask: deleteTask,
+    hasChildren: hasChildren,
+    depthOf: depthOf,
+    catClassStyle: catClassStyle,
+    escapeHTML: escapeHTML,
+    isURL: isURL,
+    fmtISO: fmtISO,
+    todayISO: todayISO,
+    focusIdOnce: focusIdOnce,
+    rowHTML: rowHTML
+  };
+})();
