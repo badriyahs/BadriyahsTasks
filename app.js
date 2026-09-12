@@ -507,13 +507,14 @@ window.Ledger = (function(){
 
   function rowHTML(t, mode, confirmingId){
     var depth = depthOf(t.no);
-    var isParent = hasChildren(t.no);
+    var isMain = depth === 0;
+    var isSub1 = depth === 1;
     var catStyle = catClassStyle(t.category);
     var overdue = t.due && t.due < todayISO() && !t.archived;
     var confirming = confirmingId === t.id;
-    var rowClasses = 'row' + (isParent?' parent':'') + (t.archived?' archived':'') + (t.struck?' struck':'');
+    var rowClasses = 'row' + (isMain?' main':'') + (isSub1?' sub1':'') + (t.archived?' archived':'') + (t.struck?' struck':'');
     var rowStyle = '';
-    if(isParent){
+    if(isMain || isSub1){
       var band = sectionColor(t.no);
       rowStyle = ' style="--row-band:'+band.bg+';--row-band-fg:'+band.fg+'"';
     }

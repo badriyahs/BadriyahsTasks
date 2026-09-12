@@ -146,10 +146,18 @@ body{
 }
 .row:not(.head):hover .cell{background:#F3F5FC;}
 
-.row.parent .cell{
-  font-weight:700;
+/* Main tasks (no dot in "no") and their first-level subtasks get the
+   section's color band; a top border on main rows marks where a new
+   section starts. Only main rows are bold — sub1 rows share the color
+   but read as regular weight. Anything deeper (sub-subtasks and below)
+   stays plain white, uncolored. */
+.row.main .cell,.row.sub1 .cell{
   background:var(--row-band, var(--parent-tint));
   color:var(--row-band-fg, var(--ink));
+}
+.row.main .cell{
+  font-weight:700;
+  border-top:2px solid var(--line-strong);
 }
 
 .row.archived .cell{background:var(--archived-tint);color:var(--faint);}
@@ -161,12 +169,12 @@ body{
 }
 
 .cell.no{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;}
-.row.parent .cell.no{color:var(--ink);}
+.row.main .cell.no{color:var(--ink);}
 
 .cell.desc-wrap{display:flex;align-items:center;gap:6px;}
 .bullet{flex:none;color:var(--faint);font-size:12px;}
 .desc-text{flex:1;min-width:0;font-weight:500;outline:none;cursor:text;}
-.row.parent .desc-text{font-weight:700;}
+.row.main .desc-text{font-weight:700;}
 
 [contenteditable="true"]{outline:none;cursor:text;}
 [contenteditable="true"]:focus{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);border-radius:3px;}
