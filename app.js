@@ -415,6 +415,12 @@ window.Ledger = (function(){
   function wireEditing(container){
     container.addEventListener('focusout', function(e){
       var el = e.target;
+      /* A re-render replaces the whole sheet's innerHTML, which blurs any
+         focused cell as a side effect of removing it from the document.
+         That is NOT the user leaving the field — ignore it, or every write
+         re-renders, re-blurs the (still-focused, now-detached) old node,
+         and writes again forever. Only act on a real blur: el still connected. */
+      if(!el.isConnected) return;
       if(el.matches && el.matches('[contenteditable="true"]')){
         updateField(el.dataset.id, el.dataset.field, el.textContent.trim());
       }
