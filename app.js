@@ -116,6 +116,65 @@ window.Ledger = (function(){
   firebase.initializeApp(firebaseConfig);
   var db = firebase.firestore();
   var tasksCol = db.collection('tasks');
+  var activityCol = db.collection('activity');
+
+  // ---------- who's editing ----------
+  function getActor(){
+    var n;
+    try{ n = localStorage.getItem('ledgerActor'); }catch(e){ n = null; }
+    if(!n){ n = promptForActor(); }
+    return n || 'Someone';
+  }
+  function promptForActor(){
+    var n = '';
+    try{
+      n = (window.prompt("What's your name? (shown on the Activity log when you make changes)") || '').trim();
+      if(n) localStorage.setItem('ledgerActor', n);
+    }catch(e){ /* prompt blocked or storage unavailable */ }
+    return n || 'Someone';
+  }
+  function setActor(){ return promptForActor(); }
+
+  function logActivity(t, verb, extra){
+    var doc = {
+      actor: getActor(),
+      verb: verb,
+      no: t ? (t.no || '') : '',
+      description: t ? (t.description || '') : '',
+      at: new Date().toISOString()
+    };
+    if(extra){ Object.keys(extra).forEach(function(k){ doc[k] = extra[k]; }); }
+    activityCol.add(doc).catch(function(e){ console.error(e); });
+  }
+
+  // ---------- undo/redo (this browser tab only) ----------
+  var undoStack = [], redoStack = [];
+  var undoListeners = [];
+  function onUndoState(fn){ undoListeners.push(fn); fn({canUndo:undoStack.length>0, canRedo:redoStack.length>0}); }
+  function notifyUndoState(){
+    undoListeners.forEach(function(fn){ fn({canUndo:undoStack.length>0, canRedo:redoStack.length>0}); });
+  }
+  function pushUndo(entry){
+    undoStack.push(entry);
+    redoStack.length = 0;
+    notifyUndoState();
+  }
+  function undo(){
+    var entry = undoStack.pop();
+    if(!entry) return;
+    entry.undo();
+    logActivity(null, 'undid', {description: entry.label});
+    redoStack.push(entry);
+    notifyUndoState();
+  }
+  function redo(){
+    var entry = redoStack.pop();
+    if(!entry) return;
+    entry.redo();
+    logActivity(null, 'redid', {description: entry.label});
+    undoStack.push(entry);
+    notifyUndoState();
+  }
 
   tasksCol.limit(1).get().then(function(snap){
     if(snap.empty){
@@ -207,18 +266,40 @@ window.Ledger = (function(){
   var pendingFocusId = null;
   function focusIdOnce(){ var id = pendingFocusId; pendingFocusId = null; return id; }
 
-  function updateField(id, field, value){
+  function setField(id, field, value){
     var patch = {}; patch[field] = value;
     tasksCol.doc(id).update(patch).catch(function(e){ console.error(e); });
+  }
+
+  function updateField(id, field, value){
+    var t = state.tasks.find(function(x){ return x.id === id; });
+    var oldValue = t ? (t[field] || '') : '';
+    if(oldValue === value) return;
+    setField(id, field, value);
+    logActivity(t, 'edited the ' + field + ' of');
+    pushUndo({
+      label: 'editing the ' + field + ' of ' + (t && t.no ? t.no : 'a task'),
+      undo: function(){ setField(id, field, oldValue); },
+      redo: function(){ setField(id, field, value); }
+    });
   }
 
   function addTopLevel(){
     var no = String(nextTopLevelNumber());
     var maxOrder = state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0);
-    tasksCol.add({
+    var data = {
       no:no, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
       order: maxOrder + 10, archived:false, struck:false
-    }).then(function(ref){ pendingFocusId = ref.id; }).catch(function(e){ console.error(e); });
+    };
+    tasksCol.add(data).then(function(ref){
+      pendingFocusId = ref.id;
+      logActivity(data, 'added');
+      pushUndo({
+        label: 'adding task ' + no,
+        undo: function(){ tasksCol.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
+        redo: function(){ tasksCol.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
+      });
+    }).catch(function(e){ console.error(e); });
   }
 
   function addSubtask(parentId){
@@ -226,19 +307,96 @@ window.Ledger = (function(){
     if(!parent) return;
     var childNo = parent.no ? (parent.no + '.' + nextChildNumber(parent.no)) : String(nextTopLevelNumber());
     var ord = insertOrderForChild(parent);
-    tasksCol.add({
+    var data = {
       no:childNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
       order: ord, archived:false, struck:false
-    }).then(function(ref){ pendingFocusId = ref.id; }).catch(function(e){ console.error(e); });
+    };
+    tasksCol.add(data).then(function(ref){
+      pendingFocusId = ref.id;
+      logActivity(data, 'added');
+      pushUndo({
+        label: 'adding subtask ' + childNo,
+        undo: function(){ tasksCol.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
+        redo: function(){ tasksCol.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
+      });
+    }).catch(function(e){ console.error(e); });
   }
 
-  function archiveTask(id){ tasksCol.doc(id).update({archived:true}).catch(function(e){ console.error(e); }); }
-  function restoreTask(id){ tasksCol.doc(id).update({archived:false}).catch(function(e){ console.error(e); }); }
-  function deleteTask(id){ tasksCol.doc(id).delete().catch(function(e){ console.error(e); }); }
+  function archiveTask(id){
+    var t = state.tasks.find(function(x){ return x.id === id; });
+    setField(id, 'archived', true);
+    logActivity(t, 'deleted');
+    pushUndo({
+      label: 'deleting ' + (t && t.no ? t.no : 'a task'),
+      undo: function(){ setField(id, 'archived', false); },
+      redo: function(){ setField(id, 'archived', true); }
+    });
+  }
+  function restoreTask(id){
+    var t = state.tasks.find(function(x){ return x.id === id; });
+    setField(id, 'archived', false);
+    logActivity(t, 'restored');
+    pushUndo({
+      label: 'restoring ' + (t && t.no ? t.no : 'a task'),
+      undo: function(){ setField(id, 'archived', true); },
+      redo: function(){ setField(id, 'archived', false); }
+    });
+  }
+  function deleteTask(id){
+    var t = state.tasks.find(function(x){ return x.id === id; });
+    if(!t) return;
+    var data = {
+      no:t.no, category:t.category, description:t.description, due:t.due, link:t.link,
+      dependency:t.dependency, owner:t.owner, details:t.details, order:t.order,
+      archived:t.archived, struck:t.struck
+    };
+    tasksCol.doc(id).delete().catch(function(e){ console.error(e); });
+    logActivity(t, 'permanently deleted');
+    pushUndo({
+      label: 'permanently deleting ' + (t.no || 'a task'),
+      undo: function(){ tasksCol.doc(id).set(data).catch(function(e){ console.error(e); }); },
+      redo: function(){ tasksCol.doc(id).delete().catch(function(e){ console.error(e); }); }
+    });
+  }
   function toggleStrike(id){
     var t = state.tasks.find(function(x){ return x.id === id; });
     if(!t) return;
-    tasksCol.doc(id).update({struck: !t.struck}).catch(function(e){ console.error(e); });
+    var was = !!t.struck;
+    setField(id, 'struck', !was);
+    logActivity(t, was ? 'un-struck' : 'struck through');
+    pushUndo({
+      label: 'striking through ' + (t.no || 'a task'),
+      undo: function(){ setField(id, 'struck', was); },
+      redo: function(){ setField(id, 'struck', !was); }
+    });
+  }
+
+  // ---------- shared topbar wiring (undo/redo + actor badge) ----------
+  function wireTopbar(){
+    var undoBtn = document.getElementById('undobtn');
+    var redoBtn = document.getElementById('redobtn');
+    var actorBtn = document.getElementById('actorbadge');
+    if(undoBtn){ undoBtn.addEventListener('click', undo); }
+    if(redoBtn){ redoBtn.addEventListener('click', redo); }
+    if(actorBtn){
+      var refreshActor = function(){
+        var n = getActor();
+        actorBtn.innerHTML = 'You: <b>' + escapeHTML(n) + '</b>';
+      };
+      refreshActor();
+      actorBtn.addEventListener('click', function(){ setActor(); refreshActor(); });
+    }
+    onUndoState(function(st){
+      if(undoBtn) undoBtn.disabled = !st.canUndo;
+      if(redoBtn) redoBtn.disabled = !st.canRedo;
+    });
+    document.addEventListener('keydown', function(e){
+      var mod = e.metaKey || e.ctrlKey;
+      if(!mod) return;
+      var k = e.key.toLowerCase();
+      if(k === 'z' && !e.shiftKey){ e.preventDefault(); undo(); }
+      else if((k === 'z' && e.shiftKey) || k === 'y'){ e.preventDefault(); redo(); }
+    });
   }
 
   // ---------- shared editing wiring ----------
@@ -355,8 +513,8 @@ window.Ledger = (function(){
     } else {
       actionsHTML = '<div class="cell rowactions">' +
         '<button data-action="addsub" data-id="'+t.id+'" title="Add subtask"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
-        '<button data-action="strike" data-id="'+t.id+'" title="'+(t.struck?'Remove strikethrough':'Strike through')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
-        '<button data-action="archive" data-id="'+t.id+'" title="Archive"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+        '<button data-action="strike" data-id="'+t.id+'" title="'+(t.struck?'Remove strikethrough':'Cross out (stays in Tasks)')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14"/></svg></button>' +
+        '<button data-action="archive" data-id="'+t.id+'" title="Delete (moves to Archive)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
         '</div>';
     }
 
@@ -396,6 +554,13 @@ window.Ledger = (function(){
     todayISO: todayISO,
     focusIdOnce: focusIdOnce,
     rowHTML: rowHTML,
+    activityCol: activityCol,
+    getActor: getActor,
+    setActor: setActor,
+    undo: undo,
+    redo: redo,
+    onUndoState: onUndoState,
+    wireTopbar: wireTopbar,
     wireEditing: wireEditing,
     preserveFocus: preserveFocus
   };

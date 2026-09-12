@@ -68,6 +68,32 @@ body{
 .dot.err{background:var(--danger);}
 .topbar .spacer{flex:1;}
 
+.undoredo{display:flex;gap:4px;flex:none;}
+.undoredo button{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  width:28px;height:28px;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+}
+.undoredo button:hover:not(:disabled){background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+.undoredo button:disabled{opacity:.35;cursor:default;}
+
+.actorbadge{
+  flex:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);
+  padding:0 10px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;
+}
+.actorbadge:hover{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+.actorbadge b{color:var(--ink);font-weight:700;}
+.actorbadge:hover b{color:var(--accent);}
+
+/* === ACTIVITY FEED === */
+.activity-scroll{flex:1;min-height:0;overflow:auto;padding:6px 20px 20px;}
+.activity-item{
+  display:flex;align-items:baseline;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line);
+}
+.activity-item .who{font-weight:700;flex:none;}
+.activity-item .what{flex:1;min-width:0;color:var(--ink);}
+.activity-item .what .no{font-family:"IBM Plex Mono",monospace;color:var(--muted);margin-right:4px;}
+.activity-item .when{flex:none;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;}
+
 /* ---- views ---- */
 .view{flex:1;min-height:0;display:flex;flex-direction:column;}
 

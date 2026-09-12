@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badriyah's Tasks — Activity</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=2">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Badriyah's Tasks</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+  <div class="undoredo">
+    <button id="undobtn" title="Undo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10h-1"/></svg></button>
+    <button id="redobtn" title="Redo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 0 0 0 10h1"/></svg></button>
+  </div>
+  <button class="actorbadge" id="actorbadge" title="Click to change your name"></button>
+</div>
+
+<div class="view" id="view-activity">
+  <div class="toolbar">
+    <div class="count" id="rowcount" style="margin-left:0;"></div>
+  </div>
+  <div class="activity-scroll" id="feed"></div>
+</div>
+
+<div class="tabbar">
+  <a class="tab" href="index.html">Tasks</a>
+  <a class="tab" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab active" href="activity.html">Activity</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="app.js?v=2"></script>
+<script>
+(function(){
+  "use strict";
+  var L = window.Ledger;
+  L.wireTopbar();
+
+  var els = {
+    feed: document.getElementById('feed'),
+    rowcount: document.getElementById('rowcount'),
+    syncdot: document.getElementById('syncdot'),
+    syncstate: document.getElementById('syncstate')
+  };
+
+  L.onStatus(function(kind, text){
+    els.syncdot.classList.remove('off','err');
+    if(kind !== 'ok') els.syncdot.classList.add(kind);
+    els.syncstate.textContent = text;
+  });
+
+  function fmtWhen(iso){
+    try{
+      var d = new Date(iso);
+      return d.toLocaleDateString(undefined, {month:'short', day:'numeric'}) + ' · ' +
+             d.toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'});
+    }catch(e){ return ''; }
+  }
+
+  function sentenceFor(a){
+    if(a.no){
+      return L.escapeHTML(a.verb) + ' <span class="no">' + L.escapeHTML(a.no) + '</span>' +
+        (a.description ? ' — ' + L.escapeHTML(a.description) : '');
+    }
+    return L.escapeHTML(a.verb) + ' ' + L.escapeHTML(a.description || '');
+  }
+
+  L.activityCol.orderBy('at', 'desc').limit(200).onSnapshot(function(snap){
+    var entries = snap.docs.map(function(d){ return d.data(); });
+    els.rowcount.textContent = entries.length + (entries.length===1 ? ' event' : ' events');
+    if(!entries.length){
+      els.feed.innerHTML = '<div class="empty-hint">Nothing yet — actions you take on Tasks or Archive will show up here.</div>';
+      return;
+    }
+    els.feed.innerHTML = entries.map(function(a){
+      return '<div class="activity-item">' +
+        '<span class="who">' + L.escapeHTML(a.actor || 'Someone') + '</span>' +
+        '<span class="what">' + sentenceFor(a) + '</span>' +
+        '<span class="when">' + fmtWhen(a.at) + '</span>' +
+        '</div>';
+    }).join('');
+  }, function(err){
+    els.feed.innerHTML = '<div class="empty-hint">Couldn\'t load activity (' + (err && err.code || 'error') + ').</div>';
+  });
+})();
+</script>
+</body>
+</html>

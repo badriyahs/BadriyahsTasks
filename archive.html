@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Archive</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=2">
 </head>
 <body>
 
@@ -13,6 +13,11 @@
   <h1>Badriyah's Tasks</h1>
   <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
   <div class="spacer"></div>
+  <div class="undoredo">
+    <button id="undobtn" title="Undo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10h-1"/></svg></button>
+    <button id="redobtn" title="Redo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 0 0 0 10h1"/></svg></button>
+  </div>
+  <button class="actorbadge" id="actorbadge" title="Click to change your name"></button>
 </div>
 
 <div class="view" id="view-archive">
@@ -45,15 +50,17 @@
   <a class="tab" href="index.html">Tasks</a>
   <a class="tab" href="calendar.html">Calendar</a>
   <a class="tab active" href="archive.html">Archive</a>
+  <a class="tab" href="activity.html">Activity</a>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 <script>
 (function(){
   "use strict";
   var L = window.Ledger;
+  L.wireTopbar();
 
   var els = {
     sheet: document.getElementById('sheet'),
