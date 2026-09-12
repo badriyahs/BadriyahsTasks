@@ -1,0 +1,838 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Ledger</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#FAF9F6;
+  --surface:#FFFFFF;
+  --ink:#22262B;
+  --muted:#767E88;
+  --faint:#A8AEB6;
+  --line:#E1E4E9;
+  --line-strong:#CBD0D8;
+  --accent:#2F5FD1;
+  --accent-ink:#FFFFFF;
+  --accent-tint:#E9EEFC;
+  --overdue:#B0442B;
+  --danger:#C0392B;
+  --danger-tint:#FBE9E6;
+
+  --cat0-bg:#E3F4F1; --cat0-fg:#0F766E;
+  --cat1-bg:#EFE7FB; --cat1-fg:#6D28D9;
+  --cat2-bg:#FBEEDC; --cat2-fg:#B45309;
+  --cat3-bg:#FBE7EF; --cat3-fg:#BE185D;
+  --cat4-bg:#E6F4E9; --cat4-fg:#15803D;
+  --cat5-bg:#EAECF3; --cat5-fg:#4C5A82;
+  --cat6-bg:#F1E7DC; --cat6-fg:#92400E;
+  --cat7-bg:#F1E3F0; --cat7-fg:#862E9C;
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+  font-size:13.5px;
+  -webkit-font-smoothing:antialiased;
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ---- top bar ---- */
+.topbar{
+  flex:none;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+  padding:14px 20px 12px;
+  border-bottom:1px solid var(--line);
+  background:var(--surface);
+}
+.topbar h1{
+  font-size:16px;
+  font-weight:700;
+  margin:0;
+  letter-spacing:.01em;
+}
+.topbar .sub{
+  font-size:12px;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.dot{width:6px;height:6px;border-radius:50%;background:#3FA96A;flex:none;}
+.dot.off{background:var(--faint);}
+.dot.err{background:var(--danger);}
+.topbar .spacer{flex:1;}
+
+/* ---- views ---- */
+.view{flex:1;min-height:0;display:flex;flex-direction:column;}
+
+/* === TASKS VIEW === */
+.toolbar{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 20px;
+  border-bottom:1px solid var(--line);
+  flex-wrap:wrap;
+}
+.search{
+  position:relative;
+  width:240px;
+}
+.search input{
+  width:100%;
+  padding:6px 10px 6px 26px;
+  border:1px solid var(--line-strong);
+  border-radius:6px;
+  background:var(--paper);
+  color:var(--ink);
+  font-size:12.5px;
+  font-family:inherit;
+}
+.search input:focus{outline:2px solid var(--accent);outline-offset:1px;}
+.search svg{position:absolute;left:7px;top:50%;transform:translateY(-50%);opacity:.5;pointer-events:none;}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{
+  font-size:11.5px;
+  font-weight:600;
+  padding:4px 10px;
+  border-radius:100px;
+  border:1px solid transparent;
+  cursor:pointer;
+  line-height:1.3;
+  user-select:none;
+}
+.chip.active{box-shadow:inset 0 0 0 1.5px currentColor;}
+.count{
+  margin-left:auto;
+  font-size:11.5px;
+  color:var(--muted);
+}
+
+.sheet-scroll{flex:1;min-height:0;overflow:auto;}
+.sheet{
+  display:grid;
+  grid-template-columns: 56px 116px minmax(240px,1.6fr) 128px 108px 150px 118px minmax(200px,1.3fr) 34px;
+  min-width:1180px;
+}
+.row{display:contents;}
+.cell{
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  padding:7px 10px;
+  min-height:34px;
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+}
+.head .cell{
+  position:sticky;top:0;z-index:2;
+  background:var(--surface);
+  color:var(--muted);
+  font-size:10.5px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  border-bottom:1px solid var(--line-strong);
+}
+.row:not(.head):hover .cell{background:#F3F5FC;}
+.row.section .cell{background:var(--surface);font-weight:700;}
+.row.section .cell.no,.row.section .cell.desc{color:var(--ink);}
+.cell.no{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;}
+.row.section .cell.no{color:var(--ink);}
+.cell.desc{font-weight:500;}
+.row.section .cell.desc{font-weight:700;}
+.cell[contenteditable="true"]{outline:none;cursor:text;}
+.cell[contenteditable="true"]:focus{background:var(--accent-tint);box-shadow:inset 0 0 0 1.5px var(--accent);}
+.cell[contenteditable="true"]:empty:before{content:attr(data-ph);color:var(--faint);font-weight:400;}
+.cell.wrap{white-space:pre-wrap;word-break:break-word;align-items:flex-start;padding-top:8px;line-height:1.4;}
+
+.tag{
+  display:inline-block;
+  max-width:100%;
+  padding:2px 8px;
+  border-radius:5px;
+  font-size:11.5px;
+  font-weight:600;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  outline:none;
+}
+
+.datecell{padding:5px 8px;gap:4px;}
+.datecell input[type="date"]{
+  border:none;
+  background:transparent;
+  color:var(--ink);
+  font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;
+  font-variant-numeric:tabular-nums;
+  width:100%;
+  padding:2px;
+  border-radius:4px;
+}
+.datecell input[type="date"]:focus{outline:2px solid var(--accent);}
+.datecell.overdue input{color:var(--overdue);}
+
+.linkcell{gap:6px;}
+.linkcell .cell-text{flex:1;min-width:0;}
+.linkopen{
+  flex:none;color:var(--accent);text-decoration:none;font-size:11px;
+  border:1px solid var(--line-strong);border-radius:4px;padding:1px 5px;
+}
+.linkopen:hover{background:var(--accent-tint);}
+
+.rowdel{
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+.row:hover .rowdel{opacity:1;}
+.rowdel button{
+  border:none;background:transparent;color:var(--faint);cursor:pointer;
+  width:24px;height:24px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+}
+.rowdel button:hover{background:var(--danger-tint);color:var(--danger);}
+.rowdel button.confirm{color:var(--danger);background:var(--danger-tint);opacity:1;width:auto;padding:0 8px;font-size:10.5px;font-weight:700;}
+
+.addrow{
+  grid-column:1/-1;
+  padding:10px 14px;
+  border-bottom:1px solid var(--line);
+}
+.addrow button{
+  width:100%;
+  border:1.5px dashed var(--line-strong);
+  background:transparent;
+  color:var(--muted);
+  border-radius:7px;
+  padding:9px;
+  font-size:12.5px;
+  font-weight:600;
+  font-family:inherit;
+  cursor:pointer;
+  text-align:left;
+  padding-left:14px;
+}
+.addrow button:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint);}
+
+.empty-hint{padding:28px 20px;color:var(--muted);font-size:13px;}
+
+/* === CALENDAR VIEW === */
+.calnav{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 20px;
+  border-bottom:1px solid var(--line);
+}
+.calnav h2{
+  font-size:15px;font-weight:700;margin:0;min-width:170px;
+}
+.navbtn{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  width:28px;height:28px;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.navbtn:hover{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+.todaybtn{
+  border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);
+  padding:0 10px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;
+}
+.todaybtn:hover{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
+.legend{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;max-width:46%;}
+.legend .tag{font-size:10.5px;padding:2px 7px;}
+
+.cal-scroll{flex:1;min-height:0;overflow:auto;}
+.calgrid{
+  display:grid;
+  grid-template-columns:repeat(7,minmax(120px,1fr));
+  min-width:840px;
+}
+.calhead{
+  position:sticky;top:0;z-index:2;
+  background:var(--surface);
+  color:var(--muted);
+  font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  padding:8px 10px;
+  border-bottom:1px solid var(--line-strong);
+  border-right:1px solid var(--line);
+}
+.day{
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+  padding:6px 7px;
+  min-height:104px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.day.outside{background:#F1F1EE;}
+.day.outside .daynum{color:var(--faint);}
+.day.today{background:var(--accent-tint);}
+.daynum{
+  font-family:"IBM Plex Mono",monospace;
+  font-size:11.5px;font-weight:600;color:var(--muted);
+  display:flex;align-items:center;gap:6px;
+}
+.day.today .daynum{color:var(--accent);}
+.todaypill{
+  background:var(--accent);color:var(--accent-ink);
+  font-family:"IBM Plex Sans",sans-serif;
+  font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  padding:1px 6px;border-radius:100px;
+}
+.evt{
+  display:block;width:100%;text-align:left;
+  border:none;border-radius:4px;
+  padding:2.5px 6px;
+  font-size:11px;font-weight:600;
+  cursor:pointer;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-family:inherit;
+}
+.evt .no{opacity:.75;margin-right:4px;font-family:"IBM Plex Mono",monospace;}
+.more{
+  border:none;background:transparent;color:var(--muted);
+  font-size:10.5px;font-weight:600;text-align:left;cursor:pointer;padding:2px 6px;
+}
+.more:hover{color:var(--accent);}
+
+.flash{animation:flashrow 1.6s ease;}
+@keyframes flashrow{
+  0%{background:var(--accent-tint);}
+  100%{background:transparent;}
+}
+
+/* ---- bottom sheet tabs ---- */
+.tabbar{
+  flex:none;
+  display:flex;
+  align-items:flex-end;
+  gap:2px;
+  padding:0 16px;
+  background:var(--paper);
+  border-top:1px solid var(--line);
+}
+.tab{
+  appearance:none;border:1px solid var(--line);border-bottom:none;
+  background:var(--paper);color:var(--muted);
+  padding:8px 18px 7px;
+  font-size:12.5px;font-weight:600;
+  border-radius:7px 7px 0 0;
+  cursor:pointer;
+  font-family:inherit;
+  transform:translateY(1px);
+}
+.tab:hover{color:var(--ink);}
+.tab.active{
+  background:var(--surface);color:var(--ink);
+  border-color:var(--line-strong);
+  transform:translateY(0);
+  box-shadow:0 -2px 6px rgba(0,0,0,.03);
+}
+
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+@media (prefers-reduced-motion: reduce){.flash{animation:none;}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>The Ledger</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+</div>
+
+<div class="view" id="view-tasks">
+  <div class="toolbar">
+    <div class="search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="searchbox" type="text" placeholder="Search tasks, owners, details…" autocomplete="off">
+    </div>
+    <div class="chips" id="catchips"></div>
+    <div class="count" id="rowcount"></div>
+  </div>
+  <div class="sheet-scroll">
+    <div class="sheet" id="sheet">
+      <div class="row head">
+        <div class="cell">No.</div>
+        <div class="cell">Category</div>
+        <div class="cell">Description</div>
+        <div class="cell">Due Date</div>
+        <div class="cell">Link</div>
+        <div class="cell">Dependency</div>
+        <div class="cell">Owner</div>
+        <div class="cell">Details</div>
+        <div class="cell"></div>
+      </div>
+      <!-- rows injected here -->
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-cal" hidden>
+  <div class="calnav">
+    <button class="navbtn" id="calprev" aria-label="Previous month">‹</button>
+    <button class="navbtn" id="calnext" aria-label="Next month">›</button>
+    <h2 id="calmonth"></h2>
+    <button class="todaybtn" id="caltoday">Today</button>
+    <div class="legend" id="callegend"></div>
+  </div>
+  <div class="cal-scroll">
+    <div class="calgrid" id="calgrid"></div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab active" data-tab="tasks">Tasks</button>
+  <button class="tab" data-tab="cal">Calendar</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M",
+    authDomain: "badriyahstasks.firebaseapp.com",
+    projectId: "badriyahstasks",
+    storageBucket: "badriyahstasks.firebasestorage.app",
+    messagingSenderId: "97057321631",
+    appId: "1:97057321631:web:fa339e1352631ecb9d68aa"
+  };
+
+  var SEED = [
+    {no:"1",category:"SAT",description:"Sharjah Architecture Triennial",due:"",link:"",dependency:"",owner:"",details:"",order:10},
+    {no:"1.1",category:"SAT",description:"Tent Design",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:20},
+    {no:"1.2",category:"SAT",description:"Steel plate design",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:30},
+    {no:"1.3",category:"SAT",description:"Wall Text",due:"2026-09-17",link:"link",dependency:"",owner:"",details:"200-300 words",order:40},
+    {no:"1.4",category:"SAT",description:"Prepare Presentations",due:"",link:"",dependency:"meeting with sharmeen",owner:"",details:"",order:50},
+    {no:"1.5",category:"",description:"Photo captions",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"",order:60},
+    {no:"1.6",category:"",description:"Participant Credits",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"Credit laura for theory mentorship, my mom, dina for project management and coordination",order:70},
+    {no:"1.7",category:"",description:"Publication materials",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:80},
+    {no:"2",category:"",description:"CAA-Getty",due:"",link:"",dependency:"",owner:"",details:"",order:90},
+    {no:"2.1",category:"",description:"Access and bookmark your Speaker's Corner",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:100},
+    {no:"2.2",category:"",description:"Review all modules and sign Participant agreement in your Speaker's Corner",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:110},
+    {no:"2.3",category:"",description:"Set your recording permissions (if applicable) and confirm your intent to participate",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:120},
+    {no:"2.4",category:"",description:"Download your CAA Letter of Acceptance and Support from your Speaker's Corner (for Chairs, Workshop Leaders and Presenters)",due:"2026-09-25",link:"",dependency:"",owner:"",details:"May be used to support funding and travel requests",order:130},
+    {no:"2.5",category:"",description:"More tasks",due:"2026-10-01",link:"",dependency:"",owner:"",details:"",order:140},
+    {no:"3",category:"",description:"Freelance",due:"",link:"",dependency:"",owner:"",details:"",order:150},
+    {no:"3.1",category:"",description:"Figure out company license",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:160},
+    {no:"3.1.1",category:"",description:"Talk to lawyer",due:"2026-09-16",link:"",dependency:"",owner:"",details:"",order:170},
+    {no:"3.1.2",category:"",description:"Figure out what services I offer",due:"",link:"",dependency:"",owner:"",details:"Explain to Jad",order:180},
+    {no:"3.2",category:"",description:"Jenya Akademy thing?",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:190},
+    {no:"3.3",category:"",description:"Marriott",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:200},
+    {no:"3.4",category:"",description:"Business card printing (simple). Design is done. Just send to printers.",due:"",link:"",dependency:"",owner:"",details:"Due date TBD",order:210},
+    {no:"3.5",category:"",description:"Set up (fake) employee emails",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:220},
+    {no:"4",category:"",description:"Work - Map design",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:230},
+    {no:"4.1",category:"SAFIR",description:"Fiverr freelancer",due:"",link:"",dependency:"",owner:"",details:"",order:240},
+    {no:"4.1.1",category:"",description:"Speak to him and make an agreement",due:"",link:"",dependency:"",owner:"",details:"",order:250},
+    {no:"5",category:"",description:"AlUla Artwork",due:"2026-09-22",link:"",dependency:"",owner:"",details:"",order:260},
+    {no:"5.1",category:"",description:"Wait on reply from Mizuho/Daniella",due:"2026-09-22",link:"",dependency:"",owner:"",details:"",order:270},
+    {no:"6",category:"Writing",description:"Website/Writing",due:"",link:"",dependency:"",owner:"",details:"",order:280},
+    {no:"6.1",category:"",description:"Finish the actual website",due:"2026-10-01",link:"",dependency:"",owner:"",details:"",order:290},
+    {no:"7",category:"",description:"Seoul nomination",due:"2026-09-26",link:"email link",dependency:"",owner:"",details:"",order:300},
+    {no:"7.1",category:"",description:"A description of the work and the artist",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:310},
+    {no:"7.1.1",category:"",description:"Write a description",due:"2026-09-24",link:"",dependency:"",owner:"",details:"",order:320},
+    {no:"7.2",category:"",description:"2-5 images of the work",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:330},
+    {no:"7.2.1",category:"",description:"Ask DAF for materials",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:340},
+    {no:"7.3",category:"",description:"A video of the work",due:"2026-09-26",link:"",dependency:"Ask from DAF",owner:"",details:"",order:350},
+    {no:"8",category:"",description:"PhD application",due:"",link:"",dependency:"",owner:"",details:"Reach out for rec letters",order:360},
+    {no:"8.1",category:"TESTING",description:"Register for GRE - test by mid October",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:370},
+    {no:"8.1.1",category:"",description:"Ask Harvard if I am exempt from TOEFL",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:380},
+    {no:"8.2",category:"RECOMMENDERS",description:"Reach out to Laura, Dalal, Danielle",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:390},
+    {no:"8.3",category:"PROPOSAL",description:"Read for 1-2 hours a day at 6am or on weekends",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:400},
+    {no:"8.3.1",category:"",description:"Draft core research question + methodology",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:410},
+    {no:"8.3.2",category:"",description:"Write full first draft, referencing professors by name",due:"2026-10-15",link:"",dependency:"",owner:"",details:"",order:420},
+    {no:"8.3.3",category:"",description:"Get feedback, revise",due:"2026-10-18",link:"",dependency:"",owner:"",details:"",order:430},
+    {no:"8.3.4",category:"",description:"",due:"",link:"",dependency:"",owner:"",details:"",order:440},
+    {no:"8.4",category:"PORTFOLIO",description:"Pull together portfolio",due:"2026-11-22",link:"",dependency:"",owner:"",details:"",order:450},
+    {no:"8.5",category:"TRANSCRIPTS",description:"Make sure to have from Columbia and KU",due:"2026-11-22",link:"",dependency:"",owner:"",details:"",order:460},
+    {no:"8.6",category:"ESSAYS",description:"Draft Essays",due:"2026-11-20",link:"",dependency:"",owner:"",details:"",order:470},
+    {no:"8.7",category:"CV",description:"Fully update CV",due:"2026-11-21",link:"",dependency:"",owner:"",details:"",order:480},
+    {no:"8.8",category:"",description:"Final review, compile all, etc",due:"2026-12-15",link:"",dependency:"",owner:"",details:"",order:490},
+    {no:"9",category:"",description:"Research",due:"",link:"",dependency:"",owner:"",details:"",order:500},
+    {no:"9.1",category:"",description:"Read 1 paper a day",due:"",link:"",dependency:"",owner:"",details:"",order:510},
+    {no:"9.2",category:"",description:"Talk to Sudanese tutor for Azmina and Amkina",due:"",link:"",dependency:"",owner:"",details:"",order:520},
+    {no:"9.3",category:"",description:"Submit LoI for IAU Symposia",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"",order:530},
+    {no:"10",category:"",description:"Mini DAF model",due:"",link:"",dependency:"",owner:"",details:"",order:540},
+    {no:"10.1",category:"",description:"TO First Tuition help",due:"",link:"",dependency:"",owner:"",details:"",order:550},
+    {no:"10.2",category:"",description:"Second tuition help",due:"",link:"",dependency:"",owner:"",details:"",order:560},
+    {no:"10.3",category:"",description:"Dalal Alsayer",due:"",link:"",dependency:"",owner:"",details:"",order:570},
+    {no:"11",category:"",description:"DAF Tasks",due:"",link:"",dependency:"",owner:"",details:"",order:580},
+    {no:"11.1",category:"",description:"Invoices",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:590},
+    {no:"12",category:"",description:"Follow Ups",due:"",link:"",dependency:"",owner:"",details:"",order:600},
+    {no:"12.1",category:"",description:"Send email to Laura about Uzbekistan & DAF",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:610},
+    {no:"12.2",category:"",description:"Send email to Danielle also",due:"",link:"",dependency:"",owner:"",details:"",order:620}
+  ];
+
+  var CATS = 8;
+  function catIndex(name){
+    if(!name) return null;
+    var h = 0;
+    for(var i=0;i<name.length;i++){ h = (h*31 + name.charCodeAt(i)) >>> 0; }
+    return h % CATS;
+  }
+  function catClassStyle(name){
+    var idx = catIndex(name);
+    if(idx === null) return {bg:'transparent', fg:'var(--muted)'};
+    return {bg:'var(--cat'+idx+'-bg)', fg:'var(--cat'+idx+'-fg)'};
+  }
+
+  function fmtISO(d){
+    var y=d.getFullYear(), m=('0'+(d.getMonth()+1)).slice(-2), day=('0'+d.getDate()).slice(-2);
+    return y+'-'+m+'-'+day;
+  }
+  function todayISO(){ return fmtISO(new Date()); }
+  function escapeHTML(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+  function isURL(s){ return /^https?:\/\//i.test((s||'').trim()); }
+
+  var state = {
+    tasks: [],
+    search: '',
+    catFilter: null,
+    confirmDeleteId: null,
+    calMonth: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+    expandedDays: {}
+  };
+
+  var els = {
+    sheet: document.getElementById('sheet'),
+    catchips: document.getElementById('catchips'),
+    rowcount: document.getElementById('rowcount'),
+    searchbox: document.getElementById('searchbox'),
+    syncdot: document.getElementById('syncdot'),
+    syncstate: document.getElementById('syncstate'),
+    calgrid: document.getElementById('calgrid'),
+    calmonth: document.getElementById('calmonth'),
+    callegend: document.getElementById('callegend'),
+    viewTasks: document.getElementById('view-tasks'),
+    viewCal: document.getElementById('view-cal')
+  };
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.tab').forEach(function(btn){
+    btn.addEventListener('click', function(){ switchTab(btn.dataset.tab); });
+  });
+  function switchTab(name){
+    document.querySelectorAll('.tab').forEach(function(b){ b.classList.toggle('active', b.dataset.tab===name); });
+    els.viewTasks.hidden = name!=='tasks';
+    els.viewCal.hidden = name!=='cal';
+  }
+
+  // ---------- firebase wiring ----------
+  firebase.initializeApp(firebaseConfig);
+  var db = firebase.firestore();
+  var tasksCol = db.collection('tasks');
+
+  tasksCol.limit(1).get().then(function(snap){
+    if(snap.empty){
+      var batch = db.batch();
+      SEED.forEach(function(t){ batch.set(tasksCol.doc(), t); });
+      return batch.commit();
+    }
+  }).catch(function(e){
+    console.error('Seed check failed', e);
+  });
+
+  tasksCol.orderBy('order','asc').onSnapshot(function(snap){
+    state.tasks = snap.docs.map(function(d){
+      var data = d.data() || {};
+      return {
+        id: d.id,
+        no: data.no || '',
+        category: data.category || '',
+        description: data.description || '',
+        due: data.due || '',
+        link: data.link || '',
+        dependency: data.dependency || '',
+        owner: data.owner || '',
+        details: data.details || '',
+        order: typeof data.order === 'number' ? data.order : 0
+      };
+    });
+    els.syncdot.classList.remove('off','err');
+    els.syncstate.textContent = 'Live — anyone with this link can edit';
+    renderAll();
+  }, function(err){
+    els.syncdot.classList.add('err');
+    els.syncdot.classList.remove('off');
+    els.syncstate.textContent = 'Connection error (' + (err && err.code ? err.code : 'unknown') + ') — check Firestore is enabled';
+    console.error(err);
+  });
+
+  function writeField(id, field, value){
+    var patch = {}; patch[field] = value;
+    tasksCol.doc(id).update(patch).catch(function(e){ console.error(e); });
+  }
+
+  function addTask(){
+    var maxOrder = state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0);
+    tasksCol.add({
+      no:'', category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+      order: maxOrder + 10
+    }).then(function(ref){
+      requestAnimationFrame(function(){
+        var el = document.querySelector('.cell.desc[data-id="'+ref.id+'"]');
+        if(el){ el.focus(); }
+      });
+    }).catch(function(e){ console.error(e); });
+  }
+
+  function deleteTask(id){
+    tasksCol.doc(id).delete().catch(function(e){ console.error(e); });
+  }
+
+  // ---------- search box ----------
+  els.searchbox.addEventListener('input', function(){
+    state.search = els.searchbox.value.trim().toLowerCase();
+    renderTasks();
+  });
+
+  // ---------- render: tasks ----------
+  function matches(t){
+    if(state.catFilter && t.category !== state.catFilter) return false;
+    if(!state.search) return true;
+    var hay = [t.no,t.category,t.description,t.owner,t.dependency,t.details,t.link].join(' ').toLowerCase();
+    return hay.indexOf(state.search) !== -1;
+  }
+
+  function renderChips(){
+    var cats = [];
+    state.tasks.forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
+    els.catchips.innerHTML = cats.map(function(c){
+      var s = catClassStyle(c);
+      var active = state.catFilter === c;
+      return '<button class="chip'+(active?' active':'')+'" data-cat="'+escapeHTML(c)+'" style="background:'+s.bg+';color:'+s.fg+'">'+escapeHTML(c)+'</button>';
+    }).join('');
+    els.catchips.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var c = chip.dataset.cat;
+        state.catFilter = (state.catFilter === c) ? null : c;
+        renderTasks();
+      });
+    });
+  }
+
+  function cellEditableHTML(id, field, value, ph, extraClass){
+    return '<div class="cell'+(extraClass?(' '+extraClass):'')+'" contenteditable="true" data-id="'+id+'" data-field="'+field+'" data-ph="'+ph+'">'+escapeHTML(value)+'</div>';
+  }
+
+  function renderTasks(){
+    renderChips();
+    var visible = state.tasks.filter(matches);
+    els.rowcount.textContent = visible.length + (visible.length===1?' task':' tasks');
+
+    var rowsHTML = visible.map(function(t){
+      var isSection = t.no && t.no.indexOf('.') === -1;
+      var catStyle = catClassStyle(t.category);
+      var overdue = t.due && t.due < todayISO();
+      var confirming = state.confirmDeleteId === t.id;
+
+      var catHTML = '<div class="cell" data-id="'+t.id+'">' +
+        '<span class="tag" contenteditable="true" data-id="'+t.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(t.category)+'</span>' +
+        '</div>';
+
+      var linkHTML = '<div class="cell linkcell">' +
+        '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="—" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
+        (isURL(t.link) ? '<a class="linkopen" href="'+escapeHTML(t.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
+        '</div>';
+
+      var dateHTML = '<div class="cell datecell'+(overdue?' overdue':'')+'">' +
+        '<input type="date" data-id="'+t.id+'" data-field="due" value="'+escapeHTML(t.due)+'">' +
+        '</div>';
+
+      var delHTML = '<div class="cell rowdel">' +
+        (confirming
+          ? '<button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button>'
+          : '<button data-action="del" data-id="'+t.id+'" aria-label="Delete row" title="Delete row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>') +
+        '</div>';
+
+      return '<div class="row'+(isSection?' section':'')+'" data-row-id="'+t.id+'">' +
+        cellEditableHTML(t.id,'no',t.no,'—') +
+        catHTML +
+        cellEditableHTML(t.id,'description',t.description,'Untitled task','desc') +
+        dateHTML +
+        linkHTML +
+        cellEditableHTML(t.id,'dependency',t.dependency,'—') +
+        cellEditableHTML(t.id,'owner',t.owner,'—') +
+        cellEditableHTML(t.id,'details',t.details,'—','wrap') +
+        delHTML +
+        '</div>';
+    }).join('');
+
+    var addRowHTML = '<div class="addrow"><button id="addtaskbtn">+ Add task</button></div>';
+
+    var headHTML = els.sheet.querySelector('.row.head').outerHTML;
+    els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">No tasks match — try clearing the search or filter.</div>') + addRowHTML;
+
+    var btn = document.getElementById('addtaskbtn');
+    if(btn) btn.addEventListener('click', addTask);
+
+    wireCellEvents();
+  }
+
+  function wireCellEvents(){
+    els.sheet.querySelectorAll('[contenteditable="true"]').forEach(function(el){
+      el.addEventListener('blur', function(){
+        writeField(el.dataset.id, el.dataset.field, el.textContent.trim());
+      });
+      el.addEventListener('keydown', function(e){
+        if(e.key === 'Enter'){ e.preventDefault(); el.blur(); }
+      });
+    });
+    els.sheet.querySelectorAll('input[type="date"]').forEach(function(el){
+      el.addEventListener('change', function(){
+        writeField(el.dataset.id, el.dataset.field, el.value);
+      });
+    });
+    els.sheet.querySelectorAll('[data-action="del"]').forEach(function(el){
+      el.addEventListener('click', function(){
+        state.confirmDeleteId = el.dataset.id;
+        renderTasks();
+        setTimeout(function(){
+          if(state.confirmDeleteId === el.dataset.id){
+            state.confirmDeleteId = null;
+            renderTasks();
+          }
+        }, 3500);
+      });
+    });
+    els.sheet.querySelectorAll('[data-action="confirmdel"]').forEach(function(el){
+      el.addEventListener('click', function(){
+        deleteTask(el.dataset.id);
+        state.confirmDeleteId = null;
+      });
+    });
+  }
+
+  // ---------- render: calendar ----------
+  var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  document.getElementById('calprev').addEventListener('click', function(){
+    state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth()-1, 1);
+    renderCalendar();
+  });
+  document.getElementById('calnext').addEventListener('click', function(){
+    state.calMonth = new Date(state.calMonth.getFullYear(), state.calMonth.getMonth()+1, 1);
+    renderCalendar();
+  });
+  document.getElementById('caltoday').addEventListener('click', function(){
+    var n = new Date();
+    state.calMonth = new Date(n.getFullYear(), n.getMonth(), 1);
+    renderCalendar();
+  });
+
+  function eventsByDate(){
+    var map = {};
+    state.tasks.forEach(function(t){
+      if(!t.due) return;
+      (map[t.due] = map[t.due] || []).push(t);
+    });
+    return map;
+  }
+
+  function renderLegend(){
+    var cats = [];
+    state.tasks.forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
+    els.callegend.innerHTML = cats.map(function(c){
+      var s = catClassStyle(c);
+      return '<span class="tag" style="background:'+s.bg+';color:'+s.fg+'">'+escapeHTML(c)+'</span>';
+    }).join('');
+  }
+
+  function renderCalendar(){
+    var y = state.calMonth.getFullYear(), m = state.calMonth.getMonth();
+    els.calmonth.textContent = MONTH_NAMES[m] + ' ' + y;
+    renderLegend();
+
+    var first = new Date(y, m, 1);
+    var startOffset = (first.getDay() + 6) % 7; // Monday=0
+    var gridStart = new Date(y, m, 1 - startOffset);
+    var todayStr = todayISO();
+    var evMap = eventsByDate();
+
+    var html = DAY_NAMES.map(function(d){ return '<div class="calhead">'+d+'</div>'; }).join('');
+
+    for(var i=0;i<42;i++){
+      var d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate()+i);
+      var iso = fmtISO(d);
+      var outside = d.getMonth() !== m;
+      var isToday = iso === todayStr;
+      var dayEvents = evMap[iso] || [];
+      var expanded = !!state.expandedDays[iso];
+      var visibleEvents = expanded ? dayEvents : dayEvents.slice(0,3);
+      var extra = dayEvents.length - visibleEvents.length;
+
+      var chipsHTML = visibleEvents.map(function(t){
+        var s = catClassStyle(t.category);
+        var label = (t.no?('<span class="no">'+escapeHTML(t.no)+'</span>'):'') + escapeHTML(t.description||'Untitled task');
+        return '<button class="evt" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+escapeHTML(t.description||'')+'">'+label+'</button>';
+      }).join('');
+      var moreHTML = extra>0 ? '<button class="more" data-expand="'+iso+'">+'+extra+' more</button>' : (expanded && dayEvents.length>3 ? '<button class="more" data-collapse="'+iso+'">Show less</button>' : '');
+
+      html += '<div class="day'+(outside?' outside':'')+(isToday?' today':'')+'">' +
+        '<div class="daynum">'+d.getDate()+(isToday?'<span class="todaypill">Today</span>':'')+'</div>' +
+        chipsHTML + moreHTML +
+        '</div>';
+    }
+
+    els.calgrid.innerHTML = html;
+
+    els.calgrid.querySelectorAll('[data-goto]').forEach(function(el){
+      el.addEventListener('click', function(){ gotoTask(el.dataset.goto); });
+    });
+    els.calgrid.querySelectorAll('[data-expand]').forEach(function(el){
+      el.addEventListener('click', function(){ state.expandedDays[el.dataset.expand]=true; renderCalendar(); });
+    });
+    els.calgrid.querySelectorAll('[data-collapse]').forEach(function(el){
+      el.addEventListener('click', function(){ delete state.expandedDays[el.dataset.collapse]; renderCalendar(); });
+    });
+  }
+
+  function gotoTask(id){
+    switchTab('tasks');
+    state.search=''; els.searchbox.value=''; state.catFilter=null;
+    renderTasks();
+    requestAnimationFrame(function(){
+      var row = document.querySelector('.row[data-row-id="'+id+'"]');
+      if(row){
+        row.scrollIntoView({block:'center', behavior:'smooth'});
+        row.querySelectorAll('.cell').forEach(function(c){ c.classList.add('flash'); });
+        setTimeout(function(){ row.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('flash'); }); }, 1700);
+      }
+    });
+  }
+
+  function renderAll(){
+    renderTasks();
+    renderCalendar();
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
