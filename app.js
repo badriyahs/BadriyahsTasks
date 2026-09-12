@@ -224,11 +224,22 @@ window.Ledger = (function(){
     return max + 1;
   }
   function topSegment(no){ return no ? no.split('.')[0] : ''; }
-  function sectionColor(no){ return catClassStyle(topSegment(no)); }
-  function ancestorTitle(no){
-    if(!no) return '';
+  function topAncestor(no){
+    if(!no) return null;
     var seg = topSegment(no);
-    var top = state.tasks.find(function(t){ return t.no === seg; });
+    return state.tasks.find(function(t){ return t.no === seg; }) || null;
+  }
+  /* Color a section band by its category text when the section has one
+     (so it matches that section's own category tag pill exactly), and
+     only fall back to hashing the bare section number for sections that
+     were never given a category. */
+  function sectionColor(no){
+    var top = topAncestor(no);
+    var key = (top && top.category) ? top.category : topSegment(no);
+    return catClassStyle(key);
+  }
+  function ancestorTitle(no){
+    var top = topAncestor(no);
     return top ? top.description : '';
   }
   function insertOrderForChild(parentTask){
@@ -285,20 +296,27 @@ window.Ledger = (function(){
     }).catch(function(e){ console.error(e); });
   }
 
-  function addSubtask(parentId){
-    var parent = state.tasks.find(function(t){ return t.id === parentId; });
-    if(!parent) return;
-    var childNo = parent.no ? (parent.no + '.' + nextChildNumber(parent.no)) : String(nextTopLevelNumber());
-    var ord = insertOrderForChild(parent);
+  /* Adds a new row at the SAME level as `row`, placed right after it (and
+     after everything already nested under it) — e.g. + on 3.1.1 gives
+     3.1.2, a sibling, not 3.1.1.1, a child. To go a level deeper, add a
+     sibling and then edit its "no" cell by hand to append ".1" — that's
+     rare enough not to need its own button. */
+  function addSiblingAfter(rowId){
+    var row = state.tasks.find(function(t){ return t.id === rowId; });
+    if(!row) return;
+    var dot = row.no ? row.no.lastIndexOf('.') : -1;
+    var parentNo = dot === -1 ? null : row.no.slice(0, dot);
+    var newNo = parentNo ? (parentNo + '.' + nextChildNumber(parentNo)) : String(nextTopLevelNumber());
+    var ord = insertOrderForChild(row);
     var data = {
-      no:childNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+      no:newNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
       order: ord, archived:false, struck:false
     };
     tasksCol.add(data).then(function(ref){
       pendingFocusId = ref.id;
       logActivity(data, 'added');
       pushUndo({
-        label: 'adding subtask ' + childNo,
+        label: 'adding ' + newNo,
         undo: function(){ tasksCol.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
         redo: function(){ tasksCol.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
       });
@@ -530,7 +548,7 @@ window.Ledger = (function(){
       }
     } else {
       actionsHTML = '<div class="cell rowactions">' +
-        '<button data-action="addsub" data-id="'+t.id+'" title="Add subtask"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
+        '<button data-action="addsub" data-id="'+t.id+'" title="Add a row after this one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
         '<button data-action="strike" data-id="'+t.id+'" title="'+(t.struck?'Remove strikethrough':'Cross out (stays in Tasks)')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14"/></svg></button>' +
         '<button data-action="archive" data-id="'+t.id+'" title="Delete (moves to Archive)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
         '</div>';
@@ -555,7 +573,7 @@ window.Ledger = (function(){
     onStatus: onStatus,
     updateField: updateField,
     addTopLevel: addTopLevel,
-    addSubtask: addSubtask,
+    addSiblingAfter: addSiblingAfter,
     archiveTask: archiveTask,
     restoreTask: restoreTask,
     deleteTask: deleteTask,

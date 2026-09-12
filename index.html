@@ -54,7 +54,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 <script>
 (function(){
   "use strict";
@@ -156,7 +156,7 @@
     var btn = e.target.closest('button[data-action]');
     if(!btn) return;
     var action = btn.dataset.action, id = btn.dataset.id;
-    if(action === 'addsub'){ L.addSubtask(id); }
+    if(action === 'addsub'){ L.addSiblingAfter(id); }
     else if(action === 'strike'){ L.toggleStrike(id); }
     else if(action === 'archive'){ L.archiveTask(id); }
   });
