@@ -557,8 +557,8 @@ window.Ledger = (function(){
       descHTML +
       dateHTML +
       linkHTML +
-      cellEditableHTML(t.id,'dependency',t.dependency,'—') +
-      cellEditableHTML(t.id,'owner',t.owner,'—') +
+      cellEditableHTML(t.id,'dependency',t.dependency,'') +
+      cellEditableHTML(t.id,'owner',t.owner,'') +
       cellEditableHTML(t.id,'details',t.details,'Notes — Enter for a new bullet','wrap') +
       actionsHTML +
       '</div>';
