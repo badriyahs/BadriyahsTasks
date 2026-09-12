@@ -118,26 +118,9 @@ window.Ledger = (function(){
   var tasksCol = db.collection('tasks');
   var activityCol = db.collection('activity');
 
-  // ---------- who's editing ----------
-  function getActor(){
-    var n;
-    try{ n = localStorage.getItem('ledgerActor'); }catch(e){ n = null; }
-    if(!n){ n = promptForActor(); }
-    return n || 'Someone';
-  }
-  function promptForActor(){
-    var n = '';
-    try{
-      n = (window.prompt("What's your name? (shown on the Activity log when you make changes)") || '').trim();
-      if(n) localStorage.setItem('ledgerActor', n);
-    }catch(e){ /* prompt blocked or storage unavailable */ }
-    return n || 'Someone';
-  }
-  function setActor(){ return promptForActor(); }
-
   function logActivity(t, verb, extra){
     var doc = {
-      actor: getActor(),
+      actor: 'User',
       verb: verb,
       no: t ? (t.no || '') : '',
       description: t ? (t.description || '') : '',
@@ -371,21 +354,12 @@ window.Ledger = (function(){
     });
   }
 
-  // ---------- shared topbar wiring (undo/redo + actor badge) ----------
+  // ---------- shared topbar wiring (undo/redo) ----------
   function wireTopbar(){
     var undoBtn = document.getElementById('undobtn');
     var redoBtn = document.getElementById('redobtn');
-    var actorBtn = document.getElementById('actorbadge');
     if(undoBtn){ undoBtn.addEventListener('click', undo); }
     if(redoBtn){ redoBtn.addEventListener('click', redo); }
-    if(actorBtn){
-      var refreshActor = function(){
-        var n = getActor();
-        actorBtn.innerHTML = 'You: <b>' + escapeHTML(n) + '</b>';
-      };
-      refreshActor();
-      actorBtn.addEventListener('click', function(){ setActor(); refreshActor(); });
-    }
     onUndoState(function(st){
       if(undoBtn) undoBtn.disabled = !st.canUndo;
       if(redoBtn) redoBtn.disabled = !st.canRedo;
@@ -400,18 +374,42 @@ window.Ledger = (function(){
   }
 
   // ---------- shared editing wiring ----------
-  function insertTextAtCursor(text){
+  /* Text-offset based insert: robust across browsers/automation, doesn't
+     depend on a live Selection range surviving between events. */
+  function caretOffset(el){
     var sel = window.getSelection();
-    if(!sel || !sel.rangeCount) return;
-    var range = sel.getRangeAt(0);
-    range.deleteContents();
-    var node = document.createTextNode(text);
-    range.insertNode(node);
-    range.setStartAfter(node);
-    range.setEndAfter(node);
-    range.collapse(true);
+    if(!sel || !sel.rangeCount || !el.contains(sel.anchorNode)) return el.textContent.length;
+    var pre = document.createRange();
+    pre.selectNodeContents(el);
+    pre.setEnd(sel.getRangeAt(0).endContainer, sel.getRangeAt(0).endOffset);
+    return pre.toString().length;
+  }
+  function setCaretOffset(el, offset){
+    var sel = window.getSelection();
+    var range = document.createRange();
+    var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    var node, pos = 0;
+    while((node = walker.nextNode())){
+      var len = node.textContent.length;
+      if(pos + len >= offset){
+        range.setStart(node, offset - pos);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return;
+      }
+      pos += len;
+    }
+    range.selectNodeContents(el);
+    range.collapse(false);
     sel.removeAllRanges();
     sel.addRange(range);
+  }
+  function insertTextInEl(el, text){
+    var offset = caretOffset(el);
+    var full = el.textContent;
+    el.textContent = full.slice(0, offset) + text + full.slice(offset);
+    setCaretOffset(el, offset + text.length);
   }
 
   function wireEditing(container){
@@ -427,7 +425,7 @@ window.Ledger = (function(){
       if(e.key === 'Enter'){
         e.preventDefault();
         if(el.dataset.field === 'details'){
-          insertTextAtCursor('\n• ');
+          insertTextInEl(el, '\n• ');
         } else {
           el.blur();
         }
@@ -438,7 +436,7 @@ window.Ledger = (function(){
       if(el.matches && el.matches('[contenteditable="true"]')){
         e.preventDefault();
         var text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        insertTextAtCursor(text);
+        insertTextInEl(el, text);
       }
     });
     container.addEventListener('change', function(e){
@@ -569,8 +567,6 @@ window.Ledger = (function(){
     focusIdOnce: focusIdOnce,
     rowHTML: rowHTML,
     activityCol: activityCol,
-    getActor: getActor,
-    setActor: setActor,
     undo: undo,
     redo: redo,
     onUndoState: onUndoState,

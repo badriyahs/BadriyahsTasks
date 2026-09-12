@@ -76,14 +76,6 @@ body{
 .undoredo button:hover:not(:disabled){background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
 .undoredo button:disabled{opacity:.35;cursor:default;}
 
-.actorbadge{
-  flex:none;border:1px solid var(--line-strong);background:var(--surface);color:var(--muted);
-  padding:0 10px;height:28px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;
-}
-.actorbadge:hover{background:var(--accent-tint);border-color:var(--accent);color:var(--accent);}
-.actorbadge b{color:var(--ink);font-weight:700;}
-.actorbadge:hover b{color:var(--accent);}
-
 /* === ACTIVITY FEED === */
 .activity-scroll{flex:1;min-height:0;overflow:auto;padding:6px 20px 20px;}
 .activity-item{
