@@ -67,7 +67,6 @@
 
   var search = '';
   var catFilter = null;
-  var confirmDeleteId = null;
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
@@ -110,10 +109,12 @@
     var visible = activeTasks.filter(matches);
     els.rowcount.textContent = visible.length + (visible.length===1?' task':' tasks');
 
-    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'active', confirmDeleteId); }).join('');
+    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'active', null); }).join('');
     var addRowHTML = '<div class="addrow"><button id="addtaskbtn">+ Add task</button></div>';
     var headHTML = els.sheet.querySelector('.row.head').outerHTML;
-    els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">No tasks match — try clearing the search or filter.</div>') + addRowHTML;
+    L.preserveFocus(els.sheet, function(){
+      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">No tasks match — try clearing the search or filter.</div>') + addRowHTML;
+    });
 
     var btn = document.getElementById('addtaskbtn');
     if(btn) btn.addEventListener('click', L.addTopLevel);
@@ -145,39 +146,14 @@
   }
 
   // ---------- event delegation ----------
-  els.sheet.addEventListener('focusout', function(e){
-    var el = e.target;
-    if(el.matches && el.matches('[contenteditable="true"]')){
-      L.updateField(el.dataset.id, el.dataset.field, el.textContent.trim());
-    }
-  });
-  els.sheet.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' && e.target.matches && e.target.matches('[contenteditable="true"]')){
-      e.preventDefault();
-      e.target.blur();
-    }
-  });
-  els.sheet.addEventListener('change', function(e){
-    if(e.target.matches && e.target.matches('input[type="date"]')){
-      L.updateField(e.target.dataset.id, e.target.dataset.field, e.target.value);
-    }
-  });
+  L.wireEditing(els.sheet);
   els.sheet.addEventListener('click', function(e){
     var btn = e.target.closest('button[data-action]');
     if(!btn) return;
     var action = btn.dataset.action, id = btn.dataset.id;
     if(action === 'addsub'){ L.addSubtask(id); }
+    else if(action === 'strike'){ L.toggleStrike(id); }
     else if(action === 'archive'){ L.archiveTask(id); }
-    else if(action === 'del'){
-      confirmDeleteId = id;
-      render();
-      setTimeout(function(){
-        if(confirmDeleteId === id){ confirmDeleteId = null; render(); }
-      }, 3500);
-    } else if(action === 'confirmdel'){
-      L.deleteTask(id);
-      confirmDeleteId = null;
-    }
   });
 
   L.onChange(render);

@@ -64,6 +64,7 @@
   };
 
   var search = '';
+  var confirmDeleteId = null;
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
@@ -87,34 +88,29 @@
     var visible = archived.filter(matches);
     els.rowcount.textContent = visible.length + (visible.length===1?' archived task':' archived tasks');
 
-    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'archived', null); }).join('');
+    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'archived', confirmDeleteId); }).join('');
     var headHTML = els.sheet.querySelector('.row.head').outerHTML;
-    els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">Nothing archived yet. Cross out a task from the Tasks tab to send it here.</div>');
+    L.preserveFocus(els.sheet, function(){
+      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">Nothing archived yet. Cross out a task from the Tasks tab to send it here.</div>');
+    });
   }
 
-  els.sheet.addEventListener('focusout', function(e){
-    var el = e.target;
-    if(el.matches && el.matches('[contenteditable="true"]')){
-      L.updateField(el.dataset.id, el.dataset.field, el.textContent.trim());
-    }
-  });
-  els.sheet.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' && e.target.matches && e.target.matches('[contenteditable="true"]')){
-      e.preventDefault();
-      e.target.blur();
-    }
-  });
-  els.sheet.addEventListener('change', function(e){
-    if(e.target.matches && e.target.matches('input[type="date"]')){
-      L.updateField(e.target.dataset.id, e.target.dataset.field, e.target.value);
-    }
-  });
+  L.wireEditing(els.sheet);
   els.sheet.addEventListener('click', function(e){
     var btn = e.target.closest('button[data-action]');
     if(!btn) return;
     var action = btn.dataset.action, id = btn.dataset.id;
     if(action === 'restore'){ L.restoreTask(id); }
-    else if(action === 'del'){ L.deleteTask(id); }
+    else if(action === 'del'){
+      confirmDeleteId = id;
+      render();
+      setTimeout(function(){
+        if(confirmDeleteId === id){ confirmDeleteId = null; render(); }
+      }, 3500);
+    } else if(action === 'confirmdel'){
+      L.deleteTask(id);
+      confirmDeleteId = null;
+    }
   });
 
   L.onChange(render);

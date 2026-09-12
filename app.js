@@ -139,7 +139,8 @@ window.Ledger = (function(){
         owner: data.owner || '',
         details: data.details || '',
         order: typeof data.order === 'number' ? data.order : 0,
-        archived: !!data.archived
+        archived: !!data.archived,
+        struck: !!data.struck
       };
     });
     ready = true;
@@ -180,6 +181,14 @@ window.Ledger = (function(){
     });
     return max + 1;
   }
+  function topSegment(no){ return no ? no.split('.')[0] : ''; }
+  function sectionColor(no){ return catClassStyle(topSegment(no)); }
+  function ancestorTitle(no){
+    if(!no) return '';
+    var seg = topSegment(no);
+    var top = state.tasks.find(function(t){ return t.no === seg; });
+    return top ? top.description : '';
+  }
   function insertOrderForChild(parentTask){
     var list = state.tasks;
     var idx = list.findIndex(function(t){ return t.id === parentTask.id; });
@@ -208,8 +217,8 @@ window.Ledger = (function(){
     var maxOrder = state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0);
     tasksCol.add({
       no:no, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
-      order: maxOrder + 10, archived:false
-    }).then(function(ref){ pendingFocusId = ref.id; notify(); }).catch(function(e){ console.error(e); });
+      order: maxOrder + 10, archived:false, struck:false
+    }).then(function(ref){ pendingFocusId = ref.id; }).catch(function(e){ console.error(e); });
   }
 
   function addSubtask(parentId){
@@ -219,13 +228,83 @@ window.Ledger = (function(){
     var ord = insertOrderForChild(parent);
     tasksCol.add({
       no:childNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
-      order: ord, archived:false
-    }).then(function(ref){ pendingFocusId = ref.id; notify(); }).catch(function(e){ console.error(e); });
+      order: ord, archived:false, struck:false
+    }).then(function(ref){ pendingFocusId = ref.id; }).catch(function(e){ console.error(e); });
   }
 
   function archiveTask(id){ tasksCol.doc(id).update({archived:true}).catch(function(e){ console.error(e); }); }
   function restoreTask(id){ tasksCol.doc(id).update({archived:false}).catch(function(e){ console.error(e); }); }
   function deleteTask(id){ tasksCol.doc(id).delete().catch(function(e){ console.error(e); }); }
+  function toggleStrike(id){
+    var t = state.tasks.find(function(x){ return x.id === id; });
+    if(!t) return;
+    tasksCol.doc(id).update({struck: !t.struck}).catch(function(e){ console.error(e); });
+  }
+
+  // ---------- shared editing wiring ----------
+  function wireEditing(container){
+    container.addEventListener('focusout', function(e){
+      var el = e.target;
+      if(el.matches && el.matches('[contenteditable="true"]')){
+        updateField(el.dataset.id, el.dataset.field, el.textContent.trim());
+      }
+    });
+    container.addEventListener('keydown', function(e){
+      var el = e.target;
+      if(!(el.matches && el.matches('[contenteditable="true"]'))) return;
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        if(el.dataset.field === 'details'){
+          document.execCommand('insertText', false, '\n• ');
+        } else {
+          el.blur();
+        }
+      }
+    });
+    container.addEventListener('paste', function(e){
+      var el = e.target;
+      if(el.matches && el.matches('[contenteditable="true"]')){
+        e.preventDefault();
+        var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      }
+    });
+    container.addEventListener('change', function(e){
+      if(e.target.matches && e.target.matches('input[type="date"]')){
+        updateField(e.target.dataset.id, e.target.dataset.field, e.target.value);
+      }
+    });
+  }
+
+  function preserveFocus(container, rebuild){
+    var active = document.activeElement;
+    var info = null;
+    if(active && container.contains(active) && active.matches){
+      if(active.matches('[contenteditable="true"]')){
+        info = {id: active.dataset.id, field: active.dataset.field, isDate:false};
+      } else if(active.matches('input[type="date"]')){
+        info = {id: active.dataset.id, field: active.dataset.field, isDate:true};
+      }
+    }
+    rebuild();
+    if(info){
+      var sel = info.isDate
+        ? 'input[type="date"][data-id="'+info.id+'"][data-field="'+info.field+'"]'
+        : '[data-id="'+info.id+'"][data-field="'+info.field+'"][contenteditable="true"]';
+      var el = container.querySelector(sel);
+      if(el){
+        el.focus();
+        if(!info.isDate){
+          var range = document.createRange();
+          range.selectNodeContents(el);
+          range.collapse(false);
+          var s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(range);
+        }
+      }
+    }
+  }
 
   // ---------- shared row markup ----------
   function cellEditableHTML(id, field, value, ph, extraClass){
@@ -238,7 +317,12 @@ window.Ledger = (function(){
     var catStyle = catClassStyle(t.category);
     var overdue = t.due && t.due < todayISO() && !t.archived;
     var confirming = confirmingId === t.id;
-    var rowClasses = 'row' + (isParent?' parent':'') + (t.archived?' archived':'');
+    var rowClasses = 'row' + (isParent?' parent':'') + (t.archived?' archived':'') + (t.struck?' struck':'');
+    var rowStyle = '';
+    if(isParent){
+      var band = sectionColor(t.no);
+      rowStyle = ' style="--row-band:'+band.bg+';--row-band-fg:'+band.fg+'"';
+    }
 
     var catHTML = '<div class="cell" data-id="'+t.id+'">' +
       '<span class="tag" contenteditable="true" data-id="'+t.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(t.category)+'</span>' +
@@ -250,7 +334,7 @@ window.Ledger = (function(){
       '</div>';
 
     var linkHTML = '<div class="cell linkcell">' +
-      '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="—" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
+      '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="Paste a link…" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
       (isURL(t.link) ? '<a class="linkopen" href="'+escapeHTML(t.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
       '</div>';
 
@@ -259,22 +343,24 @@ window.Ledger = (function(){
       '</div>';
 
     var actionsHTML;
-    if(confirming){
-      actionsHTML = '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button></div>';
-    } else if(mode === 'archived'){
-      actionsHTML = '<div class="cell rowactions">' +
-        '<button class="restore" data-action="restore" data-id="'+t.id+'" title="Restore"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>' +
-        '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete permanently"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
-        '</div>';
+    if(mode === 'archived'){
+      if(confirming){
+        actionsHTML = '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button></div>';
+      } else {
+        actionsHTML = '<div class="cell rowactions">' +
+          '<button class="restore" data-action="restore" data-id="'+t.id+'" title="Restore"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>' +
+          '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete permanently"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+          '</div>';
+      }
     } else {
       actionsHTML = '<div class="cell rowactions">' +
         '<button data-action="addsub" data-id="'+t.id+'" title="Add subtask"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
-        '<button data-action="archive" data-id="'+t.id+'" title="Cross out / archive"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg></button>' +
-        '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+        '<button data-action="strike" data-id="'+t.id+'" title="'+(t.struck?'Remove strikethrough':'Strike through')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+        '<button data-action="archive" data-id="'+t.id+'" title="Archive"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
         '</div>';
     }
 
-    return '<div class="'+rowClasses+'" data-row-id="'+t.id+'">' +
+    return '<div class="'+rowClasses+'" data-row-id="'+t.id+'"'+rowStyle+'>' +
       cellEditableHTML(t.id,'no',t.no,'—','no') +
       catHTML +
       descHTML +
@@ -282,7 +368,7 @@ window.Ledger = (function(){
       linkHTML +
       cellEditableHTML(t.id,'dependency',t.dependency,'—') +
       cellEditableHTML(t.id,'owner',t.owner,'—') +
-      cellEditableHTML(t.id,'details',t.details,'—','wrap') +
+      cellEditableHTML(t.id,'details',t.details,'Notes — Enter for a new bullet','wrap') +
       actionsHTML +
       '</div>';
   }
@@ -297,14 +383,20 @@ window.Ledger = (function(){
     archiveTask: archiveTask,
     restoreTask: restoreTask,
     deleteTask: deleteTask,
+    toggleStrike: toggleStrike,
     hasChildren: hasChildren,
     depthOf: depthOf,
     catClassStyle: catClassStyle,
+    sectionColor: sectionColor,
+    topSegment: topSegment,
+    ancestorTitle: ancestorTitle,
     escapeHTML: escapeHTML,
     isURL: isURL,
     fmtISO: fmtISO,
     todayISO: todayISO,
     focusIdOnce: focusIdOnce,
-    rowHTML: rowHTML
+    rowHTML: rowHTML,
+    wireEditing: wireEditing,
+    preserveFocus: preserveFocus
   };
 })();

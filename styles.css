@@ -128,11 +128,16 @@ body{
 }
 .row:not(.head):hover .cell{background:#F3F5FC;}
 
-.row.parent .cell{font-weight:700;}
-.row.parent .cell.no,.row.parent .cell.desc-wrap{color:var(--ink);}
+.row.parent .cell{
+  font-weight:700;
+  background:var(--row-band, var(--parent-tint));
+  color:var(--row-band-fg, var(--ink));
+}
 
 .row.archived .cell{background:var(--archived-tint);color:var(--faint);}
-.row.archived .desc-text,.row.archived .cell.no,.row.archived [contenteditable]{
+.row.struck .cell{background:var(--archived-tint);}
+.row.archived .desc-text,.row.archived .cell.no,.row.archived [contenteditable],
+.row.struck .desc-text,.row.struck .cell.no,.row.struck [contenteditable]{
   text-decoration:line-through;
   color:var(--faint);
 }

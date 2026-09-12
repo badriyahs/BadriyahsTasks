@@ -88,11 +88,17 @@
   }
 
   function renderLegend(){
-    var cats = [];
-    activeTasks().forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
-    els.callegend.innerHTML = cats.map(function(c){
-      var s = L.catClassStyle(c);
-      return '<span class="tag" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(c)+'</span>';
+    var seen = {}, items = [];
+    activeTasks().forEach(function(t){
+      if(!t.due) return;
+      var seg = L.topSegment(t.no);
+      if(seen[seg]) return;
+      seen[seg] = true;
+      items.push({seg:seg, title:L.ancestorTitle(t.no) || seg});
+    });
+    els.callegend.innerHTML = items.map(function(it){
+      var s = L.sectionColor(it.seg);
+      return '<span class="tag" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(it.title)+'</span>';
     }).join('');
   }
 
@@ -120,9 +126,12 @@
       var extra = dayEvents.length - visibleEvents.length;
 
       var chipsHTML = visibleEvents.map(function(t){
-        var s = L.catClassStyle(t.category);
-        var label = (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled task');
-        return '<button class="evt" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(t.description||'')+'">'+label+'</button>';
+        var s = L.sectionColor(t.no);
+        var depth = L.depthOf(t.no);
+        var prefix = depth>0 ? (L.ancestorTitle(t.no)||'').toUpperCase() : '';
+        var label = (prefix?'<b>'+L.escapeHTML(prefix)+':</b> ':'') + (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled task');
+        var tip = (prefix?prefix+' — ':'') + (t.description||'');
+        return '<button class="evt" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
       }).join('');
       var moreHTML = extra>0 ? '<button class="more" data-expand="'+iso+'">+'+extra+' more</button>' : (expanded && dayEvents.length>3 ? '<button class="more" data-collapse="'+iso+'">Show less</button>' : '');
 
