@@ -214,7 +214,7 @@ window.Ledger = (function(){
   function hasChildren(no){
     if(!no) return false;
     var prefix = no + '.';
-    return state.tasks.some(function(t){ return t.no && t.no.indexOf(prefix) === 0; });
+    return state.tasks.some(function(t){ return !t.archived && t.no && t.no.indexOf(prefix) === 0; });
   }
   function nextTopLevelNumber(){
     var max = 0;
@@ -400,6 +400,20 @@ window.Ledger = (function(){
   }
 
   // ---------- shared editing wiring ----------
+  function insertTextAtCursor(text){
+    var sel = window.getSelection();
+    if(!sel || !sel.rangeCount) return;
+    var range = sel.getRangeAt(0);
+    range.deleteContents();
+    var node = document.createTextNode(text);
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.setEndAfter(node);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
   function wireEditing(container){
     container.addEventListener('focusout', function(e){
       var el = e.target;
@@ -413,7 +427,7 @@ window.Ledger = (function(){
       if(e.key === 'Enter'){
         e.preventDefault();
         if(el.dataset.field === 'details'){
-          document.execCommand('insertText', false, '\n• ');
+          insertTextAtCursor('\n• ');
         } else {
           el.blur();
         }
@@ -424,7 +438,7 @@ window.Ledger = (function(){
       if(el.matches && el.matches('[contenteditable="true"]')){
         e.preventDefault();
         var text = (e.clipboardData || window.clipboardData).getData('text/plain');
-        document.execCommand('insertText', false, text);
+        insertTextAtCursor(text);
       }
     });
     container.addEventListener('change', function(e){
