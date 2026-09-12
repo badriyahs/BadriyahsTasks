@@ -193,6 +193,7 @@ body{
 }
 .datecell input[type="date"]:focus{outline:2px solid var(--accent);}
 .datecell.overdue input{color:var(--overdue);}
+.datecell input[type="date"].empty{color:var(--faint);}
 
 .linkcell{gap:6px;}
 .linkcell .cell-text{

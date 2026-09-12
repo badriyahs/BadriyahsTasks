@@ -530,7 +530,7 @@ window.Ledger = (function(){
       '</div>';
 
     var dateHTML = '<div class="cell datecell'+(overdue?' overdue':'')+'">' +
-      '<input type="date" data-id="'+t.id+'" data-field="due" value="'+escapeHTML(t.due)+'">' +
+      '<input type="date" data-id="'+t.id+'" data-field="due" value="'+escapeHTML(t.due)+'"'+(!t.due?' class="empty"':'')+'>' +
       '</div>';
 
     var actionsHTML;
