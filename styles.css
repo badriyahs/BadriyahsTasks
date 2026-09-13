@@ -196,6 +196,14 @@ body{
 .datecell input[type="date"].empty{color:var(--faint);}
 .datecell input[type="date"]::-webkit-calendar-picker-indicator{opacity:.3;}
 .datecell input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:.6;}
+/* A native date input ignores [contenteditable] selectors and its own
+   text can't take text-decoration, so struck/archived rows need their
+   own rule to grey it out — otherwise the due date stays full-color
+   while the rest of the row fades. */
+.row.archived .datecell input,
+.row.struck .datecell input{color:var(--faint);}
+.row.archived .datecell input::-webkit-calendar-picker-indicator,
+.row.struck .datecell input::-webkit-calendar-picker-indicator{opacity:.15;}
 
 .linkcell{gap:6px;}
 .linkcell .cell-text{
