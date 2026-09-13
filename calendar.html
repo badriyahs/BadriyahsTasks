@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Calendar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 
@@ -131,12 +131,12 @@
       var extra = dayEvents.length - visibleEvents.length;
 
       var chipsHTML = visibleEvents.map(function(t){
-        var s = L.sectionColor(t.no);
+        var s = t.struck ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : L.sectionColor(t.no);
         var depth = L.depthOf(t.no);
         var prefix = depth>0 ? (L.ancestorTitle(t.no)||'').toUpperCase() : '';
         var label = (prefix?'<b>'+L.escapeHTML(prefix)+':</b> ':'') + (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled task');
         var tip = (prefix?prefix+' — ':'') + (t.description||'');
-        return '<button class="evt" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
+        return '<button class="evt'+(t.struck?' struck':'')+'" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
       }).join('');
       var moreHTML = extra>0 ? '<button class="more" data-expand="'+iso+'">+'+extra+' more</button>' : (expanded && dayEvents.length>3 ? '<button class="more" data-collapse="'+iso+'">Show less</button>' : '');
 
