@@ -160,11 +160,6 @@ body{
   color:var(--row-band-fg, var(--ink));
 }
 
-/* An empty Link or Details cell should read as plainly empty — never
-   tinted by a main row's colored background. */
-.sheet .cell.linkcell:has(.cell-text:empty){background:var(--surface);}
-.sheet .cell.wrap:empty{background:var(--surface);}
-
 .row.archived .cell{background:var(--archived-tint);color:var(--faint);}
 .row.struck .cell{background:var(--archived-tint);}
 .row.archived .desc-text,.row.archived .cell.no,.row.archived [contenteditable],
