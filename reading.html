@@ -53,7 +53,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=12"></script>
+<script src="app.js?v=13"></script>
 <script>
 (function(){
   "use strict";
@@ -73,10 +73,15 @@
   var catFilter = null;
   var confirmDeleteId = null;
 
-  L.onStatus(function(kind, text){
-    els.syncdot.classList.remove('off','err');
-    if(kind !== 'ok') els.syncdot.classList.add(kind);
-    els.syncstate.textContent = text;
+  L.onReadingStatus(function(kind, text){
+    if(kind === 'err'){
+      els.syncdot.classList.remove('off');
+      els.syncdot.classList.add('err');
+      els.syncstate.textContent = text;
+    } else {
+      els.syncdot.classList.remove('off','err');
+      els.syncstate.textContent = 'Live — anyone with this link can edit';
+    }
   });
 
   els.searchbox.addEventListener('input', function(){
@@ -156,6 +161,7 @@
   });
 
   L.onReadingChange(render);
+  render();
 })();
 </script>
 </body>

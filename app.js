@@ -197,9 +197,12 @@ window.Ledger = (function(){
   // ---------- reading list (separate collection, simpler flat list) ----------
   var readingState = { items: [] };
   var readingListeners = [];
+  var readingStatusListeners = [];
   var readingReady = false;
   function onReadingChange(fn){ readingListeners.push(fn); if(readingReady) fn(); }
   function notifyReading(){ readingListeners.forEach(function(fn){ fn(); }); }
+  function onReadingStatus(fn){ readingStatusListeners.push(fn); }
+  function notifyReadingStatus(kind, text){ readingStatusListeners.forEach(function(fn){ fn(kind, text); }); }
 
   readingCol.orderBy('order', 'asc').onSnapshot(function(snap){
     readingState.items = snap.docs.map(function(d){
@@ -215,8 +218,10 @@ window.Ledger = (function(){
       };
     });
     readingReady = true;
+    notifyReadingStatus('ok', '');
     notifyReading();
   }, function(err){
+    notifyReadingStatus('err', 'Reading list needs its Firestore rule added (see chat) — ' + (err && err.code ? err.code : 'error'));
     console.error(err);
   });
 
@@ -679,6 +684,7 @@ window.Ledger = (function(){
     preserveFocus: preserveFocus,
     readingState: readingState,
     onReadingChange: onReadingChange,
+    onReadingStatus: onReadingStatus,
     addReadingItem: addReadingItem,
     updateReadingField: updateReadingField,
     toggleReadingDone: toggleReadingDone,
