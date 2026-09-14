@@ -117,6 +117,7 @@ window.Ledger = (function(){
   var db = firebase.firestore();
   var tasksCol = db.collection('tasks');
   var activityCol = db.collection('activity');
+  var readingCol = db.collection('reading');
 
   function logActivity(t, verb, extra){
     var doc = {
@@ -192,6 +193,87 @@ window.Ledger = (function(){
     notifyStatus('err', 'Connection error (' + (err && err.code ? err.code : 'unknown') + ') — check Firestore is enabled');
     console.error(err);
   });
+
+  // ---------- reading list (separate collection, simpler flat list) ----------
+  var readingState = { items: [] };
+  var readingListeners = [];
+  var readingReady = false;
+  function onReadingChange(fn){ readingListeners.push(fn); if(readingReady) fn(); }
+  function notifyReading(){ readingListeners.forEach(function(fn){ fn(); }); }
+
+  readingCol.orderBy('order', 'asc').onSnapshot(function(snap){
+    readingState.items = snap.docs.map(function(d){
+      var data = d.data() || {};
+      return {
+        id: d.id,
+        category: data.category || '',
+        title: data.title || '',
+        link: data.link || '',
+        note: data.note || '',
+        done: !!data.done,
+        order: typeof data.order === 'number' ? data.order : 0
+      };
+    });
+    readingReady = true;
+    notifyReading();
+  }, function(err){
+    console.error(err);
+  });
+
+  var pendingReadingFocusId = null;
+  function focusReadingIdOnce(){ var id = pendingReadingFocusId; pendingReadingFocusId = null; return id; }
+
+  function addReadingItem(){
+    var maxOrder = readingState.items.reduce(function(m,r){ return Math.max(m, r.order||0); }, 0);
+    var data = {category:'', title:'', link:'', note:'', done:false, order: maxOrder + 10};
+    readingCol.add(data).then(function(ref){
+      pendingReadingFocusId = ref.id;
+    }).catch(function(e){ console.error(e); });
+  }
+  function updateReadingField(id, field, value){
+    var patch = {}; patch[field] = value;
+    readingCol.doc(id).update(patch).catch(function(e){ console.error(e); });
+  }
+  function toggleReadingDone(id){
+    var r = readingState.items.find(function(x){ return x.id === id; });
+    if(!r) return;
+    readingCol.doc(id).update({done: !r.done}).catch(function(e){ console.error(e); });
+  }
+  function deleteReadingItem(id){
+    readingCol.doc(id).delete().catch(function(e){ console.error(e); });
+  }
+
+  function readingRowHTML(r, confirmingId){
+    var catStyle = catClassStyle(r.category);
+    var confirming = confirmingId === r.id;
+
+    var doneHTML = '<div class="cell rcheck">' +
+      '<input type="checkbox" data-action="toggledone" data-id="'+r.id+'"'+(r.done?' checked':'')+'>' +
+      '</div>';
+
+    var catHTML = '<div class="cell">' +
+      '<span class="tag" contenteditable="true" data-id="'+r.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(r.category)+'</span>' +
+      '</div>';
+
+    var titleHTML = '<div class="cell desc-wrap">' +
+      '<div class="desc-text" contenteditable="true" data-id="'+r.id+'" data-field="title" data-ph="Untitled reading">'+escapeHTML(r.title)+'</div>' +
+      '</div>';
+
+    var linkHTML = '<div class="cell linkcell">' +
+      '<div class="cell-text" contenteditable="true" data-id="'+r.id+'" data-field="link" data-ph="" style="'+(isURL(r.link)?'color:var(--accent);':'')+'">'+escapeHTML(r.link)+'</div>' +
+      (isURL(r.link) ? '<a class="linkopen" href="'+escapeHTML(r.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
+      '</div>';
+
+    var noteHTML = '<div class="cell wrap" contenteditable="true" data-id="'+r.id+'" data-field="note" data-ph="">'+escapeHTML(r.note)+'</div>';
+
+    var actionsHTML = confirming
+      ? '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+r.id+'">Delete?</button></div>'
+      : '<div class="cell rowactions"><button class="del" data-action="del" data-id="'+r.id+'" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button></div>';
+
+    return '<div class="row'+(r.done?' done':'')+'" data-row-id="'+r.id+'">' +
+      doneHTML + catHTML + titleHTML + linkHTML + noteHTML + actionsHTML +
+      '</div>';
+  }
 
   // ---------- hierarchy helpers ----------
   function hasChildren(no){
@@ -430,7 +512,8 @@ window.Ledger = (function(){
     setCaretOffset(el, offset + text.length);
   }
 
-  function wireEditing(container){
+  function wireEditing(container, updateFn){
+    updateFn = updateFn || updateField;
     container.addEventListener('focusout', function(e){
       var el = e.target;
       /* A re-render replaces the whole sheet's innerHTML, which blurs any
@@ -440,7 +523,7 @@ window.Ledger = (function(){
          and writes again forever. Only act on a real blur: el still connected. */
       if(!el.isConnected) return;
       if(el.matches && el.matches('[contenteditable="true"]')){
-        updateField(el.dataset.id, el.dataset.field, el.textContent.trim());
+        updateFn(el.dataset.id, el.dataset.field, el.textContent.trim());
       }
     });
     container.addEventListener('keydown', function(e){
@@ -448,7 +531,7 @@ window.Ledger = (function(){
       if(!(el.matches && el.matches('[contenteditable="true"]'))) return;
       if(e.key === 'Enter'){
         e.preventDefault();
-        if(el.dataset.field === 'details'){
+        if(el.dataset.field === 'details' || el.dataset.field === 'note'){
           insertTextInEl(el, '\n• ');
         } else {
           el.blur();
@@ -465,7 +548,7 @@ window.Ledger = (function(){
     });
     container.addEventListener('change', function(e){
       if(e.target.matches && e.target.matches('input[type="date"]')){
-        updateField(e.target.dataset.id, e.target.dataset.field, e.target.value);
+        updateFn(e.target.dataset.id, e.target.dataset.field, e.target.value);
       }
     });
   }
@@ -593,6 +676,14 @@ window.Ledger = (function(){
     onUndoState: onUndoState,
     wireTopbar: wireTopbar,
     wireEditing: wireEditing,
-    preserveFocus: preserveFocus
+    preserveFocus: preserveFocus,
+    readingState: readingState,
+    onReadingChange: onReadingChange,
+    addReadingItem: addReadingItem,
+    updateReadingField: updateReadingField,
+    toggleReadingDone: toggleReadingDone,
+    deleteReadingItem: deleteReadingItem,
+    focusReadingIdOnce: focusReadingIdOnce,
+    readingRowHTML: readingRowHTML
   };
 })();

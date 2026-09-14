@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Badriyah's Tasks — Archive</title>
+<title>Badriyah's Tasks — Reading</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css?v=12">
 </head>
@@ -16,27 +16,26 @@
   <div class="undoredo">
     <button id="undobtn" title="Undo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10h-1"/></svg></button>
     <button id="redobtn" title="Redo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 0 0 0 10h1"/></svg></button>
-  </div></div>
+  </div>
+</div>
 
-<div class="view" id="view-archive">
+<div class="view" id="view-reading">
   <div class="toolbar">
     <div class="search">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="searchbox" type="text" placeholder="Search archived tasks…" autocomplete="off">
+      <input id="searchbox" type="text" placeholder="Search reading list…" autocomplete="off">
     </div>
+    <div class="chips" id="catchips"></div>
     <div class="count" id="rowcount"></div>
   </div>
   <div class="sheet-scroll">
-    <div class="sheet" id="sheet">
+    <div class="readsheet" id="sheet">
       <div class="row head">
-        <div class="cell">No.</div>
+        <div class="cell"></div>
         <div class="cell">Category</div>
-        <div class="cell">Description</div>
-        <div class="cell">Due Date</div>
+        <div class="cell">Title</div>
         <div class="cell">Link</div>
-        <div class="cell">Dependency</div>
-        <div class="cell">Owner</div>
-        <div class="cell">Details</div>
+        <div class="cell">Reference / notes</div>
         <div class="cell"></div>
       </div>
       <!-- rows injected here -->
@@ -47,9 +46,9 @@
 <div class="tabbar">
   <a class="tab" href="index.html">Tasks</a>
   <a class="tab" href="calendar.html">Calendar</a>
-  <a class="tab active" href="archive.html">Archive</a>
+  <a class="tab" href="archive.html">Archive</a>
   <a class="tab" href="activity.html">Activity</a>
-  <a class="tab" href="reading.html">Reading</a>
+  <a class="tab active" href="reading.html">Reading</a>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -63,6 +62,7 @@
 
   var els = {
     sheet: document.getElementById('sheet'),
+    catchips: document.getElementById('catchips'),
     rowcount: document.getElementById('rowcount'),
     searchbox: document.getElementById('searchbox'),
     syncdot: document.getElementById('syncdot'),
@@ -70,6 +70,7 @@
   };
 
   var search = '';
+  var catFilter = null;
   var confirmDeleteId = null;
 
   L.onStatus(function(kind, text){
@@ -83,43 +84,78 @@
     render();
   });
 
-  function matches(t){
+  function matches(r){
+    if(catFilter && r.category !== catFilter) return false;
     if(!search) return true;
-    var hay = [t.no,t.category,t.description,t.owner,t.dependency,t.details,t.link].join(' ').toLowerCase();
+    var hay = [r.category, r.title, r.link, r.note].join(' ').toLowerCase();
     return hay.indexOf(search) !== -1;
   }
 
-  function render(){
-    var archived = L.state.tasks.filter(function(t){ return t.archived; });
-    var visible = archived.filter(matches);
-    els.rowcount.textContent = visible.length + (visible.length===1?' archived task':' archived tasks');
-
-    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'archived', confirmDeleteId); }).join('');
-    var headHTML = els.sheet.querySelector('.row.head').outerHTML;
-    L.preserveFocus(els.sheet, function(){
-      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">Nothing archived yet. Cross out a task from the Tasks tab to send it here.</div>');
+  function renderChips(items){
+    var cats = [];
+    items.forEach(function(r){ if(r.category && cats.indexOf(r.category)===-1) cats.push(r.category); });
+    els.catchips.innerHTML = cats.map(function(c){
+      var s = L.catClassStyle(c);
+      var active = catFilter === c;
+      return '<button class="chip'+(active?' active':'')+'" data-cat="'+L.escapeHTML(c)+'" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(c)+'</button>';
+    }).join('');
+    els.catchips.querySelectorAll('.chip').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        var c = chip.dataset.cat;
+        catFilter = (catFilter === c) ? null : c;
+        render();
+      });
     });
   }
 
-  L.wireEditing(els.sheet);
+  function render(){
+    var items = L.readingState.items;
+    renderChips(items);
+    var visible = items.filter(matches);
+    els.rowcount.textContent = visible.length + (visible.length===1?' item':' items');
+
+    var rowsHTML = visible.map(function(r){ return L.readingRowHTML(r, confirmDeleteId); }).join('');
+    var addRowHTML = '<div class="addrow"><button id="addbtn">+ Add reading</button></div>';
+    var headHTML = els.sheet.querySelector('.row.head').outerHTML;
+    L.preserveFocus(els.sheet, function(){
+      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">Nothing here yet — add a paper, article, or a note pointing to a file on your computer.</div>') + addRowHTML;
+    });
+
+    var btn = document.getElementById('addbtn');
+    if(btn) btn.addEventListener('click', L.addReadingItem);
+
+    var focusId = L.focusReadingIdOnce();
+    if(focusId){
+      requestAnimationFrame(function(){
+        var el = els.sheet.querySelector('.desc-text[data-id="'+focusId+'"]');
+        if(el){ el.focus(); }
+      });
+    }
+  }
+
+  L.wireEditing(els.sheet, L.updateReadingField);
+  els.sheet.addEventListener('change', function(e){
+    if(e.target.matches && e.target.matches('input[type="checkbox"][data-action="toggledone"]')){
+      L.toggleReadingDone(e.target.dataset.id);
+    }
+  });
   els.sheet.addEventListener('click', function(e){
     var btn = e.target.closest('button[data-action]');
     if(!btn) return;
     var action = btn.dataset.action, id = btn.dataset.id;
-    if(action === 'restore'){ L.restoreTask(id); }
-    else if(action === 'del'){
+    if(action === 'del'){
       confirmDeleteId = id;
       render();
       setTimeout(function(){
         if(confirmDeleteId === id){ confirmDeleteId = null; render(); }
       }, 3500);
     } else if(action === 'confirmdel'){
-      L.deleteTask(id);
+      L.deleteReadingItem(id);
       confirmDeleteId = null;
     }
   });
 
-  L.onChange(render);
+  L.onReadingChange(render);
 })();
 </script>
 </body>
