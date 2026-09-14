@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Reading</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=13">
+<link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
 
@@ -31,15 +31,16 @@
   <div class="sheet-scroll">
     <div class="readsheet" id="sheet">
       <div class="row head">
-        <div class="cell"></div>
+        <div class="cell">Status</div>
         <div class="cell">#</div>
         <div class="cell">Category</div>
         <div class="cell">Title</div>
         <div class="cell">Author</div>
         <div class="cell">Year</div>
+        <div class="cell">Pages</div>
         <div class="cell">Priority</div>
         <div class="cell">Link</div>
-        <div class="cell">Reference / notes</div>
+        <div class="cell">Notes</div>
         <div class="cell"></div>
       </div>
       <!-- rows injected here -->
@@ -57,7 +58,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 <script>
 (function(){
   "use strict";
@@ -96,7 +97,7 @@
   function matches(r){
     if(catFilter && r.category !== catFilter) return false;
     if(!search) return true;
-    var hay = [r.ref, r.category, r.title, r.author, r.year, r.priority, r.link, r.note].join(' ').toLowerCase();
+    var hay = [r.ref, r.category, r.title, r.author, r.year, r.pages, r.priority, r.link, r.note].join(' ').toLowerCase();
     return hay.indexOf(search) !== -1;
   }
 
@@ -144,8 +145,8 @@
 
   L.wireEditing(els.sheet, L.updateReadingField);
   els.sheet.addEventListener('change', function(e){
-    if(e.target.matches && e.target.matches('input[type="checkbox"][data-action="toggledone"]')){
-      L.toggleReadingDone(e.target.dataset.id);
+    if(e.target.matches && e.target.matches('select[data-action="setstatus"]')){
+      L.setReadingStatus(e.target.dataset.id, e.target.value);
     }
   });
   els.sheet.addEventListener('click', function(e){

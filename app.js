@@ -204,6 +204,12 @@ window.Ledger = (function(){
   function onReadingStatus(fn){ readingStatusListeners.push(fn); }
   function notifyReadingStatus(kind, text){ readingStatusListeners.forEach(function(fn){ fn(kind, text); }); }
 
+  var READING_STATUSES = {
+    'not-started': {label:'Not started', bg:'transparent', fg:'var(--muted)'},
+    'reading':     {label:'Reading',     bg:'var(--accent-tint)', fg:'var(--accent)'},
+    'finished':    {label:'Finished',    bg:'var(--cat4-bg)', fg:'var(--cat4-fg)'}
+  };
+
   readingCol.orderBy('order', 'asc').onSnapshot(function(snap){
     readingState.items = snap.docs.map(function(d){
       var data = d.data() || {};
@@ -214,10 +220,11 @@ window.Ledger = (function(){
         title: data.title || '',
         author: data.author || '',
         year: data.year || '',
+        pages: data.pages || '',
         priority: data.priority || '',
+        status: data.status || 'not-started',
         link: data.link || '',
         note: data.note || '',
-        done: !!data.done,
         order: typeof data.order === 'number' ? data.order : 0
       };
     });
@@ -243,7 +250,7 @@ window.Ledger = (function(){
 
   function addReadingItem(){
     var maxOrder = readingState.items.reduce(function(m,r){ return Math.max(m, r.order||0); }, 0);
-    var data = {ref:String(nextReadingRef()), category:'', title:'', author:'', year:'', priority:'', link:'', note:'', done:false, order: maxOrder + 10};
+    var data = {ref:String(nextReadingRef()), category:'', title:'', author:'', year:'', pages:'', priority:'', status:'not-started', link:'', note:'', order: maxOrder + 10};
     readingCol.add(data).then(function(ref){
       pendingReadingFocusId = ref.id;
     }).catch(function(e){ console.error(e); });
@@ -252,10 +259,8 @@ window.Ledger = (function(){
     var patch = {}; patch[field] = value;
     readingCol.doc(id).update(patch).catch(function(e){ console.error(e); });
   }
-  function toggleReadingDone(id){
-    var r = readingState.items.find(function(x){ return x.id === id; });
-    if(!r) return;
-    readingCol.doc(id).update({done: !r.done}).catch(function(e){ console.error(e); });
+  function setReadingStatus(id, status){
+    readingCol.doc(id).update({status: status}).catch(function(e){ console.error(e); });
   }
   function deleteReadingItem(id){
     readingCol.doc(id).delete().catch(function(e){ console.error(e); });
@@ -268,10 +273,15 @@ window.Ledger = (function(){
   function readingRowHTML(r, confirmingId){
     var catStyle = catClassStyle(r.category);
     var confirming = confirmingId === r.id;
+    var status = READING_STATUSES[r.status] ? r.status : 'not-started';
+    var sStyle = READING_STATUSES[status];
 
-    var doneHTML = '<div class="cell rcheck">' +
-      '<input type="checkbox" data-action="toggledone" data-id="'+r.id+'"'+(r.done?' checked':'')+'>' +
-      '</div>';
+    var statusHTML = '<div class="cell rstatus">' +
+      '<select data-action="setstatus" data-id="'+r.id+'" style="background:'+sStyle.bg+';color:'+sStyle.fg+'">' +
+      Object.keys(READING_STATUSES).map(function(k){
+        return '<option value="'+k+'"'+(k===status?' selected':'')+'>'+READING_STATUSES[k].label+'</option>';
+      }).join('') +
+      '</select></div>';
 
     var catHTML = '<div class="cell">' +
       '<span class="tag" contenteditable="true" data-id="'+r.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(r.category)+'</span>' +
@@ -292,12 +302,13 @@ window.Ledger = (function(){
       ? '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+r.id+'">Delete?</button></div>'
       : '<div class="cell rowactions"><button class="del" data-action="del" data-id="'+r.id+'" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button></div>';
 
-    return '<div class="row'+(r.done?' done':'')+'" data-row-id="'+r.id+'">' +
-      doneHTML +
+    return '<div class="row'+(status==='finished'?' done':'')+'" data-row-id="'+r.id+'">' +
+      statusHTML +
       readingCellEditableHTML(r.id,'ref',r.ref,'#','rref') +
       catHTML + titleHTML +
       readingCellEditableHTML(r.id,'author',r.author,'—') +
       readingCellEditableHTML(r.id,'year',r.year,'—','ryear') +
+      readingCellEditableHTML(r.id,'pages',r.pages,'—','ryear') +
       readingCellEditableHTML(r.id,'priority',r.priority,'—','rpriority') +
       linkHTML + noteHTML + actionsHTML +
       '</div>';
@@ -710,7 +721,7 @@ window.Ledger = (function(){
     onReadingStatus: onReadingStatus,
     addReadingItem: addReadingItem,
     updateReadingField: updateReadingField,
-    toggleReadingDone: toggleReadingDone,
+    setReadingStatus: setReadingStatus,
     deleteReadingItem: deleteReadingItem,
     focusReadingIdOnce: focusReadingIdOnce,
     readingRowHTML: readingRowHTML
