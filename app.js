@@ -209,8 +209,12 @@ window.Ledger = (function(){
       var data = d.data() || {};
       return {
         id: d.id,
+        ref: data.ref || '',
         category: data.category || '',
         title: data.title || '',
+        author: data.author || '',
+        year: data.year || '',
+        priority: data.priority || '',
         link: data.link || '',
         note: data.note || '',
         done: !!data.done,
@@ -228,9 +232,18 @@ window.Ledger = (function(){
   var pendingReadingFocusId = null;
   function focusReadingIdOnce(){ var id = pendingReadingFocusId; pendingReadingFocusId = null; return id; }
 
+  function nextReadingRef(){
+    var max = 0;
+    readingState.items.forEach(function(r){
+      var n = parseInt(r.ref, 10);
+      if(!isNaN(n) && n > max) max = n;
+    });
+    return max + 1;
+  }
+
   function addReadingItem(){
     var maxOrder = readingState.items.reduce(function(m,r){ return Math.max(m, r.order||0); }, 0);
-    var data = {category:'', title:'', link:'', note:'', done:false, order: maxOrder + 10};
+    var data = {ref:String(nextReadingRef()), category:'', title:'', author:'', year:'', priority:'', link:'', note:'', done:false, order: maxOrder + 10};
     readingCol.add(data).then(function(ref){
       pendingReadingFocusId = ref.id;
     }).catch(function(e){ console.error(e); });
@@ -246,6 +259,10 @@ window.Ledger = (function(){
   }
   function deleteReadingItem(id){
     readingCol.doc(id).delete().catch(function(e){ console.error(e); });
+  }
+
+  function readingCellEditableHTML(id, field, value, ph, extraClass){
+    return '<div class="cell'+(extraClass?(' '+extraClass):'')+'" contenteditable="true" data-id="'+id+'" data-field="'+field+'" data-ph="'+ph+'">'+escapeHTML(value)+'</div>';
   }
 
   function readingRowHTML(r, confirmingId){
@@ -276,7 +293,13 @@ window.Ledger = (function(){
       : '<div class="cell rowactions"><button class="del" data-action="del" data-id="'+r.id+'" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button></div>';
 
     return '<div class="row'+(r.done?' done':'')+'" data-row-id="'+r.id+'">' +
-      doneHTML + catHTML + titleHTML + linkHTML + noteHTML + actionsHTML +
+      doneHTML +
+      readingCellEditableHTML(r.id,'ref',r.ref,'#','rref') +
+      catHTML + titleHTML +
+      readingCellEditableHTML(r.id,'author',r.author,'—') +
+      readingCellEditableHTML(r.id,'year',r.year,'—','ryear') +
+      readingCellEditableHTML(r.id,'priority',r.priority,'—','rpriority') +
+      linkHTML + noteHTML + actionsHTML +
       '</div>';
   }
 

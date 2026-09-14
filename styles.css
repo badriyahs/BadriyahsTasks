@@ -129,11 +129,13 @@ body{
 }
 .readsheet{
   display:grid;
-  grid-template-columns: 44px 116px minmax(220px,1.3fr) 200px minmax(240px,1.5fr) 60px;
-  min-width:1000px;
+  grid-template-columns: 40px 48px 116px minmax(220px,1.3fr) 140px 64px 84px 150px minmax(220px,1.4fr) 50px;
+  min-width:1300px;
 }
 .rcheck{justify-content:center;}
 .rcheck input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+.rref{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;}
+.ryear{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;}
 .row.done .cell{background:var(--archived-tint);}
 .row.done .desc-text,.row.done [contenteditable]{text-decoration:line-through;color:var(--faint);}
 .row{display:contents;}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Reading</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=12">
+<link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
 
@@ -32,8 +32,12 @@
     <div class="readsheet" id="sheet">
       <div class="row head">
         <div class="cell"></div>
+        <div class="cell">#</div>
         <div class="cell">Category</div>
         <div class="cell">Title</div>
+        <div class="cell">Author</div>
+        <div class="cell">Year</div>
+        <div class="cell">Priority</div>
         <div class="cell">Link</div>
         <div class="cell">Reference / notes</div>
         <div class="cell"></div>
@@ -53,7 +57,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=13"></script>
+<script src="app.js?v=14"></script>
 <script>
 (function(){
   "use strict";
@@ -92,7 +96,7 @@
   function matches(r){
     if(catFilter && r.category !== catFilter) return false;
     if(!search) return true;
-    var hay = [r.category, r.title, r.link, r.note].join(' ').toLowerCase();
+    var hay = [r.ref, r.category, r.title, r.author, r.year, r.priority, r.link, r.note].join(' ').toLowerCase();
     return hay.indexOf(search) !== -1;
   }
 
