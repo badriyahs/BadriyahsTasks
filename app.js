@@ -11,72 +11,6 @@ window.Ledger = (function(){
     appId: "1:97057321631:web:fa339e1352631ecb9d68aa"
   };
 
-  var SEED = [
-    {no:"1",category:"SAT",description:"Sharjah Architecture Triennial",due:"",link:"",dependency:"",owner:"",details:"",order:10},
-    {no:"1.1",category:"SAT",description:"Tent Design",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:20},
-    {no:"1.2",category:"SAT",description:"Steel plate design",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:30},
-    {no:"1.3",category:"SAT",description:"Wall Text",due:"2026-09-17",link:"link",dependency:"",owner:"",details:"200-300 words",order:40},
-    {no:"1.4",category:"SAT",description:"Prepare Presentations",due:"",link:"",dependency:"meeting with sharmeen",owner:"",details:"",order:50},
-    {no:"1.5",category:"",description:"Photo captions",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"",order:60},
-    {no:"1.6",category:"",description:"Participant Credits",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"Credit laura for theory mentorship, my mom, dina for project management and coordination",order:70},
-    {no:"1.7",category:"",description:"Publication materials",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:80},
-    {no:"2",category:"",description:"CAA-Getty",due:"",link:"",dependency:"",owner:"",details:"",order:90},
-    {no:"2.1",category:"",description:"Access and bookmark your Speaker's Corner",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:100},
-    {no:"2.2",category:"",description:"Review all modules and sign Participant agreement in your Speaker's Corner",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:110},
-    {no:"2.3",category:"",description:"Set your recording permissions (if applicable) and confirm your intent to participate",due:"2026-09-25",link:"",dependency:"",owner:"",details:"",order:120},
-    {no:"2.4",category:"",description:"Download your CAA Letter of Acceptance and Support from your Speaker's Corner (for Chairs, Workshop Leaders and Presenters)",due:"2026-09-25",link:"",dependency:"",owner:"",details:"May be used to support funding and travel requests",order:130},
-    {no:"2.5",category:"",description:"More tasks",due:"2026-10-01",link:"",dependency:"",owner:"",details:"",order:140},
-    {no:"3",category:"",description:"Freelance",due:"",link:"",dependency:"",owner:"",details:"",order:150},
-    {no:"3.1",category:"",description:"Figure out company license",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:160},
-    {no:"3.1.1",category:"",description:"Talk to lawyer",due:"2026-09-16",link:"",dependency:"",owner:"",details:"",order:170},
-    {no:"3.1.2",category:"",description:"Figure out what services I offer",due:"",link:"",dependency:"",owner:"",details:"Explain to Jad",order:180},
-    {no:"3.2",category:"",description:"Jenya Akademy thing?",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:190},
-    {no:"3.3",category:"",description:"Marriott",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:200},
-    {no:"3.4",category:"",description:"Business card printing (simple). Design is done. Just send to printers.",due:"",link:"",dependency:"",owner:"",details:"Due date TBD",order:210},
-    {no:"3.5",category:"",description:"Set up (fake) employee emails",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:220},
-    {no:"4",category:"",description:"Work - Map design",due:"2026-09-13",link:"",dependency:"",owner:"",details:"",order:230},
-    {no:"4.1",category:"SAFIR",description:"Fiverr freelancer",due:"",link:"",dependency:"",owner:"",details:"",order:240},
-    {no:"4.1.1",category:"",description:"Speak to him and make an agreement",due:"",link:"",dependency:"",owner:"",details:"",order:250},
-    {no:"5",category:"",description:"AlUla Artwork",due:"2026-09-22",link:"",dependency:"",owner:"",details:"",order:260},
-    {no:"5.1",category:"",description:"Wait on reply from Mizuho/Daniella",due:"2026-09-22",link:"",dependency:"",owner:"",details:"",order:270},
-    {no:"6",category:"Writing",description:"Website/Writing",due:"",link:"",dependency:"",owner:"",details:"",order:280},
-    {no:"6.1",category:"",description:"Finish the actual website",due:"2026-10-01",link:"",dependency:"",owner:"",details:"",order:290},
-    {no:"7",category:"",description:"Seoul nomination",due:"2026-09-26",link:"email link",dependency:"",owner:"",details:"",order:300},
-    {no:"7.1",category:"",description:"A description of the work and the artist",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:310},
-    {no:"7.1.1",category:"",description:"Write a description",due:"2026-09-24",link:"",dependency:"",owner:"",details:"",order:320},
-    {no:"7.2",category:"",description:"2-5 images of the work",due:"2026-09-26",link:"",dependency:"",owner:"",details:"",order:330},
-    {no:"7.2.1",category:"",description:"Ask DAF for materials",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:340},
-    {no:"7.3",category:"",description:"A video of the work",due:"2026-09-26",link:"",dependency:"Ask from DAF",owner:"",details:"",order:350},
-    {no:"8",category:"",description:"PhD application",due:"",link:"",dependency:"",owner:"",details:"Reach out for rec letters",order:360},
-    {no:"8.1",category:"TESTING",description:"Register for GRE - test by mid October",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:370},
-    {no:"8.1.1",category:"",description:"Ask Harvard if I am exempt from TOEFL",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:380},
-    {no:"8.2",category:"RECOMMENDERS",description:"Reach out to Laura, Dalal, Danielle",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:390},
-    {no:"8.3",category:"PROPOSAL",description:"Read for 1-2 hours a day at 6am or on weekends",due:"2026-09-19",link:"",dependency:"",owner:"",details:"",order:400},
-    {no:"8.3.1",category:"",description:"Draft core research question + methodology",due:"2026-09-20",link:"",dependency:"",owner:"",details:"",order:410},
-    {no:"8.3.2",category:"",description:"Write full first draft, referencing professors by name",due:"2026-10-15",link:"",dependency:"",owner:"",details:"",order:420},
-    {no:"8.3.3",category:"",description:"Get feedback, revise",due:"2026-10-18",link:"",dependency:"",owner:"",details:"",order:430},
-    {no:"8.3.4",category:"",description:"",due:"",link:"",dependency:"",owner:"",details:"",order:440},
-    {no:"8.4",category:"PORTFOLIO",description:"Pull together portfolio",due:"2026-11-22",link:"",dependency:"",owner:"",details:"",order:450},
-    {no:"8.5",category:"TRANSCRIPTS",description:"Make sure to have from Columbia and KU",due:"2026-11-22",link:"",dependency:"",owner:"",details:"",order:460},
-    {no:"8.6",category:"ESSAYS",description:"Draft Essays",due:"2026-11-20",link:"",dependency:"",owner:"",details:"",order:470},
-    {no:"8.7",category:"CV",description:"Fully update CV",due:"2026-11-21",link:"",dependency:"",owner:"",details:"",order:480},
-    {no:"8.8",category:"",description:"Final review, compile all, etc",due:"2026-12-15",link:"",dependency:"",owner:"",details:"",order:490},
-    {no:"9",category:"",description:"Research",due:"",link:"",dependency:"",owner:"",details:"",order:500},
-    {no:"9.1",category:"",description:"Read 1 paper a day",due:"",link:"",dependency:"",owner:"",details:"",order:510},
-    {no:"9.2",category:"",description:"Talk to Sudanese tutor for Azmina and Amkina",due:"",link:"",dependency:"",owner:"",details:"",order:520},
-    {no:"9.3",category:"",description:"Submit LoI for IAU Symposia",due:"2026-09-15",link:"link",dependency:"",owner:"",details:"",order:530},
-    {no:"10",category:"",description:"Mini DAF model",due:"",link:"",dependency:"",owner:"",details:"",order:540},
-    {no:"10.1",category:"",description:"TO First Tuition help",due:"",link:"",dependency:"",owner:"",details:"",order:550},
-    {no:"10.2",category:"",description:"Second tuition help",due:"",link:"",dependency:"",owner:"",details:"",order:560},
-    {no:"10.3",category:"",description:"Dalal Alsayer",due:"",link:"",dependency:"",owner:"",details:"",order:570},
-    {no:"11",category:"",description:"DAF Tasks",due:"",link:"",dependency:"",owner:"",details:"",order:580},
-    {no:"11.1",category:"",description:"Invoices",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:590},
-    {no:"12",category:"",description:"Follow Ups",due:"",link:"",dependency:"",owner:"",details:"",order:600},
-    {no:"12.1",category:"",description:"Send email to Laura about Uzbekistan & DAF",due:"2026-09-14",link:"",dependency:"",owner:"",details:"",order:610},
-    {no:"12.2",category:"",description:"Send email to Danielle also",due:"",link:"",dependency:"",owner:"",details:"",order:620}
-  ];
-  SEED.forEach(function(t){ t.archived = false; });
-
   var CATS = 8;
   function catIndex(name){
     if(!name) return null;
@@ -159,14 +93,6 @@ window.Ledger = (function(){
     undoStack.push(entry);
     notifyUndoState();
   }
-
-  tasksCol.limit(1).get().then(function(snap){
-    if(snap.empty){
-      var batch = db.batch();
-      SEED.forEach(function(t){ batch.set(tasksCol.doc(), t); });
-      return batch.commit();
-    }
-  }).catch(function(e){ console.error('Seed check failed', e); });
 
   tasksCol.orderBy('order','asc').onSnapshot(function(snap){
     state.tasks = snap.docs.map(function(d){
