@@ -240,6 +240,53 @@ window.Ledger = (function(){
       '</div>';
   }
 
+  // ---------- notes (brain dump — plain text blocks, no status/dates) ----------
+  var notesCol = db.collection('notes');
+  var notesState = { items: [] };
+  var notesListeners = [];
+  var notesStatusListeners = [];
+  var notesReady = false;
+  function onNotesChange(fn){ notesListeners.push(fn); if(notesReady) fn(); }
+  function notifyNotes(){ notesListeners.forEach(function(fn){ fn(); }); }
+  function onNotesStatus(fn){ notesStatusListeners.push(fn); }
+  function notifyNotesStatus(kind, text){ notesStatusListeners.forEach(function(fn){ fn(kind, text); }); }
+
+  notesCol.orderBy('order', 'asc').onSnapshot(function(snap){
+    notesState.items = snap.docs.map(function(d){
+      var data = d.data() || {};
+      return { id: d.id, text: data.text || '', order: typeof data.order === 'number' ? data.order : 0 };
+    });
+    notesReady = true;
+    notifyNotesStatus('ok', '');
+    notifyNotes();
+  }, function(err){
+    notifyNotesStatus('err', 'Notes need their Firestore rule added — ' + (err && err.code ? err.code : 'error'));
+    console.error(err);
+  });
+
+  var pendingNoteFocusId = null;
+  function focusNoteIdOnce(){ var id = pendingNoteFocusId; pendingNoteFocusId = null; return id; }
+
+  function addNote(){
+    var maxOrder = notesState.items.reduce(function(m,n){ return Math.max(m, n.order||0); }, 0);
+    notesCol.add({ text: '', order: maxOrder + 10 }).then(function(ref){
+      pendingNoteFocusId = ref.id;
+    }).catch(function(e){ console.error(e); });
+  }
+  function updateNoteText(id, field, value){
+    notesCol.doc(id).update({ text: value }).catch(function(e){ console.error(e); });
+  }
+  function deleteNote(id){
+    notesCol.doc(id).delete().catch(function(e){ console.error(e); });
+  }
+
+  function noteCardHTML(n){
+    return '<div class="notecard" data-row-id="'+n.id+'">' +
+      '<div class="note-text" contenteditable="true" data-id="'+n.id+'" data-field="text" data-ph="Type a note…">'+escapeHTML(n.text)+'</div>' +
+      '<button class="note-del" data-action="delnote" data-id="'+n.id+'" title="Delete note"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+      '</div>';
+  }
+
   // ---------- hierarchy helpers ----------
   function hasChildren(no){
     if(!no) return false;
@@ -496,7 +543,7 @@ window.Ledger = (function(){
       if(!(el.matches && el.matches('[contenteditable="true"]'))) return;
       if(e.key === 'Enter'){
         e.preventDefault();
-        if(el.dataset.field === 'details' || el.dataset.field === 'note'){
+        if(el.dataset.field === 'details' || el.dataset.field === 'note' || el.dataset.field === 'text'){
           insertTextInEl(el, '\n• ');
         } else {
           el.blur();
@@ -650,6 +697,14 @@ window.Ledger = (function(){
     setReadingStatus: setReadingStatus,
     deleteReadingItem: deleteReadingItem,
     focusReadingIdOnce: focusReadingIdOnce,
-    readingRowHTML: readingRowHTML
+    readingRowHTML: readingRowHTML,
+    notesState: notesState,
+    onNotesChange: onNotesChange,
+    onNotesStatus: onNotesStatus,
+    addNote: addNote,
+    updateNoteText: updateNoteText,
+    deleteNote: deleteNote,
+    focusNoteIdOnce: focusNoteIdOnce,
+    noteCardHTML: noteCardHTML
   };
 })();

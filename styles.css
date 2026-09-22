@@ -328,3 +328,47 @@ body{
 ::-webkit-scrollbar-track{background:transparent;}
 
 @media (prefers-reduced-motion: reduce){.flash{animation:none;}}
+
+/* === NOTES (brain dump) === */
+.notes-scroll{flex:1;min-height:0;overflow:auto;}
+.notes-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(230px,1fr));
+  gap:14px;
+  padding:18px 20px;
+  align-content:start;
+}
+.notecard{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-left:3px solid var(--accent);
+  border-radius:8px;
+  padding:12px 30px 12px 14px;
+  min-height:96px;
+  box-shadow:var(--shadow);
+}
+.note-text{
+  white-space:pre-wrap;
+  word-break:break-word;
+  outline:none;
+  cursor:text;
+  font-size:13.5px;
+  line-height:1.55;
+  min-height:64px;
+}
+.note-text:empty:before{content:attr(data-ph);color:var(--faint);}
+.note-del{
+  position:absolute;top:8px;right:8px;
+  border:none;background:transparent;color:var(--faint);cursor:pointer;
+  width:22px;height:22px;border-radius:5px;display:flex;align-items:center;justify-content:center;
+  opacity:0;
+}
+.notecard:hover .note-del{opacity:1;}
+.note-del:hover{background:var(--danger-tint);color:var(--danger);}
+.addnotecard{
+  border:1.5px dashed var(--line-strong);border-radius:8px;background:transparent;
+  color:var(--muted);min-height:96px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;
+}
+.addnotecard:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint);}
