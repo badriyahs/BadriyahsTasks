@@ -1,4 +1,4 @@
-/* Shared data layer + helpers for The Ledger (tasks.html, calendar.html, archive.html) */
+/* Shared data layer + helpers for Badriyah's Tasks (index/calendar/archive/activity/reading/notes/events) */
 window.Ledger = (function(){
   "use strict";
 
@@ -35,23 +35,11 @@ window.Ledger = (function(){
   }
   function isURL(s){ return /^https?:\/\//i.test((s||'').trim()); }
   function depthOf(no){ return no ? (no.split('.').length - 1) : 0; }
-
-  var state = { tasks: [] };
-  var listeners = [];
-  var statusListeners = [];
-  var ready = false;
-
-  function notify(){ listeners.forEach(function(fn){ fn(); }); }
-  function notifyStatus(kind, text){ statusListeners.forEach(function(fn){ fn(kind, text); }); }
-
-  function onChange(fn){ listeners.push(fn); if(ready) fn(); }
-  function onStatus(fn){ statusListeners.push(fn); }
+  function topSegment(no){ return no ? no.split('.')[0] : ''; }
 
   firebase.initializeApp(firebaseConfig);
   var db = firebase.firestore();
-  var tasksCol = db.collection('tasks');
   var activityCol = db.collection('activity');
-  var readingCol = db.collection('reading');
 
   function logActivity(t, verb, extra){
     var doc = {
@@ -65,62 +53,346 @@ window.Ledger = (function(){
     activityCol.add(doc).catch(function(e){ console.error(e); });
   }
 
-  // ---------- undo/redo (this browser tab only) ----------
-  var undoStack = [], redoStack = [];
-  var undoListeners = [];
-  function onUndoState(fn){ undoListeners.push(fn); fn({canUndo:undoStack.length>0, canRedo:redoStack.length>0}); }
-  function notifyUndoState(){
-    undoListeners.forEach(function(fn){ fn({canUndo:undoStack.length>0, canRedo:redoStack.length>0}); });
-  }
-  function pushUndo(entry){
-    undoStack.push(entry);
-    redoStack.length = 0;
-    notifyUndoState();
-  }
-  function undo(){
-    var entry = undoStack.pop();
-    if(!entry) return;
-    entry.undo();
-    logActivity(null, 'undid', {description: entry.label});
-    redoStack.push(entry);
-    notifyUndoState();
-  }
-  function redo(){
-    var entry = redoStack.pop();
-    if(!entry) return;
-    entry.redo();
-    logActivity(null, 'redid', {description: entry.label});
-    undoStack.push(entry);
-    notifyUndoState();
+  function cellEditableHTML(id, field, value, ph, extraClass){
+    return '<div class="cell'+(extraClass?(' '+extraClass):'')+'" contenteditable="true" data-id="'+id+'" data-field="'+field+'" data-ph="'+ph+'">'+escapeHTML(value)+'</div>';
   }
 
-  tasksCol.orderBy('order','asc').onSnapshot(function(snap){
-    state.tasks = snap.docs.map(function(d){
-      var data = d.data() || {};
-      return {
-        id: d.id,
-        no: data.no || '',
-        category: data.category || '',
-        description: data.description || '',
-        due: data.due || '',
-        link: data.link || '',
-        dependency: data.dependency || '',
-        owner: data.owner || '',
-        details: data.details || '',
-        order: typeof data.order === 'number' ? data.order : 0,
-        archived: !!data.archived,
-        struck: !!data.struck
-      };
+  /* A hierarchical, colored sheet of rows (No./Category/Description/Due/
+     Link/Dependency/Owner/Details), identical machinery for both the
+     Tasks collection and the Events collection — each gets its own
+     live state, undo/redo stack, and numbering, just pointed at a
+     different Firestore collection. `deleteMode` picks what the trash
+     button on an active row does: 'archive' (Tasks has an Archive page
+     to land in) or 'permanent' (Events doesn't, so trash asks first and
+     deletes for good). */
+  function makeTaskStore(colRef, opts){
+    opts = opts || {};
+    var deleteMode = opts.deleteMode || 'archive';
+
+    var state = { tasks: [] };
+    var listeners = [];
+    var statusListeners = [];
+    var ready = false;
+    function notify(){ listeners.forEach(function(fn){ fn(); }); }
+    function notifyStatus(kind, text){ statusListeners.forEach(function(fn){ fn(kind, text); }); }
+    function onChange(fn){ listeners.push(fn); if(ready) fn(); }
+    function onStatus(fn){ statusListeners.push(fn); }
+
+    var undoStack = [], redoStack = [];
+    var undoListeners = [];
+    function onUndoState(fn){ undoListeners.push(fn); fn({canUndo:undoStack.length>0, canRedo:redoStack.length>0}); }
+    function notifyUndoState(){
+      undoListeners.forEach(function(fn){ fn({canUndo:undoStack.length>0, canRedo:redoStack.length>0}); });
+    }
+    function pushUndo(entry){ undoStack.push(entry); redoStack.length = 0; notifyUndoState(); }
+    function undo(){
+      var entry = undoStack.pop();
+      if(!entry) return;
+      entry.undo();
+      logActivity(null, 'undid', {description: entry.label});
+      redoStack.push(entry);
+      notifyUndoState();
+    }
+    function redo(){
+      var entry = redoStack.pop();
+      if(!entry) return;
+      entry.redo();
+      logActivity(null, 'redid', {description: entry.label});
+      undoStack.push(entry);
+      notifyUndoState();
+    }
+
+    colRef.orderBy('order','asc').onSnapshot(function(snap){
+      state.tasks = snap.docs.map(function(d){
+        var data = d.data() || {};
+        return {
+          id: d.id,
+          no: data.no || '',
+          category: data.category || '',
+          description: data.description || '',
+          due: data.due || '',
+          link: data.link || '',
+          dependency: data.dependency || '',
+          owner: data.owner || '',
+          details: data.details || '',
+          order: typeof data.order === 'number' ? data.order : 0,
+          archived: !!data.archived,
+          struck: !!data.struck
+        };
+      });
+      ready = true;
+      notifyStatus('ok', 'Live — anyone with this link can edit');
+      notify();
+    }, function(err){
+      notifyStatus('err', 'Connection error (' + (err && err.code ? err.code : 'unknown') + ') — check Firestore is enabled');
+      console.error(err);
     });
-    ready = true;
-    notifyStatus('ok', 'Live — anyone with this link can edit');
-    notify();
-  }, function(err){
-    notifyStatus('err', 'Connection error (' + (err && err.code ? err.code : 'unknown') + ') — check Firestore is enabled');
-    console.error(err);
-  });
+
+    // ---------- hierarchy helpers (scoped to this store's own rows) ----------
+    function hasChildren(no){
+      if(!no) return false;
+      var prefix = no + '.';
+      return state.tasks.some(function(t){ return !t.archived && t.no && t.no.indexOf(prefix) === 0; });
+    }
+    function nextTopLevelNumber(){
+      var max = 0;
+      state.tasks.forEach(function(t){
+        if(t.no && t.no.indexOf('.') === -1){
+          var n = parseInt(t.no, 10);
+          if(!isNaN(n) && n > max) max = n;
+        }
+      });
+      return max + 1;
+    }
+    function nextChildNumber(parentNo){
+      var max = 0;
+      var prefix = parentNo + '.';
+      state.tasks.forEach(function(t){
+        if(t.no && t.no.indexOf(prefix) === 0){
+          var rest = t.no.slice(prefix.length);
+          if(rest.indexOf('.') === -1){
+            var n = parseInt(rest, 10);
+            if(!isNaN(n) && n > max) max = n;
+          }
+        }
+      });
+      return max + 1;
+    }
+    function topAncestor(no){
+      if(!no) return null;
+      var seg = topSegment(no);
+      return state.tasks.find(function(t){ return t.no === seg; }) || null;
+    }
+    function sectionColor(no){
+      var top = topAncestor(no);
+      var key = (top && top.category) ? top.category : topSegment(no);
+      return catClassStyle(key);
+    }
+    function ancestorTitle(no){
+      var top = topAncestor(no);
+      return top ? top.description : '';
+    }
+    function insertOrderForChild(parentTask){
+      var list = state.tasks;
+      var idx = list.findIndex(function(t){ return t.id === parentTask.id; });
+      if(idx === -1) return (list.length ? list[list.length-1].order + 10 : 10);
+      var endIdx = idx;
+      for(var i = idx+1; i < list.length; i++){
+        if(list[i].no && parentTask.no && list[i].no.indexOf(parentTask.no + '.') === 0){ endIdx = i; }
+        else break;
+      }
+      var afterOrder = list[endIdx].order;
+      var beforeOrder = (endIdx+1 < list.length) ? list[endIdx+1].order : null;
+      return beforeOrder === null ? afterOrder + 10 : (afterOrder + beforeOrder) / 2;
+    }
+
+    // ---------- mutations ----------
+    var pendingFocusId = null;
+    function focusIdOnce(){ var id = pendingFocusId; pendingFocusId = null; return id; }
+
+    function setField(id, field, value){
+      var patch = {}; patch[field] = value;
+      colRef.doc(id).update(patch).catch(function(e){ console.error(e); });
+    }
+
+    function updateField(id, field, value){
+      var t = state.tasks.find(function(x){ return x.id === id; });
+      var oldValue = t ? (t[field] || '') : '';
+      if(oldValue === value) return;
+      setField(id, field, value);
+      logActivity(t, 'edited the ' + field + ' of');
+      pushUndo({
+        label: 'editing the ' + field + ' of ' + (t && t.no ? t.no : 'a row'),
+        undo: function(){ setField(id, field, oldValue); },
+        redo: function(){ setField(id, field, value); }
+      });
+    }
+
+    function addTopLevel(){
+      var no = String(nextTopLevelNumber());
+      var maxOrder = state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0);
+      var data = {
+        no:no, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+        order: maxOrder + 10, archived:false, struck:false
+      };
+      colRef.add(data).then(function(ref){
+        pendingFocusId = ref.id;
+        logActivity(data, 'added');
+        pushUndo({
+          label: 'adding ' + no,
+          undo: function(){ colRef.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
+          redo: function(){ colRef.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
+        });
+      }).catch(function(e){ console.error(e); });
+    }
+
+    /* Adds a new row at the SAME level as `row`, placed right after it (and
+       after everything already nested under it) — e.g. + on 3.1.1 gives
+       3.1.2, a sibling, not 3.1.1.1, a child. To go a level deeper, add a
+       sibling and then edit its "no" cell by hand to append ".1". */
+    function addSiblingAfter(rowId){
+      var row = state.tasks.find(function(t){ return t.id === rowId; });
+      if(!row) return;
+      var dot = row.no ? row.no.lastIndexOf('.') : -1;
+      var parentNo = dot === -1 ? null : row.no.slice(0, dot);
+      var newNo = parentNo ? (parentNo + '.' + nextChildNumber(parentNo)) : String(nextTopLevelNumber());
+      var ord = insertOrderForChild(row);
+      var data = {
+        no:newNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+        order: ord, archived:false, struck:false
+      };
+      colRef.add(data).then(function(ref){
+        pendingFocusId = ref.id;
+        logActivity(data, 'added');
+        pushUndo({
+          label: 'adding ' + newNo,
+          undo: function(){ colRef.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
+          redo: function(){ colRef.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
+        });
+      }).catch(function(e){ console.error(e); });
+    }
+
+    function archiveTask(id){
+      var t = state.tasks.find(function(x){ return x.id === id; });
+      setField(id, 'archived', true);
+      logActivity(t, 'deleted');
+      pushUndo({
+        label: 'deleting ' + (t && t.no ? t.no : 'a row'),
+        undo: function(){ setField(id, 'archived', false); },
+        redo: function(){ setField(id, 'archived', true); }
+      });
+    }
+    function restoreTask(id){
+      var t = state.tasks.find(function(x){ return x.id === id; });
+      setField(id, 'archived', false);
+      logActivity(t, 'restored');
+      pushUndo({
+        label: 'restoring ' + (t && t.no ? t.no : 'a row'),
+        undo: function(){ setField(id, 'archived', true); },
+        redo: function(){ setField(id, 'archived', false); }
+      });
+    }
+    function deleteTask(id){
+      var t = state.tasks.find(function(x){ return x.id === id; });
+      if(!t) return;
+      var data = {
+        no:t.no, category:t.category, description:t.description, due:t.due, link:t.link,
+        dependency:t.dependency, owner:t.owner, details:t.details, order:t.order,
+        archived:t.archived, struck:t.struck
+      };
+      colRef.doc(id).delete().catch(function(e){ console.error(e); });
+      logActivity(t, 'permanently deleted');
+      pushUndo({
+        label: 'permanently deleting ' + (t.no || 'a row'),
+        undo: function(){ colRef.doc(id).set(data).catch(function(e){ console.error(e); }); },
+        redo: function(){ colRef.doc(id).delete().catch(function(e){ console.error(e); }); }
+      });
+    }
+    function toggleStrike(id){
+      var t = state.tasks.find(function(x){ return x.id === id; });
+      if(!t) return;
+      var was = !!t.struck;
+      setField(id, 'struck', !was);
+      logActivity(t, was ? 'un-struck' : 'struck through');
+      pushUndo({
+        label: 'striking through ' + (t.no || 'a row'),
+        undo: function(){ setField(id, 'struck', was); },
+        redo: function(){ setField(id, 'struck', !was); }
+      });
+    }
+
+    function rowHTML(t, mode, confirmingId){
+      var depth = depthOf(t.no);
+      var isMain = depth === 0;
+      var catStyle = catClassStyle(t.category);
+      var overdue = t.due && t.due < todayISO() && !t.archived;
+      var confirming = confirmingId === t.id;
+      var rowClasses = 'row' + (isMain?' main':' sub') + (t.archived?' archived':'') + (t.struck?' struck':'');
+      var band = sectionColor(t.no);
+      var rowStyle = ' style="--row-band:'+band.bg+';--row-band-fg:'+band.fg+'"';
+
+      var catHTML = '<div class="cell" data-id="'+t.id+'">' +
+        '<span class="tag" contenteditable="true" data-id="'+t.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(t.category)+'</span>' +
+        '</div>';
+
+      var bulletHTML = depth>0 ? '<span class="bullet">'+(depth>1?'∙':'–')+'</span>' : '';
+      var descHTML = '<div class="cell desc-wrap" style="padding-left:'+(10+depth*18)+'px">' + bulletHTML +
+        '<div class="desc-text" contenteditable="true" data-id="'+t.id+'" data-field="description" data-ph="Untitled">'+escapeHTML(t.description)+'</div>' +
+        '</div>';
+
+      var linkHTML = '<div class="cell linkcell">' +
+        '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
+        (isURL(t.link) ? '<a class="linkopen" href="'+escapeHTML(t.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
+        '</div>';
+
+      var dateHTML = '<div class="cell datecell'+(overdue?' overdue':'')+'">' +
+        '<input type="date" data-id="'+t.id+'" data-field="due" value="'+escapeHTML(t.due)+'"'+(!t.due?' class="empty"':'')+'>' +
+        '</div>';
+
+      var actionsHTML;
+      if(mode === 'archived'){
+        if(confirming){
+          actionsHTML = '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button></div>';
+        } else {
+          actionsHTML = '<div class="cell rowactions">' +
+            '<button class="restore" data-action="restore" data-id="'+t.id+'" title="Restore"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>' +
+            '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete permanently"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
+            '</div>';
+        }
+      } else if(confirming){
+        actionsHTML = '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button></div>';
+      } else {
+        var trashBtn = deleteMode === 'permanent'
+          ? '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete permanently"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>'
+          : '<button data-action="archive" data-id="'+t.id+'" title="Delete (moves to Archive)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>';
+        actionsHTML = '<div class="cell rowactions">' +
+          '<button data-action="addsub" data-id="'+t.id+'" title="Add a row after this one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
+          '<button data-action="strike" data-id="'+t.id+'" title="'+(t.struck?'Remove strikethrough':'Cross out (stays visible)')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14"/></svg></button>' +
+          trashBtn +
+          '</div>';
+      }
+
+      return '<div class="'+rowClasses+'" data-row-id="'+t.id+'"'+rowStyle+'>' +
+        cellEditableHTML(t.id,'no',t.no,'—','no') +
+        catHTML +
+        descHTML +
+        dateHTML +
+        linkHTML +
+        cellEditableHTML(t.id,'dependency',t.dependency,'') +
+        cellEditableHTML(t.id,'owner',t.owner,'') +
+        cellEditableHTML(t.id,'details',t.details,'','wrap') +
+        actionsHTML +
+        '</div>';
+    }
+
+    return {
+      state: state,
+      onChange: onChange,
+      onStatus: onStatus,
+      updateField: updateField,
+      addTopLevel: addTopLevel,
+      addSiblingAfter: addSiblingAfter,
+      archiveTask: archiveTask,
+      restoreTask: restoreTask,
+      deleteTask: deleteTask,
+      toggleStrike: toggleStrike,
+      hasChildren: hasChildren,
+      sectionColor: sectionColor,
+      ancestorTitle: ancestorTitle,
+      focusIdOnce: focusIdOnce,
+      rowHTML: rowHTML,
+      undo: undo,
+      redo: redo,
+      onUndoState: onUndoState,
+      deleteMode: deleteMode
+    };
+  }
+
+  var Tasks = makeTaskStore(db.collection('tasks'), {deleteMode:'archive'});
+  var Events = makeTaskStore(db.collection('events'), {deleteMode:'permanent'});
 
   // ---------- reading list (separate collection, simpler flat list) ----------
+  var readingCol = db.collection('reading');
   var readingState = { items: [] };
   var readingListeners = [];
   var readingStatusListeners = [];
@@ -287,192 +559,14 @@ window.Ledger = (function(){
       '</div>';
   }
 
-  // ---------- hierarchy helpers ----------
-  function hasChildren(no){
-    if(!no) return false;
-    var prefix = no + '.';
-    return state.tasks.some(function(t){ return !t.archived && t.no && t.no.indexOf(prefix) === 0; });
-  }
-  function nextTopLevelNumber(){
-    var max = 0;
-    state.tasks.forEach(function(t){
-      if(t.no && t.no.indexOf('.') === -1){
-        var n = parseInt(t.no, 10);
-        if(!isNaN(n) && n > max) max = n;
-      }
-    });
-    return max + 1;
-  }
-  function nextChildNumber(parentNo){
-    var max = 0;
-    var prefix = parentNo + '.';
-    state.tasks.forEach(function(t){
-      if(t.no && t.no.indexOf(prefix) === 0){
-        var rest = t.no.slice(prefix.length);
-        if(rest.indexOf('.') === -1){
-          var n = parseInt(rest, 10);
-          if(!isNaN(n) && n > max) max = n;
-        }
-      }
-    });
-    return max + 1;
-  }
-  function topSegment(no){ return no ? no.split('.')[0] : ''; }
-  function topAncestor(no){
-    if(!no) return null;
-    var seg = topSegment(no);
-    return state.tasks.find(function(t){ return t.no === seg; }) || null;
-  }
-  /* Color a section band by its category text when the section has one
-     (so it matches that section's own category tag pill exactly), and
-     only fall back to hashing the bare section number for sections that
-     were never given a category. */
-  function sectionColor(no){
-    var top = topAncestor(no);
-    var key = (top && top.category) ? top.category : topSegment(no);
-    return catClassStyle(key);
-  }
-  function ancestorTitle(no){
-    var top = topAncestor(no);
-    return top ? top.description : '';
-  }
-  function insertOrderForChild(parentTask){
-    var list = state.tasks;
-    var idx = list.findIndex(function(t){ return t.id === parentTask.id; });
-    if(idx === -1) return (list.length ? list[list.length-1].order + 10 : 10);
-    var endIdx = idx;
-    for(var i = idx+1; i < list.length; i++){
-      if(list[i].no && parentTask.no && list[i].no.indexOf(parentTask.no + '.') === 0){ endIdx = i; }
-      else break;
-    }
-    var afterOrder = list[endIdx].order;
-    var beforeOrder = (endIdx+1 < list.length) ? list[endIdx+1].order : null;
-    return beforeOrder === null ? afterOrder + 10 : (afterOrder + beforeOrder) / 2;
-  }
-
-  // ---------- mutations ----------
-  var pendingFocusId = null;
-  function focusIdOnce(){ var id = pendingFocusId; pendingFocusId = null; return id; }
-
-  function setField(id, field, value){
-    var patch = {}; patch[field] = value;
-    tasksCol.doc(id).update(patch).catch(function(e){ console.error(e); });
-  }
-
-  function updateField(id, field, value){
-    var t = state.tasks.find(function(x){ return x.id === id; });
-    var oldValue = t ? (t[field] || '') : '';
-    if(oldValue === value) return;
-    setField(id, field, value);
-    logActivity(t, 'edited the ' + field + ' of');
-    pushUndo({
-      label: 'editing the ' + field + ' of ' + (t && t.no ? t.no : 'a task'),
-      undo: function(){ setField(id, field, oldValue); },
-      redo: function(){ setField(id, field, value); }
-    });
-  }
-
-  function addTopLevel(){
-    var no = String(nextTopLevelNumber());
-    var maxOrder = state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0);
-    var data = {
-      no:no, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
-      order: maxOrder + 10, archived:false, struck:false
-    };
-    tasksCol.add(data).then(function(ref){
-      pendingFocusId = ref.id;
-      logActivity(data, 'added');
-      pushUndo({
-        label: 'adding task ' + no,
-        undo: function(){ tasksCol.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
-        redo: function(){ tasksCol.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
-      });
-    }).catch(function(e){ console.error(e); });
-  }
-
-  /* Adds a new row at the SAME level as `row`, placed right after it (and
-     after everything already nested under it) — e.g. + on 3.1.1 gives
-     3.1.2, a sibling, not 3.1.1.1, a child. To go a level deeper, add a
-     sibling and then edit its "no" cell by hand to append ".1" — that's
-     rare enough not to need its own button. */
-  function addSiblingAfter(rowId){
-    var row = state.tasks.find(function(t){ return t.id === rowId; });
-    if(!row) return;
-    var dot = row.no ? row.no.lastIndexOf('.') : -1;
-    var parentNo = dot === -1 ? null : row.no.slice(0, dot);
-    var newNo = parentNo ? (parentNo + '.' + nextChildNumber(parentNo)) : String(nextTopLevelNumber());
-    var ord = insertOrderForChild(row);
-    var data = {
-      no:newNo, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
-      order: ord, archived:false, struck:false
-    };
-    tasksCol.add(data).then(function(ref){
-      pendingFocusId = ref.id;
-      logActivity(data, 'added');
-      pushUndo({
-        label: 'adding ' + newNo,
-        undo: function(){ tasksCol.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
-        redo: function(){ tasksCol.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
-      });
-    }).catch(function(e){ console.error(e); });
-  }
-
-  function archiveTask(id){
-    var t = state.tasks.find(function(x){ return x.id === id; });
-    setField(id, 'archived', true);
-    logActivity(t, 'deleted');
-    pushUndo({
-      label: 'deleting ' + (t && t.no ? t.no : 'a task'),
-      undo: function(){ setField(id, 'archived', false); },
-      redo: function(){ setField(id, 'archived', true); }
-    });
-  }
-  function restoreTask(id){
-    var t = state.tasks.find(function(x){ return x.id === id; });
-    setField(id, 'archived', false);
-    logActivity(t, 'restored');
-    pushUndo({
-      label: 'restoring ' + (t && t.no ? t.no : 'a task'),
-      undo: function(){ setField(id, 'archived', true); },
-      redo: function(){ setField(id, 'archived', false); }
-    });
-  }
-  function deleteTask(id){
-    var t = state.tasks.find(function(x){ return x.id === id; });
-    if(!t) return;
-    var data = {
-      no:t.no, category:t.category, description:t.description, due:t.due, link:t.link,
-      dependency:t.dependency, owner:t.owner, details:t.details, order:t.order,
-      archived:t.archived, struck:t.struck
-    };
-    tasksCol.doc(id).delete().catch(function(e){ console.error(e); });
-    logActivity(t, 'permanently deleted');
-    pushUndo({
-      label: 'permanently deleting ' + (t.no || 'a task'),
-      undo: function(){ tasksCol.doc(id).set(data).catch(function(e){ console.error(e); }); },
-      redo: function(){ tasksCol.doc(id).delete().catch(function(e){ console.error(e); }); }
-    });
-  }
-  function toggleStrike(id){
-    var t = state.tasks.find(function(x){ return x.id === id; });
-    if(!t) return;
-    var was = !!t.struck;
-    setField(id, 'struck', !was);
-    logActivity(t, was ? 'un-struck' : 'struck through');
-    pushUndo({
-      label: 'striking through ' + (t.no || 'a task'),
-      undo: function(){ setField(id, 'struck', was); },
-      redo: function(){ setField(id, 'struck', !was); }
-    });
-  }
-
   // ---------- shared topbar wiring (undo/redo) ----------
-  function wireTopbar(){
+  function wireTopbar(store){
+    store = store || Tasks;
     var undoBtn = document.getElementById('undobtn');
     var redoBtn = document.getElementById('redobtn');
-    if(undoBtn){ undoBtn.addEventListener('click', undo); }
-    if(redoBtn){ redoBtn.addEventListener('click', redo); }
-    onUndoState(function(st){
+    if(undoBtn){ undoBtn.addEventListener('click', store.undo); }
+    if(redoBtn){ redoBtn.addEventListener('click', store.redo); }
+    store.onUndoState(function(st){
       if(undoBtn) undoBtn.disabled = !st.canUndo;
       if(redoBtn) redoBtn.disabled = !st.canRedo;
     });
@@ -480,8 +574,8 @@ window.Ledger = (function(){
       var mod = e.metaKey || e.ctrlKey;
       if(!mod) return;
       var k = e.key.toLowerCase();
-      if(k === 'z' && !e.shiftKey){ e.preventDefault(); undo(); }
-      else if((k === 'z' && e.shiftKey) || k === 'y'){ e.preventDefault(); redo(); }
+      if(k === 'z' && !e.shiftKey){ e.preventDefault(); store.undo(); }
+      else if((k === 'z' && e.shiftKey) || k === 'y'){ e.preventDefault(); store.redo(); }
     });
   }
 
@@ -525,7 +619,7 @@ window.Ledger = (function(){
   }
 
   function wireEditing(container, updateFn){
-    updateFn = updateFn || updateField;
+    updateFn = updateFn || Tasks.updateField;
     container.addEventListener('focusout', function(e){
       var el = e.target;
       /* A re-render replaces the whole sheet's innerHTML, which blurs any
@@ -595,100 +689,42 @@ window.Ledger = (function(){
     }
   }
 
-  // ---------- shared row markup ----------
-  function cellEditableHTML(id, field, value, ph, extraClass){
-    return '<div class="cell'+(extraClass?(' '+extraClass):'')+'" contenteditable="true" data-id="'+id+'" data-field="'+field+'" data-ph="'+ph+'">'+escapeHTML(value)+'</div>';
-  }
-
-  function rowHTML(t, mode, confirmingId){
-    var depth = depthOf(t.no);
-    var isMain = depth === 0;
-    var catStyle = catClassStyle(t.category);
-    var overdue = t.due && t.due < todayISO() && !t.archived;
-    var confirming = confirmingId === t.id;
-    var rowClasses = 'row' + (isMain?' main':' sub') + (t.archived?' archived':'') + (t.struck?' struck':'');
-    var band = sectionColor(t.no);
-    var rowStyle = ' style="--row-band:'+band.bg+';--row-band-fg:'+band.fg+'"';
-
-    var catHTML = '<div class="cell" data-id="'+t.id+'">' +
-      '<span class="tag" contenteditable="true" data-id="'+t.id+'" data-field="category" data-ph="—" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(t.category)+'</span>' +
-      '</div>';
-
-    var bulletHTML = depth>0 ? '<span class="bullet">'+(depth>1?'∙':'–')+'</span>' : '';
-    var descHTML = '<div class="cell desc-wrap" style="padding-left:'+(10+depth*18)+'px">' + bulletHTML +
-      '<div class="desc-text" contenteditable="true" data-id="'+t.id+'" data-field="description" data-ph="Untitled task">'+escapeHTML(t.description)+'</div>' +
-      '</div>';
-
-    var linkHTML = '<div class="cell linkcell">' +
-      '<div class="cell-text" contenteditable="true" data-id="'+t.id+'" data-field="link" data-ph="" style="'+(isURL(t.link)?'color:var(--accent);':'')+'">'+escapeHTML(t.link)+'</div>' +
-      (isURL(t.link) ? '<a class="linkopen" href="'+escapeHTML(t.link)+'" target="_blank" rel="noopener noreferrer">Open ↗</a>' : '') +
-      '</div>';
-
-    var dateHTML = '<div class="cell datecell'+(overdue?' overdue':'')+'">' +
-      '<input type="date" data-id="'+t.id+'" data-field="due" value="'+escapeHTML(t.due)+'"'+(!t.due?' class="empty"':'')+'>' +
-      '</div>';
-
-    var actionsHTML;
-    if(mode === 'archived'){
-      if(confirming){
-        actionsHTML = '<div class="cell rowactions"><button class="confirm" data-action="confirmdel" data-id="'+t.id+'">Delete?</button></div>';
-      } else {
-        actionsHTML = '<div class="cell rowactions">' +
-          '<button class="restore" data-action="restore" data-id="'+t.id+'" title="Restore"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg></button>' +
-          '<button class="del" data-action="del" data-id="'+t.id+'" title="Delete permanently"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
-          '</div>';
-      }
-    } else {
-      actionsHTML = '<div class="cell rowactions">' +
-        '<button data-action="addsub" data-id="'+t.id+'" title="Add a row after this one"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>' +
-        '<button data-action="strike" data-id="'+t.id+'" title="'+(t.struck?'Remove strikethrough':'Cross out (stays in Tasks)')+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M5 12h14"/></svg></button>' +
-        '<button data-action="archive" data-id="'+t.id+'" title="Delete (moves to Archive)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button>' +
-        '</div>';
-    }
-
-    return '<div class="'+rowClasses+'" data-row-id="'+t.id+'"'+rowStyle+'>' +
-      cellEditableHTML(t.id,'no',t.no,'—','no') +
-      catHTML +
-      descHTML +
-      dateHTML +
-      linkHTML +
-      cellEditableHTML(t.id,'dependency',t.dependency,'') +
-      cellEditableHTML(t.id,'owner',t.owner,'') +
-      cellEditableHTML(t.id,'details',t.details,'','wrap') +
-      actionsHTML +
-      '</div>';
-  }
-
   return {
-    state: state,
-    onChange: onChange,
-    onStatus: onStatus,
-    updateField: updateField,
-    addTopLevel: addTopLevel,
-    addSiblingAfter: addSiblingAfter,
-    archiveTask: archiveTask,
-    restoreTask: restoreTask,
-    deleteTask: deleteTask,
-    toggleStrike: toggleStrike,
-    hasChildren: hasChildren,
+    // Tasks store, exposed flat for backward compatibility with existing pages
+    state: Tasks.state,
+    onChange: Tasks.onChange,
+    onStatus: Tasks.onStatus,
+    updateField: Tasks.updateField,
+    addTopLevel: Tasks.addTopLevel,
+    addSiblingAfter: Tasks.addSiblingAfter,
+    archiveTask: Tasks.archiveTask,
+    restoreTask: Tasks.restoreTask,
+    deleteTask: Tasks.deleteTask,
+    toggleStrike: Tasks.toggleStrike,
+    hasChildren: Tasks.hasChildren,
+    sectionColor: Tasks.sectionColor,
+    ancestorTitle: Tasks.ancestorTitle,
+    focusIdOnce: Tasks.focusIdOnce,
+    rowHTML: Tasks.rowHTML,
+    undo: Tasks.undo,
+    redo: Tasks.redo,
+    onUndoState: Tasks.onUndoState,
+
+    // the new, independent Events store — same shape as the Tasks store above
+    Events: Events,
+
     depthOf: depthOf,
-    catClassStyle: catClassStyle,
-    sectionColor: sectionColor,
     topSegment: topSegment,
-    ancestorTitle: ancestorTitle,
+    catClassStyle: catClassStyle,
     escapeHTML: escapeHTML,
     isURL: isURL,
     fmtISO: fmtISO,
     todayISO: todayISO,
-    focusIdOnce: focusIdOnce,
-    rowHTML: rowHTML,
     activityCol: activityCol,
-    undo: undo,
-    redo: redo,
-    onUndoState: onUndoState,
     wireTopbar: wireTopbar,
     wireEditing: wireEditing,
     preserveFocus: preserveFocus,
+
     readingState: readingState,
     onReadingChange: onReadingChange,
     onReadingStatus: onReadingStatus,
@@ -698,6 +734,7 @@ window.Ledger = (function(){
     deleteReadingItem: deleteReadingItem,
     focusReadingIdOnce: focusReadingIdOnce,
     readingRowHTML: readingRowHTML,
+
     notesState: notesState,
     onNotesChange: onNotesChange,
     onNotesStatus: onNotesStatus,

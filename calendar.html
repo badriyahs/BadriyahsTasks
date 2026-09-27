@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Calendar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=15">
+<link rel="stylesheet" href="styles.css?v=16">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -39,11 +39,12 @@
   <a class="tab" href="activity.html">Activity</a>
   <a class="tab" href="reading.html">Reading</a>
   <a class="tab" href="notes.html">Notes</a>
+  <a class="tab" href="events.html">Events</a>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 <script>
 (function(){
   "use strict";
@@ -84,11 +85,20 @@
   var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   var DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
-  function activeTasks(){ return L.state.tasks.filter(function(t){ return !t.archived; }); }
+  /* Tasks and Events are two independent stores (separate Firestore
+     collections, separate numbering) — merge them here for display only.
+     Each item is tagged with which store it came from so its section
+     color/title can be looked up in the right place. */
+  function storeFor(t){ return t._store === 'events' ? L.Events : L; }
+  function activeItems(){
+    var tasks = L.state.tasks.filter(function(t){ return !t.archived; }).map(function(t){ t._store='tasks'; return t; });
+    var events = L.Events.state.tasks.filter(function(t){ return !t.archived; }).map(function(t){ t._store='events'; return t; });
+    return tasks.concat(events);
+  }
 
   function eventsByDate(){
     var map = {};
-    activeTasks().forEach(function(t){
+    activeItems().forEach(function(t){
       if(!t.due) return;
       (map[t.due] = map[t.due] || []).push(t);
     });
@@ -97,16 +107,18 @@
 
   function renderLegend(){
     var seen = {}, items = [];
-    activeTasks().forEach(function(t){
+    activeItems().forEach(function(t){
       if(!t.due) return;
+      var store = storeFor(t);
       var seg = L.topSegment(t.no);
-      if(seen[seg]) return;
-      seen[seg] = true;
-      items.push({seg:seg, title:L.ancestorTitle(t.no) || seg});
+      var key = t._store + ':' + seg;
+      if(seen[key]) return;
+      seen[key] = true;
+      items.push({seg:seg, store:store, title:store.ancestorTitle(t.no) || seg, isEvent: t._store==='events'});
     });
     els.callegend.innerHTML = items.map(function(it){
-      var s = L.sectionColor(it.seg);
-      return '<span class="tag" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(it.title)+'</span>';
+      var s = it.store.sectionColor(it.seg);
+      return '<span class="tag'+(it.isEvent?' is-event':'')+'" style="background:'+s.bg+';color:'+s.fg+'">'+(it.isEvent?'✦ ':'')+L.escapeHTML(it.title)+'</span>';
     }).join('');
   }
 
@@ -134,12 +146,15 @@
       var extra = dayEvents.length - visibleEvents.length;
 
       var chipsHTML = visibleEvents.map(function(t){
-        var s = t.struck ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : L.sectionColor(t.no);
+        var store = storeFor(t);
+        var isEvent = t._store === 'events';
+        var s = t.struck ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : store.sectionColor(t.no);
         var depth = L.depthOf(t.no);
-        var prefix = depth>0 ? (L.ancestorTitle(t.no)||'').toUpperCase() : '';
-        var label = (prefix?'<b>'+L.escapeHTML(prefix)+':</b> ':'') + (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled task');
-        var tip = (prefix?prefix+' — ':'') + (t.description||'');
-        return '<button class="evt'+(t.struck?' struck':'')+'" data-goto="'+t.id+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
+        var prefix = depth>0 ? (store.ancestorTitle(t.no)||'').toUpperCase() : '';
+        var mark = isEvent ? '<span class="evt-mark">✦</span>' : '';
+        var label = mark + (prefix?'<b>'+L.escapeHTML(prefix)+':</b> ':'') + (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled');
+        var tip = (isEvent?'Event — ':'') + (prefix?prefix+' — ':'') + (t.description||'');
+        return '<button class="evt'+(t.struck?' struck':'')+(isEvent?' is-event':'')+'" data-goto="'+t.id+'" data-goto-store="'+t._store+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
       }).join('');
       var moreHTML = extra>0 ? '<button class="more" data-expand="'+iso+'">+'+extra+' more</button>' : (expanded && dayEvents.length>3 ? '<button class="more" data-collapse="'+iso+'">Show less</button>' : '');
 
@@ -152,7 +167,10 @@
     els.calgrid.innerHTML = html;
 
     els.calgrid.querySelectorAll('[data-goto]').forEach(function(el){
-      el.addEventListener('click', function(){ window.location.href = 'index.html#task-'+el.dataset.goto; });
+      el.addEventListener('click', function(){
+        var page = el.dataset.gotoStore === 'events' ? 'events.html' : 'index.html';
+        window.location.href = page + '#task-' + el.dataset.goto;
+      });
     });
     els.calgrid.querySelectorAll('[data-expand]').forEach(function(el){
       el.addEventListener('click', function(){ expandedDays[el.dataset.expand]=true; render(); });
@@ -163,6 +181,7 @@
   }
 
   L.onChange(render);
+  L.Events.onChange(render);
 })();
 </script>
 </body>
