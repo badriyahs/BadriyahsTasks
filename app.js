@@ -559,6 +559,92 @@ window.Ledger = (function(){
       '</div>';
   }
 
+  // ---------- calls (paper calls + awards/grants/residencies — read-mostly, seeded data) ----------
+  var callsCol = db.collection('calls');
+  var callsMetaCol = db.collection('calls_meta');
+  var callsState = { items: [], meta: null };
+  var callsListeners = [];
+  var callsStatusListeners = [];
+  function onCallsChange(fn){ callsListeners.push(fn); }
+  function notifyCalls(){ callsListeners.forEach(function(fn){ fn(); }); }
+  function onCallsStatus(fn){ callsStatusListeners.push(fn); }
+  function notifyCallsStatus(kind, text){ callsStatusListeners.forEach(function(fn){ fn(kind, text); }); }
+
+  callsCol.onSnapshot(function(snap){
+    callsState.items = snap.docs.map(function(d){
+      var data = d.data() || {};
+      return Object.assign({id: d.id}, data);
+    });
+    notifyCallsStatus('ok', 'Live — anyone with this link can edit');
+    notifyCalls();
+  }, function(err){
+    notifyCallsStatus('err', 'Calls need their Firestore rule added — ' + (err && err.code ? err.code : 'error'));
+    console.error(err);
+  });
+
+  callsMetaCol.doc('status').onSnapshot(function(doc){
+    callsState.meta = doc.exists ? doc.data() : null;
+    notifyCalls();
+  }, function(err){ console.error(err); });
+
+  function daysUntil(iso){
+    if(!iso) return null;
+    var today = new Date(todayISO() + 'T00:00:00');
+    var d = new Date(iso + 'T00:00:00');
+    return Math.round((d - today) / 86400000);
+  }
+  function callLinkHref(link){
+    if(!link) return '';
+    return /^https?:\/\//i.test(link) ? link : 'https://' + link;
+  }
+
+  /* Picking "Planning" on a call creates a matching task in her normal Tasks
+     list (category "Calls") so it shows up in her everyday workflow — but
+     only the first time, tracked via linkedTaskId, so toggling the dropdown
+     back and forth doesn't spawn duplicate tasks. This never runs from the
+     automated weekly refresh, only from her own dropdown click. */
+  function nextTopLevelTaskNo(){
+    var max = 0;
+    Tasks.state.tasks.forEach(function(t){
+      if(t.no && t.no.indexOf('.') === -1){
+        var n = parseInt(t.no, 10);
+        if(!isNaN(n) && n > max) max = n;
+      }
+    });
+    return String(max + 1);
+  }
+  function nextTopLevelTaskOrder(){
+    var max = 0;
+    Tasks.state.tasks.forEach(function(t){ if(typeof t.order === 'number' && t.order > max) max = t.order; });
+    return max + 10;
+  }
+  function createTaskFromCall(call){
+    return db.collection('tasks').add({
+      no: nextTopLevelTaskNo(),
+      category: 'Calls',
+      description: call.name || '',
+      due: call.deadline || '',
+      link: callLinkHref(call.link),
+      dependency: '',
+      owner: '',
+      details: call.fit || '',
+      order: nextTopLevelTaskOrder(),
+      archived: false,
+      struck: false
+    }).then(function(ref){ return ref.id; });
+  }
+  function setCallMine(id, value){
+    var call = callsState.items.find(function(c){ return c.id === id; });
+    var updates = { mine: value };
+    var chain = Promise.resolve();
+    if(value === 'planning' && call && !call.linkedTaskId){
+      chain = createTaskFromCall(call).then(function(taskId){ updates.linkedTaskId = taskId; });
+    }
+    chain.then(function(){
+      return callsCol.doc(id).update(updates);
+    }).catch(function(e){ console.error(e); });
+  }
+
   // ---------- shared topbar wiring (undo/redo) ----------
   function wireTopbar(store){
     store = store || Tasks;
@@ -742,6 +828,13 @@ window.Ledger = (function(){
     updateNoteText: updateNoteText,
     deleteNote: deleteNote,
     focusNoteIdOnce: focusNoteIdOnce,
-    noteCardHTML: noteCardHTML
+    noteCardHTML: noteCardHTML,
+
+    callsState: callsState,
+    onCallsChange: onCallsChange,
+    onCallsStatus: onCallsStatus,
+    setCallMine: setCallMine,
+    daysUntil: daysUntil,
+    callLinkHref: callLinkHref
   };
 })();

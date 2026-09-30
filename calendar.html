@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Calendar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -40,11 +40,12 @@
   <a class="tab" href="reading.html">Reading</a>
   <a class="tab" href="notes.html">Notes</a>
   <a class="tab" href="events.html">Events</a>
+  <a class="tab" href="calls.html">Calls</a>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=18"></script>
+<script src="app.js?v=19"></script>
 <script>
 (function(){
   "use strict";
@@ -88,12 +89,22 @@
   /* Tasks and Events are two independent stores (separate Firestore
      collections, separate numbering) — merge them here for display only.
      Each item is tagged with which store it came from so its section
-     color/title can be looked up in the right place. */
+     color/title can be looked up in the right place. Calls (deadlines
+     from the Calls tab) are flat, not hierarchical, so they're merged
+     separately and excluded from the section legend. */
   function storeFor(t){ return t._store === 'events' ? L.Events : L; }
-  function activeItems(){
+  function sectionItems(){
     var tasks = L.state.tasks.filter(function(t){ return !t.archived; }).map(function(t){ t._store='tasks'; return t; });
     var events = L.Events.state.tasks.filter(function(t){ return !t.archived; }).map(function(t){ t._store='events'; return t; });
     return tasks.concat(events);
+  }
+  function callItems(){
+    return L.callsState.items.filter(function(c){ return c.deadline; }).map(function(c){
+      return { id:c.id, due:c.deadline, description:c.name, category:c.category, mine:c.mine, no:'', _store:'calls' };
+    });
+  }
+  function activeItems(){
+    return sectionItems().concat(callItems());
   }
 
   function eventsByDate(){
@@ -107,7 +118,7 @@
 
   function renderLegend(){
     var seen = {}, items = [];
-    activeItems().forEach(function(t){
+    sectionItems().forEach(function(t){
       if(!t.due) return;
       var store = storeFor(t);
       var seg = L.topSegment(t.no);
@@ -146,6 +157,12 @@
       var extra = dayEvents.length - visibleEvents.length;
 
       var chipsHTML = visibleEvents.map(function(t){
+        if(t._store === 'calls'){
+          var cs = t.mine === 'skip' ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : L.catClassStyle(t.category);
+          var clabel = '<span class="evt-mark">◆</span>' + L.escapeHTML(t.description||'Untitled');
+          var ctip = 'Call — ' + (t.description||'');
+          return '<button class="evt is-call" data-goto="'+t.id+'" data-goto-store="calls" style="background:'+cs.bg+';color:'+cs.fg+'" title="'+L.escapeHTML(ctip)+'">'+clabel+'</button>';
+        }
         var store = storeFor(t);
         var isEvent = t._store === 'events';
         var s = t.struck ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : store.sectionColor(t.no);
@@ -168,8 +185,10 @@
 
     els.calgrid.querySelectorAll('[data-goto]').forEach(function(el){
       el.addEventListener('click', function(){
-        var page = el.dataset.gotoStore === 'events' ? 'events.html' : 'index.html';
-        window.location.href = page + '#task-' + el.dataset.goto;
+        var store = el.dataset.gotoStore;
+        var page = store === 'events' ? 'events.html' : (store === 'calls' ? 'calls.html' : 'index.html');
+        var prefix = store === 'calls' ? 'call-' : 'task-';
+        window.location.href = page + '#' + prefix + el.dataset.goto;
       });
     });
     els.calgrid.querySelectorAll('[data-expand]').forEach(function(el){
@@ -182,6 +201,7 @@
 
   L.onChange(render);
   L.Events.onChange(render);
+  L.onCallsChange(render);
 })();
 </script>
 </body>

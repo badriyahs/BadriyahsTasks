@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badriyah's Tasks — Calls</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=17">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Badriyah's Tasks</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+</div>
+
+<div class="view" id="view-calls">
+  <div class="callstabs" id="callstabs"></div>
+  <div class="toolbar">
+    <div class="search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="searchbox" type="text" placeholder="Search name, location, fit, tags…" autocomplete="off">
+    </div>
+    <button class="hidebtn" id="onlinebtn">Online option</button>
+    <button class="hidebtn" id="skipbtn">Hide skipped</button>
+    <div class="count" id="rowcount"></div>
+  </div>
+  <div class="closingsoon" id="closingsoon" style="display:none;">
+    <span class="closingsoon-label">Closing soon</span>
+    <div class="closingsoon-list" id="closingsoonlist" style="display:flex;gap:8px;"></div>
+  </div>
+  <div class="calls-scroll">
+    <div class="calls-list" id="callslist"></div>
+  </div>
+  <div class="calls-footer">
+    <span>Dates marked "estimated" follow last year's cycle and switch to confirmed once the call is posted. Updated every Sunday morning.</span>
+    <span id="lastchecked"></span>
+  </div>
+</div>
+
+<div class="tabbar">
+  <a class="tab" href="index.html">Tasks</a>
+  <a class="tab" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab" href="activity.html">Activity</a>
+  <a class="tab" href="reading.html">Reading</a>
+  <a class="tab" href="notes.html">Notes</a>
+  <a class="tab" href="events.html">Events</a>
+  <a class="tab active" href="calls.html">Calls</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="app.js?v=19"></script>
+<script>
+(function(){
+  "use strict";
+  var L = window.Ledger;
+
+  var els = {
+    callstabs: document.getElementById('callstabs'),
+    searchbox: document.getElementById('searchbox'),
+    onlinebtn: document.getElementById('onlinebtn'),
+    skipbtn: document.getElementById('skipbtn'),
+    rowcount: document.getElementById('rowcount'),
+    closingsoon: document.getElementById('closingsoon'),
+    closingsoonlist: document.getElementById('closingsoonlist'),
+    callslist: document.getElementById('callslist'),
+    lastchecked: document.getElementById('lastchecked'),
+    syncdot: document.getElementById('syncdot'),
+    syncstate: document.getElementById('syncstate')
+  };
+
+  var subview = 'paper'; // 'paper' | 'award' | 'watch'
+  var search = '';
+  var onlineOnly = false;
+  var hideSkipped = false;
+
+  L.onCallsStatus(function(kind, text){
+    els.syncdot.classList.remove('off','err');
+    if(kind !== 'ok') els.syncdot.classList.add(kind);
+    els.syncstate.textContent = text;
+  });
+
+  var MINE_OPTIONS = [['', '—'],['planning','Planning'],['submitted','Submitted'],['accepted','Accepted'],['skip','Skip']];
+  var MINE_LABEL = {};
+  MINE_OPTIONS.forEach(function(o){ MINE_LABEL[o[0]] = o[1]; });
+
+  function pillFor(c){
+    var d = L.daysUntil(c.deadline);
+    if(d === null) return {cls:'pill-rolling', label:'Rolling'};
+    if(d < 0) return {cls:'pill-closed', label:'Closed'};
+    if(d === 0) return {cls:'pill-red', label:'Today'};
+    if(d <= 14) return {cls:'pill-red', label: d + 'd left'};
+    if(d <= 45) return {cls:'pill-amber', label: d + 'd left'};
+    return {cls:'pill-green', label: d + 'd left'};
+  }
+
+  function deadlineDisplay(c){
+    if(c.deadlineText) return c.deadlineText;
+    if(!c.deadline) return 'No fixed date';
+    var d = new Date(c.deadline + 'T00:00:00');
+    return d.toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'});
+  }
+
+  function forSubview(items, sv){
+    return items.filter(function(c){
+      if(sv === 'watch') return c.status === 'watch';
+      if(sv === 'paper') return c.kind === 'paper' && c.status !== 'watch';
+      return c.kind === 'award' && c.status !== 'watch';
+    });
+  }
+
+  function passesFilters(c){
+    if(onlineOnly && !c.online) return false;
+    if(hideSkipped && c.mine === 'skip') return false;
+    if(search){
+      var hay = [c.name, c.location, c.fit, c.category, (c.tags||[]).join(' ')].join(' ').toLowerCase();
+      if(hay.indexOf(search) === -1) return false;
+    }
+    return true;
+  }
+
+  function passesRecency(c, sv){
+    if(sv === 'watch') return true;
+    var d = L.daysUntil(c.deadline);
+    if(d === null) return true;
+    return d >= -3;
+  }
+
+  function sortByDeadline(list){
+    return list.slice().sort(function(a, b){
+      var da = a.deadline || null, db = b.deadline || null;
+      if(da && db) return da < db ? -1 : (da > db ? 1 : 0);
+      if(da && !db) return -1;
+      if(!da && db) return 1;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+  }
+
+  function closingSoonItems(items){
+    return sortByDeadline(items.filter(function(c){
+      if(c.status === 'watch') return false;
+      if(c.mine === 'skip') return false;
+      var d = L.daysUntil(c.deadline);
+      return d !== null && d >= 0 && d <= 45;
+    }));
+  }
+
+  function mineSelectHTML(c){
+    return '<select class="mineselect" data-action="setmine" data-id="'+c.id+'">' +
+      MINE_OPTIONS.map(function(o){
+        return '<option value="'+o[0]+'"'+((c.mine||'')===o[0]?' selected':'')+'>'+o[1]+'</option>';
+      }).join('') +
+      '</select>';
+  }
+
+  function cardHTML(c){
+    var pill = pillFor(c);
+    var dimmed = c.mine === 'submitted' || c.mine === 'skip';
+    var href = L.callLinkHref(c.link);
+    var metaParts = [c.location, c.eventDates, c.format].filter(Boolean);
+    var tagsHTML = (c.tags||[]).map(function(t){ return '<span class="tag">'+L.escapeHTML(t)+'</span>'; }).join('');
+    var nameHTML = href
+      ? '<a class="callcard-name" href="'+L.escapeHTML(href)+'" target="_blank" rel="noopener noreferrer">'+L.escapeHTML(c.name)+' ↗</a>'
+      : '<span class="callcard-name">'+L.escapeHTML(c.name)+'</span>';
+    return '<div class="callcard'+(dimmed?' dimmed':'')+'" data-call-id="'+c.id+'">' +
+      '<div class="callcard-top">' +
+        '<span class="pill '+pill.cls+'">'+L.escapeHTML(pill.label)+'</span>' +
+        '<span class="calldate">'+L.escapeHTML(deadlineDisplay(c))+'</span>' +
+        (c.confidence === 'estimated' ? '<span class="pill-est">Estimated</span>' : '') +
+      '</div>' +
+      nameHTML +
+      (metaParts.length ? '<div class="callcard-meta">'+L.escapeHTML(metaParts.join(' · '))+'</div>' : '') +
+      (c.fit ? '<div class="callcard-fit">'+L.escapeHTML(c.fit)+'</div>' : '') +
+      (c.note ? '<div class="callcard-note">'+L.escapeHTML(c.note)+'</div>' : '') +
+      (tagsHTML ? '<div class="callcard-tags">'+tagsHTML+'</div>' : '') +
+      '<div class="callcard-bottom">' + mineSelectHTML(c) + '</div>' +
+      '</div>';
+  }
+
+  function closingChipHTML(c){
+    var pill = pillFor(c);
+    return '<button class="closingchip" data-jump="'+c.id+'" data-jump-kind="'+c.kind+'">' +
+      '<span class="pill '+pill.cls+'">'+L.escapeHTML(pill.label)+'</span>' + L.escapeHTML(c.name) +
+      '</button>';
+  }
+
+  function renderTabs(counts){
+    els.callstabs.innerHTML =
+      '<button class="calltab'+(subview==='paper'?' active':'')+'" data-sub="paper">Paper calls<span class="n"> ('+counts.paper+')</span></button>' +
+      '<button class="calltab'+(subview==='award'?' active':'')+'" data-sub="award">Awards &amp; grants<span class="n"> ('+counts.award+')</span></button>' +
+      '<button class="calltab'+(subview==='watch'?' active':'')+'" data-sub="watch">Watching<span class="n"> ('+counts.watch+')</span></button>';
+    els.callstabs.querySelectorAll('[data-sub]').forEach(function(btn){
+      btn.addEventListener('click', function(){ subview = btn.dataset.sub; render(); });
+    });
+  }
+
+  function render(){
+    var all = L.callsState.items;
+    var counts = {
+      paper: all.filter(function(c){ return c.kind==='paper' && c.status!=='watch'; }).length,
+      award: all.filter(function(c){ return c.kind==='award' && c.status!=='watch'; }).length,
+      watch: all.filter(function(c){ return c.status==='watch'; }).length
+    };
+    renderTabs(counts);
+
+    var soon = closingSoonItems(all);
+    if(soon.length){
+      els.closingsoon.style.display = '';
+      els.closingsoonlist.innerHTML = soon.map(closingChipHTML).join('');
+      els.closingsoonlist.querySelectorAll('[data-jump]').forEach(function(btn){
+        btn.addEventListener('click', function(){ jumpToCall(btn.dataset.jump, btn.dataset.jumpKind); });
+      });
+    } else {
+      els.closingsoon.style.display = 'none';
+    }
+
+    var list = forSubview(all, subview)
+      .filter(function(c){ return passesRecency(c, subview); })
+      .filter(passesFilters);
+    list = sortByDeadline(list);
+
+    els.rowcount.textContent = list.length + (list.length===1 ? ' call' : ' calls');
+    els.callslist.innerHTML = list.length
+      ? list.map(cardHTML).join('')
+      : '<div class="empty-hint">Nothing here — try a different tab, or clear the search/filters.</div>';
+
+    els.callslist.querySelectorAll('[data-action="setmine"]').forEach(function(sel){
+      sel.addEventListener('change', function(){ L.setCallMine(sel.dataset.id, sel.value); });
+    });
+
+    var meta = L.callsState.meta;
+    els.lastchecked.textContent = meta && meta.lastRun ? ('Last checked ' + meta.lastRun) : '';
+
+    jumpFromHash();
+  }
+
+  function jumpToCall(id, kind){
+    var c = L.callsState.items.find(function(x){ return x.id === id; });
+    subview = (c && c.status === 'watch') ? 'watch' : (kind === 'award' ? 'award' : 'paper');
+    search = ''; els.searchbox.value = '';
+    onlineOnly = false; els.onlinebtn.classList.remove('active');
+    render();
+    requestAnimationFrame(function(){
+      var el = els.callslist.querySelector('[data-call-id="'+id+'"]');
+      if(el){
+        el.scrollIntoView({block:'center', behavior:'smooth'});
+        el.classList.add('flash');
+        setTimeout(function(){ el.classList.remove('flash'); }, 1700);
+      }
+    });
+  }
+
+  var jumped = false;
+  function jumpFromHash(){
+    if(jumped) return;
+    var m = /^#call-(.+)$/.exec(location.hash);
+    if(!m) return;
+    jumped = true;
+    var c = L.callsState.items.find(function(x){ return x.id === m[1]; });
+    if(c) jumpToCall(c.id, c.kind);
+  }
+
+  els.searchbox.addEventListener('input', function(){
+    search = els.searchbox.value.trim().toLowerCase();
+    render();
+  });
+  els.onlinebtn.addEventListener('click', function(){
+    onlineOnly = !onlineOnly;
+    this.classList.toggle('active', onlineOnly);
+    render();
+  });
+  els.skipbtn.addEventListener('click', function(){
+    hideSkipped = !hideSkipped;
+    this.classList.toggle('active', hideSkipped);
+    render();
+  });
+
+  L.onCallsChange(render);
+  render();
+})();
+</script>
+</body>
+</html>
