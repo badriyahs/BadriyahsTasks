@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=18">
+<link rel="stylesheet" href="styles.css?v=19">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -13,34 +13,41 @@
 <div class="view" id="view-digest">
   <div class="digest-scroll">
     <div class="digest-wrap">
-      <div class="digest-kicker">Badriyah's Tasks — Daily Digest</div>
-      <h1 class="digest-date" id="digestdate"></h1>
-      <div class="digest-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+      <header class="masthead">
+        <div class="masthead-kicker">Daily Digest</div>
+        <h1 class="masthead-title">Badriyah's Tasks</h1>
+        <div class="masthead-meta">
+          <span id="digestdate"></span>
+          <span class="masthead-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></span>
+        </div>
+      </header>
 
-      <section class="digest-section">
+      <section class="digest-section digest-lead">
         <h2>Today</h2>
         <div id="sec-today"></div>
       </section>
 
-      <section class="digest-section">
-        <h2>Coming Up</h2>
-        <div id="sec-events"></div>
-      </section>
+      <div class="digest-grid">
+        <section class="digest-section">
+          <h2>Coming Up</h2>
+          <div id="sec-events"></div>
+        </section>
 
-      <section class="digest-section">
-        <h2>Closing Soon</h2>
-        <div id="sec-calls"></div>
-      </section>
+        <section class="digest-section">
+          <h2>Closing Soon</h2>
+          <div id="sec-calls"></div>
+        </section>
 
-      <section class="digest-section">
-        <h2>Keep in Mind</h2>
-        <div id="sec-notes"></div>
-      </section>
+        <section class="digest-section">
+          <h2>Keep in Mind</h2>
+          <div id="sec-notes"></div>
+        </section>
 
-      <section class="digest-section">
-        <h2>From the Shelf</h2>
-        <div id="sec-reading"></div>
-      </section>
+        <section class="digest-section">
+          <h2>From the Shelf</h2>
+          <div id="sec-reading"></div>
+        </section>
+      </div>
     </div>
   </div>
 </div>
@@ -71,7 +78,7 @@
     syncstate: document.getElementById('syncstate')
   };
 
-  els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
+  els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric', year:'numeric'});
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
