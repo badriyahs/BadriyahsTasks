@@ -28,43 +28,6 @@
   --type-call:#AD1A72;
 }
 
-/* Follows the device's own light/dark setting automatically — no toggle,
-   no manual switch, just whatever the phone/laptop is already set to. */
-@media (prefers-color-scheme: dark){
-  :root{
-    --paper:#15181D;
-    --surface:#1C2026;
-    --ink:#E7E9EC;
-    --muted:#9AA0AC;
-    --faint:#696F79;
-    --line:#2A2E35;
-    --line-strong:#3A3F48;
-    --accent:#7098FF;
-    --accent-ink:#0B0E14;
-    --accent-tint:#1E2A47;
-    --overdue:#FF8A65;
-    --danger:#FF6B6B;
-    --danger-tint:#3A1F1D;
-    --parent-tint:#23262D;
-    --archived-tint:#212429;
-
-    --cat0-bg:#15302B; --cat0-fg:#5EEAD4;
-    --cat1-bg:#28204A; --cat1-fg:#C4B5FD;
-    --cat2-bg:#392A14; --cat2-fg:#FCD34D;
-    --cat3-bg:#39182F; --cat3-fg:#F9A8D4;
-    --cat4-bg:#15301E; --cat4-fg:#6EE7A8;
-    --cat5-bg:#22262F; --cat5-fg:#AEB6D9;
-    --cat6-bg:#332212; --cat6-fg:#D9A869;
-    --cat7-bg:#32183A; --cat7-fg:#E0A6E8;
-
-    --type-event:#7098FF;
-    --type-call:#E8529E;
-  }
-  .dot{background:#4ADE80;}
-  .row:not(.head):hover .cell{background:#262B33;}
-  .day.outside{background:#1A1D22;}
-}
-
 *{box-sizing:border-box;}
 html,body{height:100%;}
 body{
@@ -569,3 +532,46 @@ body{
   cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;
 }
 .addnotecard:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint);}
+
+/* === DARK MODE === */
+/* Follows the device's own light/dark setting automatically — no toggle,
+   no manual switch, just whatever the phone/laptop is already set to.
+   Kept at the end of the file on purpose: the handful of selectors below
+   that use literal hex colors instead of var() (.dot, row hover, outside
+   calendar days) need to come AFTER their light-mode base rules to win
+   the cascade — same specificity, so source order decides, regardless
+   of which media query matches. */
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#15181D;
+    --surface:#1C2026;
+    --ink:#E7E9EC;
+    --muted:#9AA0AC;
+    --faint:#696F79;
+    --line:#2A2E35;
+    --line-strong:#3A3F48;
+    --accent:#7098FF;
+    --accent-ink:#0B0E14;
+    --accent-tint:#1E2A47;
+    --overdue:#FF8A65;
+    --danger:#FF6B6B;
+    --danger-tint:#3A1F1D;
+    --parent-tint:#23262D;
+    --archived-tint:#212429;
+
+    --cat0-bg:#15302B; --cat0-fg:#5EEAD4;
+    --cat1-bg:#28204A; --cat1-fg:#C4B5FD;
+    --cat2-bg:#392A14; --cat2-fg:#FCD34D;
+    --cat3-bg:#39182F; --cat3-fg:#F9A8D4;
+    --cat4-bg:#15301E; --cat4-fg:#6EE7A8;
+    --cat5-bg:#22262F; --cat5-fg:#AEB6D9;
+    --cat6-bg:#332212; --cat6-fg:#D9A869;
+    --cat7-bg:#32183A; --cat7-fg:#E0A6E8;
+
+    --type-event:#7098FF;
+    --type-call:#E8529E;
+  }
+  .dot{background:#4ADE80;}
+  .row:not(.head):hover .cell{background:#262B33;}
+  .day.outside{background:#1A1D22;}
+}
