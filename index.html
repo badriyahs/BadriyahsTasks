@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -14,6 +14,7 @@
   <div class="digest-scroll">
     <div class="digest-wrap">
       <header class="masthead">
+        <div class="masthead-folio">No. <span id="digestissue"></span> · Kuwait Edition</div>
         <div class="masthead-kicker">Daily Digest</div>
         <h1 class="masthead-title">Badriyah's Tasks</h1>
         <div class="masthead-meta">
@@ -24,7 +25,8 @@
 
       <section class="digest-section digest-lead">
         <h2>Today</h2>
-        <div id="sec-today"></div>
+        <div id="sec-today-lead"></div>
+        <div id="sec-today" class="digest-columns"></div>
       </section>
 
       <div class="digest-grid">
@@ -79,6 +81,7 @@
   };
 
   els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric', year:'numeric'});
+  document.getElementById('digestissue').textContent = dayOfYear();
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
@@ -103,10 +106,10 @@
 
   function renderList(elId, items, mapFn, emptyText){
     var el = document.getElementById(elId);
-    if(!items.length){ el.innerHTML = '<div class="digest-empty">'+emptyText+'</div>'; return; }
+    if(!items.length){ el.innerHTML = emptyText ? '<div class="digest-empty">'+emptyText+'</div>' : ''; return; }
     el.innerHTML = items.map(function(raw){
       var it = mapFn(raw);
-      return '<a class="digest-item" href="'+it.href+'">' +
+      return '<a class="digest-item'+(it.flag?' is-overdue':'')+'" href="'+it.href+'">' +
         '<span class="digest-meta">'+L.escapeHTML(it.meta)+'</span>' +
         '<span class="digest-text">'+L.escapeHTML(it.text)+(it.sub?'<span class="digest-sub">'+L.escapeHTML(it.sub)+'</span>':'')+'</span>' +
         '</a>';
@@ -118,16 +121,33 @@
     var items = L.state.tasks.filter(function(t){
       return !t.archived && !t.struck && t.due && t.due <= todayStr;
     }).sort(function(a,b){ return a.due < b.due ? -1 : (a.due > b.due ? 1 : (a.order - b.order)); });
-    renderList('sec-today', items, function(t){
+
+    var lead = items[0];
+    var rest = items.slice(1);
+    var leadEl = document.getElementById('sec-today-lead');
+
+    if(lead){
+      var overdue = lead.due < todayStr;
+      leadEl.innerHTML = '<a class="digest-leaditem" href="tasks.html#task-'+lead.id+'">' +
+        '<span class="digest-flag'+(overdue?' is-overdue':'')+'">'+(overdue?'Overdue':'Due Today')+'</span>' +
+        '<span class="digest-leadtext">'+L.escapeHTML(lead.description||'Untitled')+'</span>' +
+        (lead.category?'<span class="digest-sub">'+L.escapeHTML(lead.category)+'</span>':'') +
+        '</a>';
+    } else {
+      leadEl.innerHTML = '';
+    }
+
+    renderList('sec-today', rest, function(t){
       var overdue = t.due < todayStr;
       var d = new Date(t.due + 'T00:00:00');
       return {
         href: 'tasks.html#task-' + t.id,
         meta: (overdue ? 'OVERDUE · ' : '') + d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(),
         text: t.description || 'Untitled',
-        sub: t.category || ''
+        sub: t.category || '',
+        flag: overdue
       };
-    }, 'Nothing due today — a quiet one.');
+    }, lead ? '' : 'Nothing due today — a quiet one.');
   }
 
   function renderEvents(){
@@ -158,7 +178,8 @@
         href: 'calls.html#call-' + c.id,
         meta: d === 0 ? 'TODAY' : (d + 'D LEFT'),
         text: c.name,
-        sub: c.location || ''
+        sub: c.location || '',
+        flag: d <= 3
       };
     }, 'Nothing closing soon.');
   }
