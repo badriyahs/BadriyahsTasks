@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -15,6 +15,10 @@
     <div class="digest-wrap">
       <header class="masthead">
         <div class="masthead-folio">No. <span id="digestissue"></span> · Kuwait Edition</div>
+        <svg class="masthead-emblem" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M19 6.5a10 10 0 1 0 0 19 8 8 0 1 1 0-19z"/>
+          <path d="M26 4l1.1 2.9L30 8l-2.9 1.1L26 12l-1.1-2.9L22 8l2.9-1.1z" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
         <div class="masthead-kicker">Daily Digest</div>
         <h1 class="masthead-title">Badriyah's Tasks</h1>
         <div class="masthead-meta">
@@ -23,30 +27,32 @@
         </div>
       </header>
 
+      <div class="digest-stats" id="digeststats"></div>
+
       <section class="digest-section digest-lead">
-        <h2>Today</h2>
+        <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3.4"/><path d="M8 1v1.6M8 13.4V15M15 8h-1.6M2.6 8H1M12.9 3.1l-1.1 1.1M4.2 11.7l-1.1 1.1M12.9 12.9l-1.1-1.1M4.2 4.2 3.1 3.1" stroke-linecap="round"/></svg>Today</h2>
         <div id="sec-today-lead"></div>
         <div id="sec-today" class="digest-columns"></div>
       </section>
 
       <div class="digest-grid">
         <section class="digest-section">
-          <h2>Coming Up</h2>
+          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2.8" width="13" height="11.7" rx="1.2"/><path d="M1.5 6h13M4.5 1v3M11.5 1v3" stroke-linecap="round"/></svg>Coming Up</h2>
           <div id="sec-events"></div>
         </section>
 
         <section class="digest-section">
-          <h2>Closing Soon</h2>
+          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8.5" r="6"/><path d="M8 5v3.5l2.4 1.6M5.5 1h5" stroke-linecap="round"/></svg>Closing Soon</h2>
           <div id="sec-calls"></div>
         </section>
 
         <section class="digest-section">
-          <h2>Keep in Mind</h2>
+          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1.5 9.8 5l3.9.6-2.8 2.7.7 3.9L8 10.3 4.4 12.2l.7-3.9L2.3 5.6 6.2 5z" stroke-linejoin="round"/></svg>Keep in Mind</h2>
           <div id="sec-notes"></div>
         </section>
 
         <section class="digest-section">
-          <h2>From the Shelf</h2>
+          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 2.8c1.6-.7 3.5-.7 6 .4v9.6c-2.5-1.1-4.4-1.1-6-.4z"/><path d="M14 2.8c-1.6-.7-3.5-.7-6 .4v9.6c2.5-1.1 4.4-1.1 6-.4z"/></svg>From the Shelf</h2>
           <div id="sec-reading"></div>
         </section>
       </div>
@@ -104,15 +110,40 @@
     return out;
   }
 
+  function tagHTML(cat){
+    var s = L.catClassStyle(cat);
+    return '<span class="digest-tag" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(cat)+'</span>';
+  }
+
   function renderList(elId, items, mapFn, emptyText){
     var el = document.getElementById(elId);
     if(!items.length){ el.innerHTML = emptyText ? '<div class="digest-empty">'+emptyText+'</div>' : ''; return; }
     el.innerHTML = items.map(function(raw){
       var it = mapFn(raw);
+      var subHTML = it.cat ? tagHTML(it.cat) : (it.sub ? '<span class="digest-sub">'+L.escapeHTML(it.sub)+'</span>' : '');
       return '<a class="digest-item'+(it.flag?' is-overdue':'')+'" href="'+it.href+'">' +
         '<span class="digest-meta">'+L.escapeHTML(it.meta)+'</span>' +
-        '<span class="digest-text">'+L.escapeHTML(it.text)+(it.sub?'<span class="digest-sub">'+L.escapeHTML(it.sub)+'</span>':'')+'</span>' +
+        '<span class="digest-text">'+L.escapeHTML(it.text)+subHTML+'</span>' +
         '</a>';
+    }).join('');
+  }
+
+  function renderStats(){
+    var todayStr = L.todayISO();
+    var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due; });
+    var overdue = tasks.filter(function(t){ return t.due < todayStr; }).length;
+    var dueToday = tasks.filter(function(t){ return t.due === todayStr; }).length;
+    var callsSoon = L.callsState.items.filter(function(c){
+      if(c.status === 'watch' || c.mine === 'skip') return false;
+      var d = L.daysUntil(c.deadline);
+      return d !== null && d >= 0 && d <= 14;
+    }).length;
+    document.getElementById('digeststats').innerHTML = [
+      {n: overdue, label:'Overdue', red:true},
+      {n: dueToday, label:'Due Today', red:false},
+      {n: callsSoon, label:'Calls Closing Soon', red:false}
+    ].map(function(s){
+      return '<div class="stat'+(s.red && s.n>0 ?' is-overdue':'')+'"><span class="stat-num">'+s.n+'</span><span class="stat-label">'+s.label+'</span></div>';
     }).join('');
   }
 
@@ -131,7 +162,7 @@
       leadEl.innerHTML = '<a class="digest-leaditem" href="tasks.html#task-'+lead.id+'">' +
         '<span class="digest-flag'+(overdue?' is-overdue':'')+'">'+(overdue?'Overdue':'Due Today')+'</span>' +
         '<span class="digest-leadtext">'+L.escapeHTML(lead.description||'Untitled')+'</span>' +
-        (lead.category?'<span class="digest-sub">'+L.escapeHTML(lead.category)+'</span>':'') +
+        (lead.category?tagHTML(lead.category):'') +
         '</a>';
     } else {
       leadEl.innerHTML = '';
@@ -144,7 +175,7 @@
         href: 'tasks.html#task-' + t.id,
         meta: (overdue ? 'OVERDUE · ' : '') + d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(),
         text: t.description || 'Untitled',
-        sub: t.category || '',
+        cat: t.category || '',
         flag: overdue
       };
     }, lead ? '' : 'Nothing due today — a quiet one.');
@@ -210,6 +241,7 @@
   }
 
   function renderAll(){
+    renderStats();
     renderToday();
     renderEvents();
     renderCalls();
