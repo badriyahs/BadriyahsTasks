@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -121,17 +121,23 @@
     el.innerHTML = items.map(function(raw){
       var it = mapFn(raw);
       var subHTML = it.cat ? tagHTML(it.cat) : (it.sub ? '<span class="digest-sub">'+L.escapeHTML(it.sub)+'</span>' : '');
-      return '<a class="digest-item'+(it.flag?' is-overdue':'')+'" href="'+it.href+'">' +
+      return '<a class="digest-item'+(it.flagClass?' '+it.flagClass:'')+'" href="'+it.href+'">' +
         '<span class="digest-meta">'+L.escapeHTML(it.meta)+'</span>' +
         '<span class="digest-text">'+L.escapeHTML(it.text)+subHTML+'</span>' +
         '</a>';
     }).join('');
   }
 
+  /* A past-due task with something in its Dependency field is waiting on
+     someone/something else (e.g. "pending at the Ministry"), not a task
+     she's actually behind on — that gets a neutral "Pending" treatment
+     instead of a red "Overdue" one, both here and in the stat strip. */
+  function isPending(t){ return !!(t.dependency && t.dependency.trim()); }
+
   function renderStats(){
     var todayStr = L.todayISO();
     var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due; });
-    var overdue = tasks.filter(function(t){ return t.due < todayStr; }).length;
+    var overdue = tasks.filter(function(t){ return t.due < todayStr && !isPending(t); }).length;
     var dueToday = tasks.filter(function(t){ return t.due === todayStr; }).length;
     var callsSoon = L.callsState.items.filter(function(c){
       if(c.status === 'watch' || c.mine === 'skip') return false;
@@ -159,8 +165,11 @@
 
     if(lead){
       var overdue = lead.due < todayStr;
+      var pending = overdue && isPending(lead);
+      var flagLabel = pending ? 'Pending · ' + lead.dependency : (overdue ? 'Overdue' : 'Due Today');
+      var flagClass = pending ? 'is-pending' : (overdue ? 'is-overdue' : '');
       leadEl.innerHTML = '<a class="digest-leaditem" href="tasks.html#task-'+lead.id+'">' +
-        '<span class="digest-flag'+(overdue?' is-overdue':'')+'">'+(overdue?'Overdue':'Due Today')+'</span>' +
+        '<span class="digest-flag'+(flagClass?' '+flagClass:'')+'">'+L.escapeHTML(flagLabel)+'</span>' +
         '<span class="digest-leadtext">'+L.escapeHTML(lead.description||'Untitled')+'</span>' +
         (lead.category?tagHTML(lead.category):'') +
         '</a>';
@@ -170,13 +179,18 @@
 
     renderList('sec-today', rest, function(t){
       var overdue = t.due < todayStr;
+      var pending = overdue && isPending(t);
       var d = new Date(t.due + 'T00:00:00');
+      var meta;
+      if(pending){ meta = 'PENDING · ' + t.dependency.toUpperCase(); }
+      else if(overdue){ meta = 'OVERDUE · ' + d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(); }
+      else { meta = d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(); }
       return {
         href: 'tasks.html#task-' + t.id,
-        meta: (overdue ? 'OVERDUE · ' : '') + d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(),
+        meta: meta,
         text: t.description || 'Untitled',
         cat: t.category || '',
-        flag: overdue
+        flagClass: pending ? 'is-pending' : (overdue ? 'is-overdue' : '')
       };
     }, lead ? '' : 'Nothing due today — a quiet one.');
   }
@@ -210,7 +224,7 @@
         meta: d === 0 ? 'TODAY' : (d + 'D LEFT'),
         text: c.name,
         sub: c.location || '',
-        flag: d <= 3
+        flagClass: d <= 3 ? 'is-overdue' : ''
       };
     }, 'Nothing closing soon.');
   }

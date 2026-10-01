@@ -473,6 +473,7 @@ body{
   letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;
 }
 .digest-flag.is-overdue{color:var(--overdue);}
+.digest-flag.is-pending{color:var(--cat2-fg);}
 .digest-leadtext{
   display:block;font-family:"IBM Plex Serif",serif;font-size:clamp(20px,3.4vw,26px);font-weight:700;line-height:1.22;
 }
@@ -487,6 +488,7 @@ body{
 .digest-columns .digest-meta{display:block;margin-bottom:2px;min-width:0;}
 .digest-columns .digest-text{display:block;}
 .digest-item.is-overdue .digest-meta{color:var(--overdue);font-weight:700;}
+.digest-item.is-pending .digest-meta{color:var(--cat2-fg);font-weight:700;}
 
 .digest-grid{
   display:grid;grid-template-columns:1fr;column-gap:40px;position:relative;
