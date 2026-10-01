@@ -4,58 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=32">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
 
 <div class="view" id="view-digest">
-  <div class="digest-scroll">
-    <div class="digest-wrap">
-      <header class="masthead">
-        <div class="masthead-folio">No. <span id="digestissue"></span> · Kuwait Edition</div>
-        <svg class="masthead-emblem" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M19 6.5a10 10 0 1 0 0 19 8 8 0 1 1 0-19z"/>
-          <path d="M26 4l1.1 2.9L30 8l-2.9 1.1L26 12l-1.1-2.9L22 8l2.9-1.1z" stroke-linejoin="round" stroke-linecap="round"/>
-        </svg>
-        <div class="masthead-kicker">Daily Digest</div>
-        <h1 class="masthead-title">Badriyah's Tasks</h1>
-        <div class="masthead-meta">
-          <span id="digestdate"></span>
-          <span class="masthead-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></span>
-        </div>
-      </header>
-
-      <div class="digest-stats" id="digeststats"></div>
-
-      <section class="digest-section digest-lead">
-        <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8" r="3.4"/><path d="M8 1v1.6M8 13.4V15M15 8h-1.6M2.6 8H1M12.9 3.1l-1.1 1.1M4.2 11.7l-1.1 1.1M12.9 12.9l-1.1-1.1M4.2 4.2 3.1 3.1" stroke-linecap="round"/></svg>Today</h2>
-        <div id="sec-today-lead"></div>
-        <div id="sec-today" class="digest-columns"></div>
-      </section>
-
-      <div class="digest-grid">
-        <section class="digest-section">
-          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="2.8" width="13" height="11.7" rx="1.2"/><path d="M1.5 6h13M4.5 1v3M11.5 1v3" stroke-linecap="round"/></svg>Coming Up</h2>
-          <div id="sec-events"></div>
-        </section>
-
-        <section class="digest-section">
-          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="8.5" r="6"/><path d="M8 5v3.5l2.4 1.6M5.5 1h5" stroke-linecap="round"/></svg>Closing Soon</h2>
-          <div id="sec-calls"></div>
-        </section>
-
-        <section class="digest-section">
-          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 1.5 9.8 5l3.9.6-2.8 2.7.7 3.9L8 10.3 4.4 12.2l.7-3.9L2.3 5.6 6.2 5z" stroke-linejoin="round"/></svg>Keep in Mind</h2>
-          <div id="sec-notes"></div>
-        </section>
-
-        <section class="digest-section">
-          <h2><svg class="sec-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 2.8c1.6-.7 3.5-.7 6 .4v9.6c-2.5-1.1-4.4-1.1-6-.4z"/><path d="M14 2.8c-1.6-.7-3.5-.7-6 .4v9.6c2.5-1.1 4.4-1.1 6-.4z"/></svg>From the Shelf</h2>
-          <div id="sec-reading"></div>
-        </section>
+  <div class="home-scroll">
+    <div class="home-wrap">
+      <div class="home-head">
+        <div class="home-greeting" lang="ar" dir="rtl">صباح الخير بدرية</div>
+        <h1 class="home-date" id="digestdate"></h1>
+        <div class="home-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
       </div>
+
+      <div class="dua-box" id="duabox"></div>
+
+      <img class="home-photo" src="img/sun-setting.jpg" alt="A detail from the Resistant Atlas project.">
+
+      <div class="home-days" id="homedays"></div>
     </div>
   </div>
 </div>
@@ -83,11 +51,12 @@
   var els = {
     date: document.getElementById('digestdate'),
     syncdot: document.getElementById('syncdot'),
-    syncstate: document.getElementById('syncstate')
+    syncstate: document.getElementById('syncstate'),
+    dua: document.getElementById('duabox'),
+    days: document.getElementById('homedays')
   };
 
-  els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric', year:'numeric'});
-  document.getElementById('digestissue').textContent = dayOfYear();
+  els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
@@ -100,8 +69,6 @@
     var start = new Date(now.getFullYear(), 0, 0);
     return Math.floor((now - start) / 86400000);
   }
-  /* Picks a stable-for-the-day subset so the digest has a little texture
-     without re-rolling on every re-render or page reload within the day. */
   function pickRotating(list, n){
     if(!list.length) return [];
     var start = dayOfYear() % list.length;
@@ -110,164 +77,152 @@
     return out;
   }
 
-  function tagHTML(cat){
-    var s = L.catClassStyle(cat);
-    return '<span class="digest-tag" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(cat)+'</span>';
+  /* A short set of du'as (with hadith citations) from "أدعية النبي صلى الله
+     عليه وسلم", compiled by Sheikh ʿAbd al-Muḥsin al-ʿAbbād
+     (nuqayah.com/f/abbad.pdf) — the shorter, clearly-legible ones, chosen
+     to transcribe accurately. One rotates in per day. */
+  var DUAS = [
+    { ar: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ', src: 'سيد الاستغفار — رواه البخاري (٦٣٠٦) عن شداد بن أوس رضي الله عنه' },
+    { ar: 'اللَّهُمَّ إِنِّي ظَلَمْتُ نَفْسِي ظُلْمًا كَثِيرًا، وَلَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ، فَاغْفِرْ لِي مَغْفِرَةً مِنْ عِنْدِكَ وَارْحَمْنِي إِنَّكَ أَنْتَ الْغَفُورُ الرَّحِيمُ', src: 'رواه البخاري (٨٣٤) ومسلم (٦٨٦٩) عن أبي بكر رضي الله عنه' },
+    { ar: 'اللَّهُمَّ اغْفِرْ لِي ذَنْبِي كُلَّهُ، دِقَّهُ، وَجِلَّهُ، وَأَوَّلَهُ، وَآخِرَهُ، وَعَلَانِيَتَهُ، وَسِرَّهُ', src: 'رواه مسلم (١٠٨٤) عن أبي هريرة رضي الله عنه' },
+    { ar: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ شَرِّ مَا عَمِلْتُ وَمِنْ شَرِّ مَا لَمْ أَعْمَلْ', src: 'رواه مسلم (٦٨٩٥) عن عائشة رضي الله عنها' },
+    { ar: 'اللَّهُمَّ أَصْلِحْ لِي دِينِي الَّذِي هُوَ عِصْمَةُ أَمْرِي، وَأَصْلِحْ لِي دُنْيَايَ الَّتِي فِيهَا مَعَاشِي، وَأَصْلِحْ لِي آخِرَتِي الَّتِي فِيهَا مَعَادِي، وَاجْعَلِ الْحَيَاةَ زِيَادَةً لِي فِي كُلِّ خَيْرٍ، وَاجْعَلِ الْمَوْتَ رَاحَةً لِي مِنْ كُلِّ شَرٍّ', src: 'رواه مسلم (٦٩٠٣) عن أبي هريرة رضي الله عنه' },
+    { ar: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى', src: 'رواه مسلم (٦٩٠٤) عن ابن مسعود رضي الله عنه' },
+    { ar: 'اللَّهُمَّ مُصَرِّفَ الْقُلُوبِ صَرِّفْ قُلُوبَنَا عَلَى طَاعَتِكَ', src: 'رواه مسلم (٦٧٥٠) عن عبد الله بن عمرو رضي الله عنهما' },
+    { ar: 'اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ زَوَالِ نِعْمَتِكَ وَتَحَوُّلِ عَافِيَتِكَ وَفُجَاءَةِ نِقْمَتِكَ وَجَمِيعِ سَخَطِكَ', src: 'رواه مسلم (٦٩٤٣) عن ابن عمر رضي الله عنهما' },
+    { ar: 'اللَّهُمَّ عَالِمَ الْغَيْبِ وَالشَّهَادَةِ، فَاطِرَ السَّمَوَاتِ وَالْأَرْضِ، رَبَّ كُلِّ شَيْءٍ وَمَلِيكَهُ، أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا أَنْتَ، أَعُوذُ بِكَ مِنْ شَرِّ نَفْسِي وَمِنْ شَرِّ الشَّيْطَانِ وَشِرْكِهِ', src: 'رواه الترمذي (٣٣٩٢) وغيره بإسناد صحيح عن أبي هريرة رضي الله عنه' },
+    { ar: 'اللَّهُمَّ اكْفِنِي بِحَلَالِكَ عَنْ حَرَامِكَ وَأَغْنِنِي بِفَضْلِكَ عَمَّنْ سِوَاكَ', src: 'رواه الترمذي (٣٥٦٣) بإسناد حسن عن علي، وانظر السلسلة الصحيحة للألباني (٢٦٦)' }
+  ];
+
+  function renderDua(){
+    var d = pickRotating(DUAS, 1)[0];
+    if(!d){ els.dua.innerHTML = ''; return; }
+    els.dua.innerHTML =
+      '<div class="dua-ar" lang="ar" dir="rtl">' + d.ar + '</div>' +
+      '<div class="dua-src" lang="ar" dir="rtl">' + d.src + '</div>';
   }
 
-  function renderList(elId, items, mapFn, emptyText){
-    var el = document.getElementById(elId);
-    if(!items.length){ el.innerHTML = emptyText ? '<div class="digest-empty">'+emptyText+'</div>' : ''; return; }
-    el.innerHTML = items.map(function(raw){
-      var it = mapFn(raw);
-      var subHTML = it.cat ? tagHTML(it.cat) : (it.sub ? '<span class="digest-sub">'+L.escapeHTML(it.sub)+'</span>' : '');
-      return '<a class="digest-item'+(it.flagClass?' '+it.flagClass:'')+'" href="'+it.href+'">' +
-        '<span class="digest-meta">'+L.escapeHTML(it.meta)+'</span>' +
-        '<span class="digest-text">'+L.escapeHTML(it.text)+subHTML+'</span>' +
-        '</a>';
-    }).join('');
-  }
-
-  /* A past-due task with something in its Dependency field is waiting on
-     someone/something else (e.g. "pending at the Ministry"), not a task
-     she's actually behind on — that gets a neutral "Pending" treatment
-     instead of a red "Overdue" one, both here and in the stat strip. */
   function isPending(t){ return !!(t.dependency && t.dependency.trim()); }
 
-  function renderStats(){
+  /* "Today" / "Tomorrow" / "N days ago" bucket for a given ISO date,
+     relative to today — each overdue date gets its own bucket (not one
+     lumped "Overdue") so the exact lateness is always visible in the
+     header itself. */
+  function dayInfo(iso, todayISO){
+    var d = new Date(iso + 'T00:00:00');
+    var today = new Date(todayISO + 'T00:00:00');
+    var diff = Math.round((d - today) / 86400000);
+    var dateStr = d.toLocaleDateString(undefined, {weekday:'long', month:'short', day:'numeric'});
+    var label;
+    if(diff === 0) label = 'Today';
+    else if(diff === 1) label = 'Tomorrow';
+    else if(diff === -1) label = dateStr + ' · Yesterday';
+    else if(diff < -1) label = dateStr + ' · ' + Math.abs(diff) + ' days ago';
+    else label = dateStr;
+    return {label: label, diff: diff};
+  }
+
+  function render(){
+    renderDua();
+
     var todayStr = L.todayISO();
-    var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due; });
-    var overdue = tasks.filter(function(t){ return t.due < todayStr && !isPending(t); }).length;
-    var dueToday = tasks.filter(function(t){ return t.due === todayStr; }).length;
-    var callsSoon = L.callsState.items.filter(function(c){
+    var horizon = new Date(todayStr + 'T00:00:00');
+    horizon.setDate(horizon.getDate() + 6);
+    var horizonStr = L.fmtISO(horizon);
+
+    var buckets = {}; // label -> {order, diff, items:[]}
+    function pushItem(dateKey, order, item){
+      var label, diff;
+      if(dateKey === 'reading'){ label = 'Worth a Read'; diff = 9999; }
+      else { var info = dayInfo(dateKey, todayStr); label = info.label; diff = info.diff; }
+      if(!buckets[label]) buckets[label] = {order: dateKey === 'reading' ? 9999 : order, diff: diff, items: []};
+      buckets[label].items.push(item);
+    }
+
+    L.state.tasks.filter(function(t){
+      return !t.archived && !t.struck && t.due && t.due <= horizonStr;
+    }).forEach(function(t){
+      var overdue = t.due < todayStr;
+      var pending = overdue && isPending(t);
+      pushItem(t.due, t.due, {
+        href: 'tasks.html#task-' + t.id,
+        text: t.description || 'Untitled',
+        meta: pending ? ('Pending · ' + t.dependency) : '',
+        cls: pending ? 'is-pending' : (overdue ? 'is-overdue' : '')
+      });
+    });
+
+    L.Events.state.tasks.filter(function(t){
+      return !t.archived && !t.struck && t.due && t.due >= todayStr && t.due <= horizonStr;
+    }).forEach(function(t){
+      pushItem(t.due, t.due, {
+        href: 'events.html#task-' + t.id,
+        text: t.description || 'Untitled',
+        meta: t.details || '',
+        cls: 'is-event'
+      });
+    });
+
+    L.callsState.items.filter(function(c){
       if(c.status === 'watch' || c.mine === 'skip') return false;
       var d = L.daysUntil(c.deadline);
-      return d !== null && d >= 0 && d <= 14;
-    }).length;
-    document.getElementById('digeststats').innerHTML = [
-      {n: overdue, label:'Overdue', red:true},
-      {n: dueToday, label:'Due Today', red:false},
-      {n: callsSoon, label:'Calls Closing Soon', red:false}
-    ].map(function(s){
-      return '<div class="stat'+(s.red && s.n>0 ?' is-overdue':'')+'"><span class="stat-num">'+s.n+'</span><span class="stat-label">'+s.label+'</span></div>';
+      return d !== null && d >= 0 && d <= 6;
+    }).forEach(function(c){
+      var d = L.daysUntil(c.deadline);
+      pushItem(c.deadline, c.deadline, {
+        href: 'calls.html#call-' + c.id,
+        text: c.name,
+        meta: d === 0 ? 'Today' : (d + 'd left'),
+        cls: 'is-call'
+      });
+    });
+
+    var pool = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
+    var pick = pickRotating(pool, 1)[0];
+    if(pick){
+      pushItem('reading', 9999, {
+        href: 'reading.html#task-' + pick.id,
+        text: pick.title,
+        meta: pick.author || '',
+        cls: 'is-reading'
+      });
+    }
+
+    var labels = Object.keys(buckets).sort(function(a,b){ return buckets[a].order < buckets[b].order ? -1 : 1; });
+
+    if(!labels.length){
+      els.days.innerHTML = '<div class="home-empty">A quiet few days ahead.</div>';
+      return;
+    }
+
+    els.days.innerHTML = labels.map(function(label){
+      var b = buckets[label];
+      var late = b.diff < 0 && b.diff > -9000;
+      /* The further overdue a bucket's date, the bigger/more intense its
+         timeline node — a quick-glance read of "how overdue" beyond the
+         day count in the header. */
+      var sev = late ? Math.min(1, Math.abs(b.diff) / 21) : 0;
+      var nodeStyle = late
+        ? 'style="width:' + (8 + sev*7).toFixed(0) + 'px;height:' + (8 + sev*7).toFixed(0) + 'px;background:var(--overdue);border-color:var(--overdue);opacity:' + (0.55 + sev*0.45).toFixed(2) + '"'
+        : '';
+      return '<div class="day-group' + (late ? ' is-late' : '') + '">' +
+        '<div class="day-group-label"><span class="day-node" ' + nodeStyle + '></span>' + L.escapeHTML(label) + '</div>' +
+        b.items.map(function(it){
+          return '<a class="day-item ' + it.cls + '" href="' + it.href + '">' +
+            '<span class="day-item-dot"></span>' +
+            '<span class="day-item-text">' + L.escapeHTML(it.text) +
+            (it.meta ? '<span class="day-item-meta">' + L.escapeHTML(it.meta) + '</span>' : '') +
+            '</span>' +
+            '</a>';
+        }).join('') +
+        '</div>';
     }).join('');
   }
 
-  function renderToday(){
-    var todayStr = L.todayISO();
-    var items = L.state.tasks.filter(function(t){
-      return !t.archived && !t.struck && t.due && t.due <= todayStr;
-    }).sort(function(a,b){ return a.due < b.due ? -1 : (a.due > b.due ? 1 : (a.order - b.order)); });
-
-    var lead = items[0];
-    var rest = items.slice(1);
-    var leadEl = document.getElementById('sec-today-lead');
-
-    if(lead){
-      var overdue = lead.due < todayStr;
-      var pending = overdue && isPending(lead);
-      var flagLabel = pending ? 'Pending · ' + lead.dependency : (overdue ? 'Overdue' : 'Due Today');
-      var flagClass = pending ? 'is-pending' : (overdue ? 'is-overdue' : '');
-      leadEl.innerHTML = '<a class="digest-leaditem" href="tasks.html#task-'+lead.id+'">' +
-        '<span class="digest-flag'+(flagClass?' '+flagClass:'')+'">'+L.escapeHTML(flagLabel)+'</span>' +
-        '<span class="digest-leadtext">'+L.escapeHTML(lead.description||'Untitled')+'</span>' +
-        (lead.category?tagHTML(lead.category):'') +
-        '</a>';
-    } else {
-      leadEl.innerHTML = '';
-    }
-
-    renderList('sec-today', rest, function(t){
-      var overdue = t.due < todayStr;
-      var pending = overdue && isPending(t);
-      var d = new Date(t.due + 'T00:00:00');
-      var meta;
-      if(pending){ meta = 'PENDING · ' + t.dependency.toUpperCase(); }
-      else if(overdue){ meta = 'OVERDUE · ' + d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(); }
-      else { meta = d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(); }
-      return {
-        href: 'tasks.html#task-' + t.id,
-        meta: meta,
-        text: t.description || 'Untitled',
-        cat: t.category || '',
-        flagClass: pending ? 'is-pending' : (overdue ? 'is-overdue' : '')
-      };
-    }, lead ? '' : 'Nothing due today — a quiet one.');
-  }
-
-  function renderEvents(){
-    var todayStr = L.todayISO();
-    var items = L.Events.state.tasks.filter(function(t){
-      return !t.archived && !t.struck && t.due && t.due >= todayStr;
-    }).sort(function(a,b){ return a.due < b.due ? -1 : 1; }).slice(0, 5);
-    renderList('sec-events', items, function(t){
-      var d = new Date(t.due + 'T00:00:00');
-      return {
-        href: 'events.html#task-' + t.id,
-        meta: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(),
-        text: t.description || 'Untitled',
-        sub: t.details || ''
-      };
-    }, 'Nothing on the horizon yet.');
-  }
-
-  function renderCalls(){
-    var items = L.callsState.items.filter(function(c){
-      if(c.status === 'watch' || c.mine === 'skip') return false;
-      var d = L.daysUntil(c.deadline);
-      return d !== null && d >= 0 && d <= 14;
-    }).sort(function(a,b){ return (a.deadline||'') < (b.deadline||'') ? -1 : 1; }).slice(0, 5);
-    renderList('sec-calls', items, function(c){
-      var d = L.daysUntil(c.deadline);
-      return {
-        href: 'calls.html#call-' + c.id,
-        meta: d === 0 ? 'TODAY' : (d + 'D LEFT'),
-        text: c.name,
-        sub: c.location || '',
-        flagClass: d <= 3 ? 'is-overdue' : ''
-      };
-    }, 'Nothing closing soon.');
-  }
-
-  function renderNotes(){
-    var pool = L.notesState.items.filter(function(n){ return n.text && n.text.trim(); });
-    var items = pickRotating(pool, 2);
-    var el = document.getElementById('sec-notes');
-    if(!items.length){
-      el.innerHTML = '<div class="digest-empty">No notes yet — jot something down on the Notes tab.</div>';
-      return;
-    }
-    el.innerHTML = items.map(function(n){ return '<div class="digest-note">'+L.escapeHTML(n.text)+'</div>'; }).join('');
-  }
-
-  function renderReading(){
-    var pool = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
-    var pick = pickRotating(pool, 1)[0];
-    var el = document.getElementById('sec-reading');
-    if(!pick){
-      el.innerHTML = '<div class="digest-empty">Reading list is all caught up.</div>';
-      return;
-    }
-    el.innerHTML = '<a class="digest-item" href="reading.html">' +
-      '<span class="digest-meta">'+L.escapeHTML((pick.category||'').toUpperCase())+'</span>' +
-      '<span class="digest-text">'+L.escapeHTML(pick.title)+(pick.author?'<span class="digest-sub">'+L.escapeHTML(pick.author)+'</span>':'')+'</span>' +
-      '</a>';
-  }
-
-  function renderAll(){
-    renderStats();
-    renderToday();
-    renderEvents();
-    renderCalls();
-    renderNotes();
-    renderReading();
-  }
-
-  L.onChange(renderAll);
-  L.Events.onChange(renderAll);
-  L.onCallsChange(renderAll);
-  L.onNotesChange(renderAll);
-  L.onReadingChange(renderAll);
+  L.onChange(render);
+  L.Events.onChange(render);
+  L.onCallsChange(render);
+  L.onReadingChange(render);
 })();
 </script>
 </body>

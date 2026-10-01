@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Reading</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=32">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -146,6 +146,23 @@
         if(el){ el.focus(); }
       });
     }
+
+    jumpToHash();
+  }
+
+  var jumped = false;
+  function jumpToHash(){
+    if(jumped) return;
+    var m = /^#task-(.+)$/.exec(location.hash);
+    if(!m) return;
+    var row = els.sheet.querySelector('.row[data-row-id="'+m[1]+'"]');
+    if(!row) return;
+    jumped = true;
+    requestAnimationFrame(function(){
+      row.scrollIntoView({block:'center', behavior:'smooth'});
+      row.querySelectorAll('.cell').forEach(function(c){ c.classList.add('flash'); });
+      setTimeout(function(){ row.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('flash'); }); }, 1700);
+    });
   }
 
   L.wireEditing(els.sheet, L.updateReadingField);
