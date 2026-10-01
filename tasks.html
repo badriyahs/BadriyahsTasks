@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Badriyah's Tasks — Reading</title>
+<title>Badriyah's Tasks — Tasks</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="styles.css?v=18">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
@@ -17,31 +17,29 @@
   <div class="undoredo">
     <button id="undobtn" title="Undo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10h-1"/></svg></button>
     <button id="redobtn" title="Redo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 0 0 0 10h1"/></svg></button>
-  </div>
-</div>
+  </div></div>
 
-<div class="view" id="view-reading">
+<div class="view" id="view-tasks">
   <div class="toolbar">
     <div class="search">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="searchbox" type="text" placeholder="Search reading list…" autocomplete="off">
+      <input id="searchbox" type="text" placeholder="Search tasks, owners, details…" autocomplete="off">
     </div>
     <div class="chips" id="catchips"></div>
+    <button class="hidebtn" id="hidedonebtn">Hide done</button>
     <div class="count" id="rowcount"></div>
   </div>
   <div class="sheet-scroll">
-    <div class="readsheet" id="sheet">
+    <div class="sheet" id="sheet">
       <div class="row head">
-        <div class="cell">Status</div>
-        <div class="cell">#</div>
+        <div class="cell">No.</div>
         <div class="cell">Category</div>
-        <div class="cell">Title</div>
-        <div class="cell">Author</div>
-        <div class="cell">Year</div>
-        <div class="cell">Pages</div>
-        <div class="cell">Priority</div>
+        <div class="cell">Description</div>
+        <div class="cell">Due Date</div>
         <div class="cell">Link</div>
-        <div class="cell">Notes</div>
+        <div class="cell">Dependency</div>
+        <div class="cell">Owner</div>
+        <div class="cell">Details</div>
         <div class="cell"></div>
       </div>
       <!-- rows injected here -->
@@ -51,11 +49,11 @@
 
 <div class="tabbar">
   <a class="tab" href="index.html">Today</a>
-  <a class="tab" href="tasks.html">Tasks</a>
+  <a class="tab active" href="tasks.html">Tasks</a>
   <a class="tab" href="calendar.html">Calendar</a>
   <a class="tab" href="archive.html">Archive</a>
   <a class="tab" href="activity.html">Activity</a>
-  <a class="tab active" href="reading.html">Reading</a>
+  <a class="tab" href="reading.html">Reading</a>
   <a class="tab" href="notes.html">Notes</a>
   <a class="tab" href="events.html">Events</a>
   <a class="tab" href="calls.html">Calls</a>
@@ -81,17 +79,19 @@
 
   var search = '';
   var catFilter = null;
-  var confirmDeleteId = null;
+  var hideDone = false;
 
-  L.onReadingStatus(function(kind, text){
-    if(kind === 'err'){
-      els.syncdot.classList.remove('off');
-      els.syncdot.classList.add('err');
-      els.syncstate.textContent = text;
-    } else {
-      els.syncdot.classList.remove('off','err');
-      els.syncstate.textContent = 'Live — anyone with this link can edit';
-    }
+  document.getElementById('hidedonebtn').addEventListener('click', function(){
+    hideDone = !hideDone;
+    this.classList.toggle('active', hideDone);
+    this.textContent = hideDone ? 'Show all' : 'Hide done';
+    render();
+  });
+
+  L.onStatus(function(kind, text){
+    els.syncdot.classList.remove('off','err');
+    if(kind !== 'ok') els.syncdot.classList.add(kind);
+    els.syncstate.textContent = text;
   });
 
   els.searchbox.addEventListener('input', function(){
@@ -99,16 +99,16 @@
     render();
   });
 
-  function matches(r){
-    if(catFilter && r.category !== catFilter) return false;
+  function matches(t){
+    if(catFilter && t.category !== catFilter) return false;
     if(!search) return true;
-    var hay = [r.ref, r.category, r.title, r.author, r.year, r.pages, r.priority, r.link, r.note].join(' ').toLowerCase();
+    var hay = [t.no,t.category,t.description,t.owner,t.dependency,t.details,t.link].join(' ').toLowerCase();
     return hay.indexOf(search) !== -1;
   }
 
-  function renderChips(items){
+  function renderChips(activeTasks){
     var cats = [];
-    items.forEach(function(r){ if(r.category && cats.indexOf(r.category)===-1) cats.push(r.category); });
+    activeTasks.forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
     els.catchips.innerHTML = cats.map(function(c){
       var s = L.catClassStyle(c);
       var active = catFilter === c;
@@ -124,54 +124,59 @@
   }
 
   function render(){
-    var items = L.readingState.items;
-    renderChips(items);
-    var visible = items.filter(matches);
-    els.rowcount.textContent = visible.length + (visible.length===1?' item':' items');
+    var activeTasks = L.state.tasks.filter(function(t){ return !t.archived && !(hideDone && t.struck); });
+    renderChips(activeTasks);
+    var visible = activeTasks.filter(matches);
+    els.rowcount.textContent = visible.length + (visible.length===1?' task':' tasks');
 
-    var rowsHTML = visible.map(function(r){ return L.readingRowHTML(r, confirmDeleteId); }).join('');
-    var addRowHTML = '<div class="addrow"><button id="addbtn">+ Add reading</button></div>';
+    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'active', null); }).join('');
+    var addRowHTML = '<div class="addrow"><button id="addtaskbtn">+ Add task</button></div>';
     var headHTML = els.sheet.querySelector('.row.head').outerHTML;
     L.preserveFocus(els.sheet, function(){
-      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">Nothing here yet — add a paper, article, or a note pointing to a file on your computer.</div>') + addRowHTML;
+      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">No tasks match — try clearing the search or filter.</div>') + addRowHTML;
     });
 
-    var btn = document.getElementById('addbtn');
-    if(btn) btn.addEventListener('click', L.addReadingItem);
+    var btn = document.getElementById('addtaskbtn');
+    if(btn) btn.addEventListener('click', L.addTopLevel);
 
-    var focusId = L.focusReadingIdOnce();
+    var focusId = L.focusIdOnce();
     if(focusId){
       requestAnimationFrame(function(){
         var el = els.sheet.querySelector('.desc-text[data-id="'+focusId+'"]');
         if(el){ el.focus(); }
       });
     }
+
+    jumpToHash();
   }
 
-  L.wireEditing(els.sheet, L.updateReadingField);
-  els.sheet.addEventListener('change', function(e){
-    if(e.target.matches && e.target.matches('select[data-action="setstatus"]')){
-      L.setReadingStatus(e.target.dataset.id, e.target.value);
-    }
-  });
+  var jumped = false;
+  function jumpToHash(){
+    if(jumped) return;
+    var m = /^#task-(.+)$/.exec(location.hash);
+    if(!m) return;
+    var row = els.sheet.querySelector('.row[data-row-id="'+m[1]+'"]');
+    if(!row) return;
+    jumped = true;
+    requestAnimationFrame(function(){
+      row.scrollIntoView({block:'center', behavior:'smooth'});
+      row.querySelectorAll('.cell').forEach(function(c){ c.classList.add('flash'); });
+      setTimeout(function(){ row.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('flash'); }); }, 1700);
+    });
+  }
+
+  // ---------- event delegation ----------
+  L.wireEditing(els.sheet);
   els.sheet.addEventListener('click', function(e){
     var btn = e.target.closest('button[data-action]');
     if(!btn) return;
     var action = btn.dataset.action, id = btn.dataset.id;
-    if(action === 'del'){
-      confirmDeleteId = id;
-      render();
-      setTimeout(function(){
-        if(confirmDeleteId === id){ confirmDeleteId = null; render(); }
-      }, 3500);
-    } else if(action === 'confirmdel'){
-      L.deleteReadingItem(id);
-      confirmDeleteId = null;
-    }
+    if(action === 'addsub'){ L.addSiblingAfter(id); }
+    else if(action === 'strike'){ L.toggleStrike(id); }
+    else if(action === 'archive'){ L.archiveTask(id); }
   });
 
-  L.onReadingChange(render);
-  render();
+  L.onChange(render);
 })();
 </script>
 </body>

@@ -3,52 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Badriyah's Tasks — Tasks</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=17">
+<title>Badriyah's Tasks — Today</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=18">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
 
-<div class="topbar">
-  <h1>Badriyah's Tasks</h1>
-  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
-  <div class="spacer"></div>
-  <div class="undoredo">
-    <button id="undobtn" title="Undo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7L4 12l5 5M4 12h11a5 5 0 0 1 0 10h-1"/></svg></button>
-    <button id="redobtn" title="Redo" disabled><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7l5 5-5 5M20 12H9a5 5 0 0 0 0 10h1"/></svg></button>
-  </div></div>
+<div class="view" id="view-digest">
+  <div class="digest-scroll">
+    <div class="digest-wrap">
+      <div class="digest-kicker">Badriyah's Tasks — Daily Digest</div>
+      <h1 class="digest-date" id="digestdate"></h1>
+      <div class="digest-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
 
-<div class="view" id="view-tasks">
-  <div class="toolbar">
-    <div class="search">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <input id="searchbox" type="text" placeholder="Search tasks, owners, details…" autocomplete="off">
-    </div>
-    <div class="chips" id="catchips"></div>
-    <button class="hidebtn" id="hidedonebtn">Hide done</button>
-    <div class="count" id="rowcount"></div>
-  </div>
-  <div class="sheet-scroll">
-    <div class="sheet" id="sheet">
-      <div class="row head">
-        <div class="cell">No.</div>
-        <div class="cell">Category</div>
-        <div class="cell">Description</div>
-        <div class="cell">Due Date</div>
-        <div class="cell">Link</div>
-        <div class="cell">Dependency</div>
-        <div class="cell">Owner</div>
-        <div class="cell">Details</div>
-        <div class="cell"></div>
-      </div>
-      <!-- rows injected here -->
+      <section class="digest-section">
+        <h2>Today</h2>
+        <div id="sec-today"></div>
+      </section>
+
+      <section class="digest-section">
+        <h2>Coming Up</h2>
+        <div id="sec-events"></div>
+      </section>
+
+      <section class="digest-section">
+        <h2>Closing Soon</h2>
+        <div id="sec-calls"></div>
+      </section>
+
+      <section class="digest-section">
+        <h2>Keep in Mind</h2>
+        <div id="sec-notes"></div>
+      </section>
+
+      <section class="digest-section">
+        <h2>From the Shelf</h2>
+        <div id="sec-reading"></div>
+      </section>
     </div>
   </div>
 </div>
 
 <div class="tabbar">
-  <a class="tab active" href="index.html">Tasks</a>
+  <a class="tab active" href="index.html">Today</a>
+  <a class="tab" href="tasks.html">Tasks</a>
   <a class="tab" href="calendar.html">Calendar</a>
   <a class="tab" href="archive.html">Archive</a>
   <a class="tab" href="activity.html">Activity</a>
@@ -65,27 +64,14 @@
 (function(){
   "use strict";
   var L = window.Ledger;
-  L.wireTopbar();
 
   var els = {
-    sheet: document.getElementById('sheet'),
-    catchips: document.getElementById('catchips'),
-    rowcount: document.getElementById('rowcount'),
-    searchbox: document.getElementById('searchbox'),
+    date: document.getElementById('digestdate'),
     syncdot: document.getElementById('syncdot'),
     syncstate: document.getElementById('syncstate')
   };
 
-  var search = '';
-  var catFilter = null;
-  var hideDone = false;
-
-  document.getElementById('hidedonebtn').addEventListener('click', function(){
-    hideDone = !hideDone;
-    this.classList.toggle('active', hideDone);
-    this.textContent = hideDone ? 'Show all' : 'Hide done';
-    render();
-  });
+  els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
 
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
@@ -93,89 +79,121 @@
     els.syncstate.textContent = text;
   });
 
-  els.searchbox.addEventListener('input', function(){
-    search = els.searchbox.value.trim().toLowerCase();
-    render();
-  });
-
-  function matches(t){
-    if(catFilter && t.category !== catFilter) return false;
-    if(!search) return true;
-    var hay = [t.no,t.category,t.description,t.owner,t.dependency,t.details,t.link].join(' ').toLowerCase();
-    return hay.indexOf(search) !== -1;
+  function dayOfYear(){
+    var now = new Date();
+    var start = new Date(now.getFullYear(), 0, 0);
+    return Math.floor((now - start) / 86400000);
+  }
+  /* Picks a stable-for-the-day subset so the digest has a little texture
+     without re-rolling on every re-render or page reload within the day. */
+  function pickRotating(list, n){
+    if(!list.length) return [];
+    var start = dayOfYear() % list.length;
+    var out = [];
+    for(var i=0; i<Math.min(n, list.length); i++){ out.push(list[(start+i) % list.length]); }
+    return out;
   }
 
-  function renderChips(activeTasks){
-    var cats = [];
-    activeTasks.forEach(function(t){ if(t.category && cats.indexOf(t.category)===-1) cats.push(t.category); });
-    els.catchips.innerHTML = cats.map(function(c){
-      var s = L.catClassStyle(c);
-      var active = catFilter === c;
-      return '<button class="chip'+(active?' active':'')+'" data-cat="'+L.escapeHTML(c)+'" style="background:'+s.bg+';color:'+s.fg+'">'+L.escapeHTML(c)+'</button>';
+  function renderList(elId, items, mapFn, emptyText){
+    var el = document.getElementById(elId);
+    if(!items.length){ el.innerHTML = '<div class="digest-empty">'+emptyText+'</div>'; return; }
+    el.innerHTML = items.map(function(raw){
+      var it = mapFn(raw);
+      return '<a class="digest-item" href="'+it.href+'">' +
+        '<span class="digest-meta">'+L.escapeHTML(it.meta)+'</span>' +
+        '<span class="digest-text">'+L.escapeHTML(it.text)+(it.sub?'<span class="digest-sub">'+L.escapeHTML(it.sub)+'</span>':'')+'</span>' +
+        '</a>';
     }).join('');
-    els.catchips.querySelectorAll('.chip').forEach(function(chip){
-      chip.addEventListener('click', function(){
-        var c = chip.dataset.cat;
-        catFilter = (catFilter === c) ? null : c;
-        render();
-      });
-    });
   }
 
-  function render(){
-    var activeTasks = L.state.tasks.filter(function(t){ return !t.archived && !(hideDone && t.struck); });
-    renderChips(activeTasks);
-    var visible = activeTasks.filter(matches);
-    els.rowcount.textContent = visible.length + (visible.length===1?' task':' tasks');
+  function renderToday(){
+    var todayStr = L.todayISO();
+    var items = L.state.tasks.filter(function(t){
+      return !t.archived && !t.struck && t.due && t.due <= todayStr;
+    }).sort(function(a,b){ return a.due < b.due ? -1 : (a.due > b.due ? 1 : (a.order - b.order)); });
+    renderList('sec-today', items, function(t){
+      var overdue = t.due < todayStr;
+      var d = new Date(t.due + 'T00:00:00');
+      return {
+        href: 'tasks.html#task-' + t.id,
+        meta: (overdue ? 'OVERDUE · ' : '') + d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(),
+        text: t.description || 'Untitled',
+        sub: t.category || ''
+      };
+    }, 'Nothing due today — a quiet one.');
+  }
 
-    var rowsHTML = visible.map(function(t){ return L.rowHTML(t, 'active', null); }).join('');
-    var addRowHTML = '<div class="addrow"><button id="addtaskbtn">+ Add task</button></div>';
-    var headHTML = els.sheet.querySelector('.row.head').outerHTML;
-    L.preserveFocus(els.sheet, function(){
-      els.sheet.innerHTML = headHTML + (rowsHTML || '<div class="empty-hint" style="grid-column:1/-1;">No tasks match — try clearing the search or filter.</div>') + addRowHTML;
-    });
+  function renderEvents(){
+    var todayStr = L.todayISO();
+    var items = L.Events.state.tasks.filter(function(t){
+      return !t.archived && !t.struck && t.due && t.due >= todayStr;
+    }).sort(function(a,b){ return a.due < b.due ? -1 : 1; }).slice(0, 5);
+    renderList('sec-events', items, function(t){
+      var d = new Date(t.due + 'T00:00:00');
+      return {
+        href: 'events.html#task-' + t.id,
+        meta: d.toLocaleDateString(undefined, {month:'short', day:'numeric'}).toUpperCase(),
+        text: t.description || 'Untitled',
+        sub: t.details || ''
+      };
+    }, 'Nothing on the horizon yet.');
+  }
 
-    var btn = document.getElementById('addtaskbtn');
-    if(btn) btn.addEventListener('click', L.addTopLevel);
+  function renderCalls(){
+    var items = L.callsState.items.filter(function(c){
+      if(c.status === 'watch' || c.mine === 'skip') return false;
+      var d = L.daysUntil(c.deadline);
+      return d !== null && d >= 0 && d <= 14;
+    }).sort(function(a,b){ return (a.deadline||'') < (b.deadline||'') ? -1 : 1; }).slice(0, 5);
+    renderList('sec-calls', items, function(c){
+      var d = L.daysUntil(c.deadline);
+      return {
+        href: 'calls.html#call-' + c.id,
+        meta: d === 0 ? 'TODAY' : (d + 'D LEFT'),
+        text: c.name,
+        sub: c.location || ''
+      };
+    }, 'Nothing closing soon.');
+  }
 
-    var focusId = L.focusIdOnce();
-    if(focusId){
-      requestAnimationFrame(function(){
-        var el = els.sheet.querySelector('.desc-text[data-id="'+focusId+'"]');
-        if(el){ el.focus(); }
-      });
+  function renderNotes(){
+    var pool = L.notesState.items.filter(function(n){ return n.text && n.text.trim(); });
+    var items = pickRotating(pool, 2);
+    var el = document.getElementById('sec-notes');
+    if(!items.length){
+      el.innerHTML = '<div class="digest-empty">No notes yet — jot something down on the Notes tab.</div>';
+      return;
     }
-
-    jumpToHash();
+    el.innerHTML = items.map(function(n){ return '<div class="digest-note">'+L.escapeHTML(n.text)+'</div>'; }).join('');
   }
 
-  var jumped = false;
-  function jumpToHash(){
-    if(jumped) return;
-    var m = /^#task-(.+)$/.exec(location.hash);
-    if(!m) return;
-    var row = els.sheet.querySelector('.row[data-row-id="'+m[1]+'"]');
-    if(!row) return;
-    jumped = true;
-    requestAnimationFrame(function(){
-      row.scrollIntoView({block:'center', behavior:'smooth'});
-      row.querySelectorAll('.cell').forEach(function(c){ c.classList.add('flash'); });
-      setTimeout(function(){ row.querySelectorAll('.cell').forEach(function(c){ c.classList.remove('flash'); }); }, 1700);
-    });
+  function renderReading(){
+    var pool = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
+    var pick = pickRotating(pool, 1)[0];
+    var el = document.getElementById('sec-reading');
+    if(!pick){
+      el.innerHTML = '<div class="digest-empty">Reading list is all caught up.</div>';
+      return;
+    }
+    el.innerHTML = '<a class="digest-item" href="reading.html">' +
+      '<span class="digest-meta">'+L.escapeHTML((pick.category||'').toUpperCase())+'</span>' +
+      '<span class="digest-text">'+L.escapeHTML(pick.title)+(pick.author?'<span class="digest-sub">'+L.escapeHTML(pick.author)+'</span>':'')+'</span>' +
+      '</a>';
   }
 
-  // ---------- event delegation ----------
-  L.wireEditing(els.sheet);
-  els.sheet.addEventListener('click', function(e){
-    var btn = e.target.closest('button[data-action]');
-    if(!btn) return;
-    var action = btn.dataset.action, id = btn.dataset.id;
-    if(action === 'addsub'){ L.addSiblingAfter(id); }
-    else if(action === 'strike'){ L.toggleStrike(id); }
-    else if(action === 'archive'){ L.archiveTask(id); }
-  });
+  function renderAll(){
+    renderToday();
+    renderEvents();
+    renderCalls();
+    renderNotes();
+    renderReading();
+  }
 
-  L.onChange(render);
+  L.onChange(renderAll);
+  L.Events.onChange(renderAll);
+  L.onCallsChange(renderAll);
+  L.onNotesChange(renderAll);
+  L.onReadingChange(renderAll);
 })();
 </script>
 </body>

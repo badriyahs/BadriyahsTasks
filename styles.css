@@ -409,6 +409,42 @@ body{
   display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;
 }
 
+/* === DIGEST (landing page — newspaper-style daily summary) === */
+.digest-scroll{flex:1;min-height:0;overflow:auto;}
+.digest-wrap{max-width:640px;margin:0 auto;padding:40px 24px 60px;}
+.digest-kicker{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--muted);text-align:center;
+}
+.digest-date{
+  font-family:"IBM Plex Serif",serif;font-size:28px;font-weight:700;text-align:center;
+  margin:6px 0 12px;letter-spacing:-.01em;
+}
+.digest-sync{
+  display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;color:var(--muted);
+  padding-bottom:20px;border-bottom:2px solid var(--ink);margin-bottom:30px;
+}
+.digest-section{margin-bottom:32px;}
+.digest-section h2{
+  font-family:"IBM Plex Serif",serif;font-size:13.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+  margin:0 0 8px;padding-bottom:7px;border-bottom:1px solid var(--line-strong);color:var(--ink);
+}
+.digest-item{
+  display:flex;align-items:baseline;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);
+  text-decoration:none;color:var(--ink);
+}
+.digest-item:last-child{border-bottom:none;}
+.digest-item:hover .digest-text{color:var(--accent);}
+.digest-meta{
+  flex:none;font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);
+  min-width:92px;font-variant-numeric:tabular-nums;
+}
+.digest-text{flex:1;min-width:0;font-size:13.5px;line-height:1.5;}
+.digest-sub{display:block;font-size:11.5px;color:var(--muted);margin-top:1px;}
+.digest-empty{font-size:12.5px;color:var(--faint);font-style:italic;padding:6px 0;}
+.digest-note{font-size:13px;line-height:1.6;color:var(--ink);padding:9px 0;white-space:pre-wrap;border-bottom:1px solid var(--line);}
+.digest-note:last-child{border-bottom:none;}
+
 /* === NOTES (brain dump) === */
 .notes-scroll{flex:1;min-height:0;overflow:auto;}
 .notes-grid{
