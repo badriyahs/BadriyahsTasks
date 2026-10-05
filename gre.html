@@ -1,0 +1,915 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badriyah's Tasks — GRE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=34">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
+<style>
+:root{color-scheme:light dark;}
+/* Everything below is scoped to .gre so it can't touch the other pages.
+   Colors come from the site's own variables (styles.css), which already flip
+   with the device's light/dark setting; the few extra ones are defined here. */
+.gre{
+  --good:#2E7D4F; --good-tint:#E3F2E8; --warn:#A8591A; --warn-tint:#FBEEDF;
+  --late:#B23A2B; --late-tint:#FBE6E2; --today-tint:#FFF6D6; --today-line:#E2C25A; --bar:#E9E6DF;
+}
+@media (prefers-color-scheme: dark){
+  .gre{
+    --good:#6FD39A; --good-tint:#16301F; --warn:#F0B270; --warn-tint:#33240F;
+    --late:#FF8B7A; --late-tint:#3A1C18; --today-tint:#2B2716; --today-line:#7D6A2A; --bar:#2A2E35;
+  }
+}
+.gre-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.gre .grewrap{max-width:1040px;margin:0 auto;padding:26px 20px calc(80px + env(safe-area-inset-bottom));}
+.gre button{font-family:inherit;}
+
+.gre header{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-bottom:14px;}
+.gre header h1{font-family:"IBM Plex Serif",Georgia,serif;font-weight:600;font-size:30px;margin:0;letter-spacing:-.01em;}
+.gre header h1 .spark{background:linear-gradient(90deg,#2F6FB0,#7A4FB5,#B23A62,#E07A2E);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.gre header .sub{color:var(--muted);font-size:13px;margin-top:4px;line-height:1.5;}
+.gre header .spacer{flex:1;}
+.gre .phase{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:var(--accent-tint);color:var(--accent);margin-left:8px;vertical-align:2px;}
+
+.gre .rainbow{display:flex;gap:3px;height:12px;margin-bottom:4px;}
+.gre .rainbow > div{position:relative;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--tc) 35%,var(--surface));}
+.gre .rainbow > div i{position:absolute;inset:0 auto 0 0;background:var(--tc);}
+.gre .rainbow-cap{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;}
+
+.gre .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0;}
+.gre .stat{--sc:var(--accent);background:color-mix(in srgb,var(--sc) 8%,var(--surface));border:1px solid color-mix(in srgb,var(--sc) 25%,var(--line));border-top:4px solid var(--sc);border-radius:10px;padding:12px 16px 14px;}
+.gre .stat.c-blue{--sc:#3B6FD8;} .gre .stat.c-purple{--sc:#8B5CF6;} .gre .stat.c-orange{--sc:#E07A2E;} .gre .stat.c-green{--sc:#2E9E5B;} .gre .stat.c-red{--sc:#D14B3A;}
+.gre .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--sc);font-weight:700;}
+.gre .stat .v{font-size:26px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;}
+.gre .stat .v small{font-size:13px;font-weight:500;color:var(--muted);}
+.gre .stat .h{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.gre .stat.late .v{color:var(--late);} .gre .stat.good .v{color:var(--good);} .gre .stat.warn .v{color:var(--warn);}
+.gre .bigbar{position:relative;height:6px;background:var(--bar);border-radius:3px;margin-top:8px;}
+.gre .bigbar i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+.gre .bigbar .seg{display:flex;height:100%;border-radius:3px;overflow:hidden;}
+.gre .bigbar .seg i{border-radius:0;}
+.gre .bigbar .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55;}
+
+.gre .today{background:var(--today-tint);border:1px solid var(--today-line);border-radius:10px;padding:14px 16px;margin-bottom:22px;display:grid;grid-template-columns:1fr 1fr;gap:6px 28px;}
+.gre .today .col h2{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;margin:6px 0 8px;color:var(--muted);}
+.gre .today ul{margin:0 0 6px;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px;}
+.gre .today li{display:flex;gap:10px;align-items:baseline;font-size:14px;line-height:1.35;}
+.gre .today .tcode{color:#fff;border-radius:4px;padding:0 5px;font-size:12.5px;}
+.gre .today li .tg{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);min-width:64px;flex:none;}
+.gre .today li.late .tg{color:var(--late);}
+.gre .today li .go{margin-left:auto;flex:none;font-size:12px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:6px;padding:2px 8px;cursor:pointer;}
+.gre .today li .go:hover{border-color:var(--accent);color:var(--accent);}
+.gre .today .none{color:var(--muted);font-size:13.5px;margin-bottom:6px;}
+.gre .lightnote{grid-column:1/-1;background:var(--surface);border:1px dashed var(--today-line);border-radius:8px;padding:8px 12px;font-size:13px;line-height:1.45;}
+.gre .lightnote b{color:var(--warn);}
+
+.gre details.method{background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:18px;}
+.gre details.method summary{cursor:pointer;padding:11px 16px;font-weight:600;font-size:13.5px;}
+.gre details.method .body{padding:0 18px 14px;font-size:13.5px;line-height:1.55;}
+.gre details.method ol{margin:6px 0 10px;padding-left:20px;}
+.gre details.method li{margin-bottom:4px;}
+.gre details.method .src{font-size:12px;color:var(--muted);}
+.gre details.method a{color:var(--accent);}
+
+.gre .controls{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:14px;font-size:13px;color:var(--muted);}
+.gre .controls label{display:flex;align-items:center;gap:6px;}
+.gre .controls input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;padding:5px 7px;}
+.gre .controls input[type=number]{width:62px;}
+.gre .controls .spacer{flex:1;}
+.gre .segbtn{display:inline-flex;border:1px solid var(--line-strong);border-radius:7px;overflow:hidden;}
+.gre .segbtn button{font-size:12.5px;border:0;background:var(--surface);color:var(--muted);padding:6px 11px;cursor:pointer;}
+.gre .segbtn button+button{border-left:1px solid var(--line-strong);}
+.gre .segbtn button.on{background:var(--ink);color:var(--paper);}
+.gre .btn{font-size:13px;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:7px 13px;border-radius:7px;cursor:pointer;}
+.gre .btn.ghost{background:transparent;color:var(--accent);}
+.gre .btn.confirm{background:var(--late);border-color:var(--late);color:#fff;}
+
+.gre .topic{--tc:var(--accent);background:var(--surface);border:1px solid color-mix(in srgb,var(--tc) 30%,var(--line));border-left:6px solid var(--tc);border-radius:10px;margin-bottom:14px;overflow:hidden;}
+.gre .topic > summary{background:color-mix(in srgb,var(--tc) 10%,var(--surface));list-style:none;cursor:pointer;display:grid;grid-template-columns:auto 1fr auto;gap:4px 14px;align-items:center;padding:13px 16px;}
+.gre .topic > summary::-webkit-details-marker{display:none;}
+.gre .topic .name{font-weight:600;font-size:15.5px;color:color-mix(in srgb,var(--tc) 70%,var(--ink));}
+.gre .topic .code{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:12px;color:#fff;border-radius:5px;padding:3px 7px;min-width:48px;text-align:center;}
+.gre .topic .meta{font-size:12px;color:var(--muted);}
+.gre .topic .right{text-align:right;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;gap:14px;align-items:baseline;}
+.gre .topic .right b{color:var(--ink);font-size:14px;}
+.gre .topic .tbar{grid-column:1/-1;height:4px;background:var(--bar);border-radius:2px;overflow:hidden;}
+.gre .topic .tbar i{display:block;height:100%;}
+.gre .topic.complete .name::after{content:" ✓";color:var(--good);}
+
+.gre .score{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:12px;padding:1px 6px;border-radius:4px;}
+.gre .score.good{background:var(--good-tint);color:var(--good);}
+.gre .score.warn{background:var(--warn-tint);color:var(--warn);}
+.gre .score.bad{background:var(--late-tint);color:var(--late);}
+.gre .score.none{color:var(--faint);font-weight:500;}
+
+.gre .rows{border-top:1px solid var(--line);}
+.gre .ch,.gre .colhead{display:grid;grid-template-columns:58px minmax(0,1fr) 128px 44px 44px 60px 44px 26px;gap:0 8px;align-items:center;padding:7px 14px;}
+.gre .colhead{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:color-mix(in srgb,var(--tc) 75%,var(--muted));font-weight:700;padding-top:9px;padding-bottom:6px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--tc) 5%,var(--surface));}
+.gre .colhead span{text-align:center;}
+.gre .colhead span:nth-child(-n+3){text-align:left;}
+.gre .ch{border-bottom:1px solid var(--line);}
+.gre .ch:last-child{border-bottom:0;}
+.gre .ch.is-today{background:var(--today-tint);}
+.gre .ch.is-late .date{color:var(--late);border-color:var(--late);}
+.gre .ch.is-light .date{border-style:dashed;}
+.gre .ch.complete .title{color:var(--muted);}
+.gre .ch .num{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);}
+.gre .ch .title{outline:none;border-radius:4px;padding:2px 4px;margin-left:-4px;line-height:1.35;}
+.gre .ch .title:focus,.gre .ch .note:focus{background:var(--accent-tint);}
+.gre .ch .note{grid-column:2/-1;font-size:12.5px;color:var(--muted);outline:none;border-radius:4px;padding:2px 4px;margin:2px 0 0 -4px;white-space:pre-wrap;}
+.gre .ch .note:empty{display:none;}
+.gre .ch.show-note .note:empty{display:block;}
+.gre .ch .note:empty:before{content:attr(data-ph);color:var(--faint);}
+.gre .ch .date{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 5px;width:100%;}
+.gre .ch .addnote{border:0;background:none;color:var(--faint);cursor:pointer;font-size:15px;padding:0;line-height:1;}
+.gre .ch .addnote.has,.gre .ch .addnote:hover{color:var(--accent);}
+.gre .ch .pqscore{width:100%;font-family:"IBM Plex Mono",monospace;font-size:12px;text-align:center;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:4px 2px;-moz-appearance:textfield;}
+.gre .ch .pqscore::-webkit-outer-spin-button,.gre .ch .pqscore::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+.gre .ch .pqscore.good{background:var(--good-tint);color:var(--good);border-color:transparent;}
+.gre .ch .pqscore.warn{background:var(--warn-tint);color:var(--warn);border-color:transparent;}
+.gre .ch .pqscore.bad{background:var(--late-tint);color:var(--late);border-color:transparent;}
+.gre .ch .meta{grid-column:2/-1;font-size:11.5px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap;}
+.gre .ch .meta .ok{color:var(--good);}
+.gre .ch .meta:empty{display:none;}
+
+.gre .cb{justify-self:center;width:22px;height:22px;border-radius:6px;border:2px solid var(--line-strong);background:transparent;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;line-height:1;}
+.gre .cb:hover{border-color:var(--tc);}
+.gre .cb.on{background:var(--tc);border-color:var(--tc);}
+.gre .cb.on.review{background:#D99A1E;border-color:#D99A1E;}
+.gre .cb .lbl{display:none;}
+
+.gre .topicfoot{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--tc) 6%,var(--surface));font-size:12.5px;color:var(--muted);}
+.gre .topicfoot input{width:58px;font-family:"IBM Plex Mono",monospace;font-size:12px;text-align:center;border:1px solid var(--line-strong);border-radius:6px;padding:4px;background:var(--surface);color:var(--ink);}
+
+.gre .banner{background:var(--warn-tint);color:var(--warn);border-radius:8px;padding:10px 14px;font-size:13px;margin:16px 0 0;line-height:1.5;}
+.gre .banner code{font-family:"IBM Plex Mono",monospace;font-size:12px;}
+.gre .hidden{display:none !important;}
+
+@media (max-width:760px){
+  .gre .grewrap{padding:18px 14px calc(60px + env(safe-area-inset-bottom));}
+  .gre header h1{font-size:26px;}
+  .gre header .sub{font-size:12.5px;}
+  .gre .rainbow{height:10px;gap:2px;}
+  .gre .rainbow-cap{justify-content:flex-end;}
+  .gre .rainbow-cap span:first-child{display:none;}
+  .gre .stats{grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0;}
+  .gre .stat{padding:10px 12px 11px;}
+  .gre .stat .k{font-size:10px;}
+  .gre .stat .v{font-size:22px;}
+  .gre .stat .h{font-size:11.5px;}
+  .gre .today{grid-template-columns:1fr;padding:12px 14px;margin-bottom:16px;}
+  .gre .today li{gap:8px;}
+  .gre .today li .tg{min-width:52px;font-size:11px;}
+  .gre .today li .go{padding:6px 10px;font-size:13px;border-radius:8px;}
+  .gre details.method .body{padding:0 14px 12px;font-size:13px;}
+  .gre .controls{gap:10px;}
+  .gre .controls label{flex:1 1 140px;}
+  .gre .controls input{font-size:16px;flex:1;min-width:0;}
+  .gre .controls .spacer{display:none;}
+  .gre .segbtn{width:100%;}
+  .gre .segbtn button{flex:1;padding:9px 4px;font-size:13px;}
+  .gre .controls .btn{flex:1;padding:10px 8px;}
+  .gre .topic{margin-bottom:12px;}
+  .gre .topic > summary{grid-template-columns:auto 1fr;padding:12px 12px 12px 10px;}
+  .gre .topic .name{font-size:15px;}
+  .gre .topic .right{grid-column:1/-1;}
+  .gre .colhead{display:none;}
+  .gre .ch{display:flex;flex-wrap:wrap;align-items:center;gap:8px 6px;padding:12px;}
+  .gre .ch .num{order:1;font-size:12px;flex:1;}
+  .gre .ch .date{order:2;width:auto;font-size:16px;padding:3px 6px;border-radius:8px;}
+  .gre .ch.complete .date:invalid{display:none;}
+  .gre .ch .addnote{order:3;font-size:18px;padding:4px 2px 4px 8px;}
+  .gre .ch .title{order:4;flex:1 0 100%;font-size:16px;margin:0 0 2px -4px;}
+  .gre .ch .cb{order:5;flex:1 1 0;width:auto;height:38px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);gap:4px;}
+  .gre .ch .cb.on{color:#fff;}
+  .gre .ch .cb .lbl{display:inline;}
+  .gre .ch .pqscore{order:5;flex:0 0 64px;height:38px;font-size:16px;border-radius:9px;}
+  .gre .ch > span:empty{display:none;}
+  .gre .ch .note{order:6;flex:1 0 100%;font-size:16px;margin:2px 0 0 -4px;}
+  .gre .ch .meta{order:7;flex:1 0 100%;}
+  .gre .topicfoot{padding:12px;}
+  .gre .topicfoot input{font-size:16px;width:64px;}
+}
+</style>
+</head>
+<body>
+<div class="tabbar">
+  <a class="tab" href="index.html">Today</a>
+  <a class="tab" href="tasks.html">Tasks</a>
+  <a class="tab" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab" href="activity.html">Activity</a>
+  <a class="tab" href="reading.html">Reading</a>
+  <a class="tab" href="notes.html">Notes</a>
+  <a class="tab" href="events.html">Events</a>
+  <a class="tab" href="calls.html">Calls</a>
+  <a class="tab active" href="gre.html">GRE</a>
+</div>
+
+<div class="topbar">
+  <h1>Badriyah's Tasks</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+</div>
+
+<div class="gre-scroll gre">
+<div class="grewrap">
+  <header>
+    <div>
+      <h1><span class="spark">GRE</span> General Test Tracker</h1>
+      <div class="sub" id="examline"></div>
+    </div>
+  </header>
+  <div class="rainbow" id="rainbow"></div>
+  <div class="rainbow-cap"><span>Each block is a topic, sized by its share of the score and filled as chapters are done</span><span id="rainbowpct"></span></div>
+
+  <div class="banner hidden" id="rulebanner"></div>
+
+  <section class="stats" id="stats"></section>
+
+  <section class="today" id="today"></section>
+
+  <details class="method">
+    <summary>How this tracker works (the method)</summary>
+    <div class="body">
+      The GRE General Test is Verbal Reasoning (130–170), Quantitative Reasoning (130–170) and one Analytical Writing essay (0–6),
+      about 2 hours in all since the shorter format began in September 2023. Prep providers generally suggest 8–12 weeks of steady work
+      for someone starting cold, with plenty of timed practice. This follows that shape.
+      <ol>
+        <li><b>Diagnostic first.</b> Take one full timed practice test before studying anything. It shows your starting score and which topics to push on.</li>
+        <li><b>Learn.</b> Work through the topic: concepts, then worked examples. The schedule is built around this step.</li>
+        <li><b>Drill.</b> Do 10–20 questions on it the same day or the next and enter your % correct (for essays, your self-score out of 6).
+          <span class="score good">70%+</span> is on track, <span class="score warn">60–69</span> needs a second look, and
+          <span class="score bad">&lt;60</span> is a weak area that gets priority in final review.</li>
+        <li><b>Recall checks.</b> 7 days after a drill, and again 3 weeks later, the chapter shows up under <i>Recall checks</i>.
+          Spend 10 minutes redoing a few questions or testing yourself from memory. This matters most for vocabulary, which fades fast.</li>
+        <li><b>Topic test.</b> When a whole topic is finished, do 20–30 mixed questions and enter the score at the bottom of that topic.</li>
+        <li><b>Final review &amp; mocks.</b> The last days before the test are kept for full timed mocks, debriefs and logistics.
+          Enter each mock's total score (260–340); it is colored against your target.</li>
+      </ol>
+      <b>Busy period.</b> The planner treats the days you mark as busy as light days (default 40% of a normal day, so
+      roughly a night session), and spreads the chapters across the remaining capacity. Change the dates or load, then press
+      <i>Re-plan remaining</i>. <b>Readiness</b> is your drill scores weighted by each topic's share of the score.
+      <div class="src" style="margin-top:8px">Retake rule and score timing per ETS: one attempt every 21 days, up to five in 12 months; official scores in about 8–10 days. Sources:
+        <a href="https://www.ets.org/gre/test-takers/general-test/schedule.html" target="_blank" rel="noopener">ETS: scheduling &amp; retakes</a> ·
+        <a href="https://www.ets.org/content/dam/ets-india/pdfs/gre/gre-info-bulletin.pdf" target="_blank" rel="noopener">ETS information bulletin</a>
+      </div>
+    </div>
+  </details>
+
+  <div class="controls">
+    <label>Test date <input type="date" id="examdate"></label>
+    <label>Review &amp; mock days <input type="number" id="bufferdays" min="0" max="45"></label>
+    <label>Target total <input type="number" id="target" min="260" max="340"></label>
+    <label>Scores due <input type="date" id="deadline"></label>
+  </div>
+  <div class="controls">
+    <label>Busy from <input type="date" id="lightfrom"></label>
+    <label>to <input type="date" id="lightto"></label>
+    <label>Study load then <input type="number" id="lightcap" min="0" max="100"> %</label>
+  </div>
+  <div class="controls">
+    <div class="segbtn" id="filter">
+      <button data-f="all" class="on">All</button>
+      <button data-f="left">To study</button>
+      <button data-f="week">Next 7 days</button>
+      <button data-f="weak">Weak areas</button>
+    </div>
+    <span class="spacer"></span>
+    <button class="btn" id="replan">Re-plan remaining</button>
+    <button class="btn ghost" id="backup" title="Download a copy of all progress">Backup</button>
+    <button class="btn ghost" id="restore" title="Load a backup file">Restore</button>
+    <input type="file" id="restorefile" accept="application/json,.json" hidden>
+  </div>
+
+  <main id="topics"></main>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  // ---------- curriculum ----------
+  // `mid` is each topic's share of the overall picture, used for readiness.
+  // `w` scales study time per chapter. `once` topics are one-off items with a
+  // single Done box; `final` topics are scheduled in the last review days;
+  // `six` topics are scored 0-6 (essays) instead of %; `spread` topics are
+  // habits (vocab, essays) planned across the whole span instead of in one block;
+  // `front` items land on the first days (diagnostic before studying); `grp` 'v' runs alongside the quant topics rather than after them.
+  var TOPICS = [
+    {key:'dx', code:'START', name:'Start Here: Setup & Diagnostic', weight:'', mid:0, color:'#555B63', w:1, once:true, front:true, mods:[
+      'Set up: ETS account, free PowerPrep software, read the test format and question types',
+      'Diagnostic: full timed practice test, cold (free PowerPrep Test 1). Enter the total score',
+      'Debrief: log your baseline, list weak topics, set your target score']},
+    {key:'ari', code:'ARITH', name:'Quant: Arithmetic & Number Properties', weight:'~11%', mid:11, color:'#2F6FB0', w:1, mods:[
+      'Orientation: Quant formats (comparison, multi-answer, numeric entry) and the on-screen calculator',
+      'Fractions, decimals and percents','Ratios, proportions and rates','Exponents and roots',
+      'Integers: factors, multiples, primes','Remainders, divisibility, absolute value and the number line',
+      'Percent change, interest and word problems']},
+    {key:'alg', code:'ALG', name:'Quant: Algebra', weight:'~12%', mid:12, color:'#1F8A8A', w:1.1, mods:[
+      'Linear equations and inequalities','Systems of equations','Quadratics and factoring',
+      'Functions and graphs','Absolute value equations and inequalities','Algebraic word problems']},
+    {key:'geo', code:'GEOM', name:'Quant: Geometry', weight:'~10%', mid:10, color:'#2E8B57', w:1, mods:[
+      'Lines and angles','Triangles: Pythagorean theorem and special triangles','Circles: arcs, sectors, chords',
+      'Polygons and quadrilaterals','Area, perimeter and volume','Coordinate geometry']},
+    {key:'dat', code:'DATA', name:'Quant: Data Analysis & Probability', weight:'~11%', mid:11, color:'#5A6B2E', w:1.1, mods:[
+      'Mean, median, mode and range','Standard deviation, quartiles and the normal distribution',
+      'Counting: permutations and combinations','Probability','Data interpretation: tables and graphs',
+      'Mixed quant sets under time pressure']},
+    {key:'rc', grp:'v', code:'READ', name:'Verbal: Reading Comprehension', weight:'~18%', mid:18, color:'#7A4FB5', w:1.2, mods:[
+      'Main idea and primary purpose','Detail and inference questions','Author tone, attitude and the reasoning behind a claim',
+      'Structure questions: the role of a sentence or paragraph','Select-in-passage and multi-answer formats',
+      'Long passages: annotation and timing strategy']},
+    {key:'txt', grp:'v', code:'TC·SE', name:'Verbal: Text Completion & Sentence Equivalence', weight:'~16%', mid:16, color:'#B23A62', w:1, mods:[
+      'Orientation: how both formats work','Context clues and signal words (contrast, continuation, cause)',
+      'Text Completion: one blank','Text Completion: two blanks','Text Completion: three blanks',
+      'Sentence Equivalence: finding the synonym pair','Near-miss traps and tricky synonyms',
+      'Mixed timed TC and SE sets']},
+    {key:'voc', code:'VOCAB', name:'Verbal: Vocabulary', weight:'~10%', mid:10, color:'#B5701E', w:0.7, spread:true, mods:[
+      'Roots, prefixes and suffixes','Vocab set 1 (about 60 words)','Vocab set 2 (about 60 words)','Vocab set 3 (about 60 words)',
+      'Vocab set 4 (about 60 words)','Vocab set 5 (about 60 words)','Vocab set 6 (about 60 words)',
+      'Vocab set 7 (about 60 words)','Vocab set 8 (about 60 words)']},
+    {key:'awa', code:'ESSAY', name:'Analytical Writing: the Issue Essay', weight:'~12%', mid:12, color:'#9A3B2B', w:1.1, six:true, spread:true, mods:[
+      'Task overview and the 0–6 scoring rubric','Brainstorm and outline in 5 minutes','Structure: thesis, body, counter-position, close',
+      'Build a bank of 8–10 reusable examples (history, science, arts, tech)',
+      'Timed essay 1 (30 min), then self-score against the rubric','Timed essay 2 (30 min), then self-score',
+      'Timed essay 3 (30 min), then self-score']},
+    {key:'rev', code:'FINAL', name:'Final Review & Mock Tests', weight:'', mid:0, color:'#555B63', w:1, once:true, final:true, mods:[
+      'Mock 1: full timed test (ETS PowerPrep Plus or similar). Enter the total score',
+      'Mock 1 debrief: redo every miss, log weak topics','Review: weakest Quant topics',
+      'Review: weakest Verbal topics and vocab sets','Mock 2: full timed test. Enter the total score',
+      'Mock 2 debrief + one last timed essay','Light review, formula sheet, early night',
+      'Logistics: ID matches your registration name exactly, route or at-home check, send scores to Harvard GSD (ETS code 3455)',
+      'Test day: arrive early, eat, breathe']}
+  ];
+  var HEAVY = {'dx-1':1.6, 'dx-2':2.6, 'dx-3':1.2, 'alg-3':1.3, 'dat-3':1.3, 'dat-4':1.3, 'rc-6':1.3, 'txt-5':1.3,
+               'awa-5':1.3, 'awa-6':1.3, 'awa-7':1.3};
+  var MOCK = {'dx-2':1, 'rev-1':1, 'rev-5':1};
+  var DEFAULT_SETTINGS = {exam:'2026-11-28', buffer:5, target:315, deadline:'2027-01-05',
+                          lightFrom:'2026-11-10', lightTo:'2026-11-22', lightCap:40, tt:{}};
+  var GOOD = 70, OK = 60;
+
+  var topicByKey = {};
+  TOPICS.forEach(function(t){ topicByKey[t.key] = t; });
+  function isOnce(c){ return !!topicByKey[c.topic].once; }
+  function isFinal(c){ return !!topicByKey[c.topic].final; }
+  function isMock(c){ return !!MOCK[c.id]; }
+  function isSix(c){ return !!topicByKey[c.topic].six; }
+
+  // ---------- small helpers ----------
+  function iso(d){ return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+  function parse(s){ var p = s.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function addDays(s, n){ var d = parse(s); d.setDate(d.getDate()+n); return iso(d); }
+  function daysBetween(a, b){ return Math.round((parse(b) - parse(a)) / 86400000); }
+  function todayISO(){ return iso(new Date()); }
+  function pretty(s, dow){ return s ? parse(s).toLocaleDateString(undefined, dow ? {weekday:'short', month:'short', day:'numeric'} : {month:'short', day:'numeric'}) : ''; }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function num(v){ return (v === '' || v == null || isNaN(+v)) ? null : +v; }
+  function band(v){ return v == null ? 'none' : v >= GOOD ? 'good' : v >= OK ? 'warn' : 'bad'; }
+  function avg(a){ return a.length ? a.reduce(function(s,x){ return s+x; }, 0) / a.length : null; }
+  function inBusy(d, s){ return !!(s.lightFrom && s.lightTo && d >= s.lightFrom && d <= s.lightTo); }
+  function capOf(d, s){ return inBusy(d, s) ? Math.max(0, Math.min(100, +s.lightCap || 0)) / 100 : 1; }
+
+  function studied(c){ return isOnce(c) ? !!c.done : !!c.study; }
+  function complete(c){ return isOnce(c) ? !!c.done : !!(c.study && c.pq); }
+  // A drill score as a 0-100 number (essays are out of 6). Mocks aren't included.
+  function norm(c){
+    var v = num(c.pqScore);
+    if(v == null || isMock(c)) return null;
+    return isSix(c) ? v / 6 * 100 : v;
+  }
+  // Mock totals are colored against the target, not the 70/60 drill bands.
+  function mockBand(v, target){ return v == null ? 'none' : v >= target ? 'good' : v >= target - 10 ? 'warn' : 'bad'; }
+
+  // ---------- seed ----------
+  function seedDocs(){
+    var docs = {}, order = 0;
+    TOPICS.forEach(function(t){
+      t.mods.forEach(function(title, i){
+        var n = i + 1, id = t.key + '-' + n;
+        docs[id] = {
+          topic: t.key, num: n, title: title, order: (order += 10), date: '',
+          study: false, pq: false, pqScore: '', review: false, done: false,
+          studyOn: '', pqOn: '', reviewOn: '', recall1On: '', recall2On: '', doneOn: '',
+          note: '', weight: (HEAVY[id] || 1) * t.w
+        };
+      });
+    });
+    return docs;
+  }
+
+  // ---------- planner ----------
+  // Spreads every unstudied chapter between `from` and (test − review days).
+  // Each day has a capacity (1 normally, less in the busy period), and chapters
+  // are placed proportionally to their weight across that capacity. The final
+  // review items fill the review days.
+  function plan(items, settings, from){
+    var exam = settings.exam, buffer = Math.max(0, settings.buffer|0);
+    var contentEnd = addDays(exam, -buffer);
+    if(contentEnd <= from) contentEnd = addDays(from, 1);
+    var span = daysBetween(from, contentEnd), cum = [], total = 0, i;
+    for(i = 0; i < span; i++){ total += capOf(addDays(from, i), settings); cum.push(total); }
+    if(total <= 0){ total = span; cum = cum.map(function(_, k){ return k + 1; }); }
+    var content = items.filter(function(c){ return !studied(c) && !isFinal(c); });
+    var review = items.filter(function(c){ return !studied(c) && isFinal(c); });
+    // Quant and verbal run side by side, and vocabulary and essay practice are
+    // habits, so each of those runs as its own stream across the whole span
+    // instead of being lumped into one block.
+    var byStream = {}, out = {};
+    content.forEach(function(c){
+      var t = topicByKey[c.topic];
+      if(t.front){ out[c.id] = addDays(from, Math.min(span - 1, Object.keys(out).length)); return; } // setup, diagnostic, debrief: first days
+      var k = t.spread ? t.key : (t.grp || 'q'); (byStream[k] = byStream[k] || []).push(c);
+    });
+    var streams = Object.keys(byStream).map(function(k){ return byStream[k]; });
+    streams.forEach(function(st){
+      var wsum = st.reduce(function(s,c){ return s + (c.weight||1); }, 0) || 1, before = 0;
+      st.forEach(function(c){
+        var w = c.weight || 1, pos = (before + w / 2) / wsum * total, d = 0;
+        while(d < span - 1 && cum[d] <= pos) d++;
+        out[c.id] = addDays(from, d);
+        before += w;
+      });
+    });
+    var rSpan = Math.max(1, daysBetween(contentEnd, exam));
+    review.forEach(function(c, k){
+      out[c.id] = addDays(contentEnd, Math.min(rSpan-1, Math.floor(k * rSpan / review.length)));
+    });
+    return out;
+  }
+
+  // ---------- storage ----------
+  // Same Firebase project as the rest of the site, in its own collection "gre".
+  // That collection needs its own rule once; until it's published the page
+  // saves in this browser only and carries everything over afterwards.
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M",
+    authDomain: "badriyahstasks.firebaseapp.com",
+    projectId: "badriyahstasks",
+    storageBucket: "badriyahstasks.firebasestorage.app",
+    messagingSenderId: "97057321631",
+    appId: "1:97057321631:web:fa339e1352631ecb9d68aa"
+  };
+
+  var LS_KEY = 'badriyah-gre-v1';
+  var state = {items: {}, settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), mode: 'connecting'};
+  var db = null, col = null;
+
+  function lsLoad(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){ return null; } }
+  function lsSave(){ try { localStorage.setItem(LS_KEY, JSON.stringify({items: state.items, settings: state.settings})); } catch(e){} }
+
+  function write(patches, settingsPatch){
+    Object.keys(patches).forEach(function(id){ Object.assign(state.items[id], patches[id]); });
+    if(settingsPatch){
+      if(settingsPatch.tt) state.settings.tt = Object.assign({}, state.settings.tt, settingsPatch.tt);
+      Object.keys(settingsPatch).forEach(function(k){ if(k !== 'tt') state.settings[k] = settingsPatch[k]; });
+    }
+    if(state.mode === 'cloud'){
+      var b = db.batch();
+      Object.keys(patches).forEach(function(id){ b.set(col.doc(id), patches[id], {merge:true}); });
+      if(settingsPatch) b.set(col.doc('_settings'), settingsPatch, {merge:true});
+      b.commit().catch(function(e){ console.error(e); });
+    } else {
+      lsSave();
+    }
+    render();
+  }
+  function patchOne(id, p){ var o = {}; o[id] = p; write(o); }
+
+  function seedMissing(existing, settings){
+    // Only creates chapters that don't exist yet, so this can never duplicate.
+    var seeds = seedDocs(), missing = {};
+    Object.keys(seeds).forEach(function(id){ if(!existing[id]) missing[id] = seeds[id]; });
+    var newOnes = Object.keys(missing).map(function(id){ return Object.assign({id:id}, missing[id]); })
+      .sort(function(a,b){ return a.order - b.order; });
+    var dates = plan(newOnes, settings, todayISO());
+    Object.keys(dates).forEach(function(id){ missing[id].date = dates[id]; });
+    return missing;
+  }
+
+  function showBanner(reason){
+    var b = document.getElementById('rulebanner');
+    b.innerHTML = 'Saving in this browser only (' + esc(reason) + '). To sync across devices, add this to the Firestore rules in the Firebase console and publish: ' +
+      '<code>match /gre/{id} { allow read, write: if true; }</code>';
+    b.classList.remove('hidden');
+  }
+
+  function startLocal(reason){
+    state.mode = 'local';
+    var saved = lsLoad();
+    if(saved){
+      state.items = saved.items || {};
+      state.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), saved.settings);
+    }
+    Object.assign(state.items, seedMissing(state.items, state.settings));
+    lsSave();
+    if(reason) showBanner(reason);
+    render();
+  }
+
+  function startCloud(){
+    try {
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      col = db.collection('gre');
+    } catch(e){ startLocal('Firebase unavailable'); return; }
+
+    var first = true;
+    col.onSnapshot(function(snap){
+      var items = {}, settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), hasSettings = false;
+      snap.docs.forEach(function(d){
+        if(d.id === '_settings'){ hasSettings = true; Object.assign(settings, d.data()); }
+        else items[d.id] = d.data();
+      });
+      if(first){
+        first = false;
+        state.mode = 'cloud';
+        document.getElementById('rulebanner').classList.add('hidden');
+        var saved = lsLoad(), batch = db.batch(), writes = 0;
+        if(!Object.keys(items).length && saved && saved.items && Object.keys(saved.items).length){
+          // Carry over anything saved locally before the Firestore rule existed.
+          Object.keys(saved.items).forEach(function(id){ batch.set(col.doc(id), saved.items[id]); writes++; });
+          batch.set(col.doc('_settings'), Object.assign({}, settings, saved.settings));
+          batch.commit();
+          return;
+        }
+        var missing = seedMissing(items, settings);
+        Object.keys(missing).forEach(function(id){ batch.set(col.doc(id), missing[id]); writes++; });
+        if(!hasSettings){ batch.set(col.doc('_settings'), settings); writes++; }
+        if(writes){ batch.commit(); return; }
+      }
+      state.items = items;
+      state.settings = settings;
+      render();
+    }, function(err){
+      if(state.mode !== 'local') startLocal(err && err.code === 'permission-denied' ? 'the database rule isn\'t published yet' : 'offline');
+    });
+  }
+
+  // ---------- derived numbers ----------
+  function list(){
+    return Object.keys(state.items).map(function(id){ return Object.assign({id:id}, state.items[id]); })
+      .sort(function(a,b){ return a.order - b.order; });
+  }
+  // A topic's score (0-100): its topic test if taken, otherwise the average of its drill scores.
+  function topicScore(t, chs){
+    var tt = num((state.settings.tt || {})[t.key]);
+    if(tt != null) return {v: tt, src: 'topic test'};
+    var a = avg(chs.map(norm).filter(function(v){ return v != null; }));
+    return {v: a, src: t.six ? 'essays' : 'drills'};
+  }
+  function readiness(all){
+    var sw = 0, sv = 0, total = 0;
+    TOPICS.forEach(function(t){
+      if(!t.mid) return;
+      total += t.mid;
+      var s = topicScore(t, all.filter(function(c){ return c.topic === t.key; }));
+      if(s.v != null){ sw += t.mid; sv += t.mid * s.v; }
+    });
+    return {v: sw ? sv / sw : null, coverage: total ? sw / total : 0};
+  }
+  function recallDue(c, today){
+    if(isOnce(c) || !c.pq || !c.pqOn) return null;
+    if(!c.recall1On && addDays(c.pqOn, 7) <= today) return 1;
+    if(c.recall1On && !c.recall2On && addDays(c.recall1On, 21) <= today) return 2;
+    return null;
+  }
+  function fmtTopicScore(t, v){ return t.six ? (v / 100 * 6).toFixed(1) + '/6' : Math.round(v) + '%'; }
+
+  // ---------- render ----------
+  var filter = 'all';
+  var openTopics = null;
+  try { openTopics = JSON.parse(localStorage.getItem('badriyah-gre-open') || 'null'); } catch(e){}
+  var pendingReplan = false;
+  var main = document.getElementById('topics');
+
+  function render(){
+    var all = list(), today = todayISO(), s = state.settings;
+    var dot = document.getElementById('syncdot'), st = document.getElementById('syncstate');
+    dot.className = 'dot' + (state.mode === 'connecting' ? ' off' : '');
+    st.textContent = state.mode === 'cloud' ? 'Live — anyone with this link can edit' : state.mode === 'local' ? 'Saved in this browser only' : 'Connecting…';
+    if(!all.length) return;
+
+    var ae = document.activeElement;
+    var typing = ae && main.contains(ae) && (ae.isContentEditable || ae.classList.contains('pqscore') || ae.classList.contains('ttscore'));
+
+    [['examdate','exam'],['bufferdays','buffer'],['target','target'],['deadline','deadline'],
+     ['lightfrom','lightFrom'],['lightto','lightTo'],['lightcap','lightCap']].forEach(function(p){
+      var el = document.getElementById(p[0]);
+      if(ae !== el) el.value = s[p[1]] == null ? '' : s[p[1]];
+    });
+
+    var reviewStart = addDays(s.exam, -s.buffer);
+    var daysLeft = daysBetween(today, s.exam);
+    var inReview = today >= reviewStart;
+    var scoresBy = addDays(s.exam, 10);
+    document.getElementById('examline').innerHTML =
+      'Test ' + esc(pretty(s.exam, true)) + ', ' + parse(s.exam).getFullYear() + ' · final review from ' + esc(pretty(reviewStart)) +
+      ' · scores ready around ' + esc(pretty(scoresBy)) +
+      '<span class="phase">' + (daysLeft < 0 ? 'Test done' : inReview ? 'Review phase' : 'Study phase') + '</span>';
+
+    // ---- stats ----
+    var content = all.filter(function(c){ return !isOnce(c); });
+    var nStudied = content.filter(studied).length, nComplete = content.filter(complete).length;
+    var late = all.filter(function(c){ return !studied(c) && c.date && c.date < today; });
+    var left = content.length - nStudied;
+    var capLeft = 0, i, span = Math.max(0, daysBetween(today, reviewStart));
+    for(i = 0; i < span; i++) capLeft += capOf(addDays(today, i), s);
+    var pace = capLeft ? left / capLeft * 7 : left;
+    var r = readiness(all);
+    var mocks = all.filter(isMock).filter(function(c){ return num(c.pqScore) != null; });
+    var lastMock = mocks.length ? num(mocks[mocks.length-1].pqScore) : null;
+    var target = num(s.target) || 315;
+
+    document.getElementById('rainbow').innerHTML = TOPICS.filter(function(t){ return t.mid; }).map(function(t){
+      var chs = content.filter(function(c){ return c.topic === t.key; });
+      var p = chs.length ? chs.filter(complete).length / chs.length * 100 : 0;
+      return '<div style="--tc:'+t.color+';flex:'+t.mid+'" title="'+esc(t.name)+' · '+Math.round(p)+'% done"><i style="width:'+p+'%"></i></div>';
+    }).join('');
+    document.getElementById('rainbowpct').textContent = Math.round(nComplete / content.length * 100) + '% of chapters done';
+
+    var rcls = r.v == null ? '' : band(r.v) === 'good' ? 'good' : band(r.v) === 'warn' ? 'warn' : 'late';
+    var retakeOn = addDays(s.exam, 21), retakeScores = addDays(retakeOn, 10);
+    var retakeFits = !!s.deadline && retakeScores <= s.deadline;
+    var statHTML = '';
+    statHTML += '<div class="stat c-blue"><div class="k">Chapters studied</div><div class="v">'+nStudied+' <small>/ '+content.length+'</small></div>' +
+      '<div class="h">'+nComplete+' with drills done</div>' +
+      '<div class="bigbar"><div class="seg"><i style="width:'+(nComplete/content.length*100)+'%;background:var(--good)"></i>' +
+      '<i style="width:'+((nStudied-nComplete)/content.length*100)+'%;background:var(--warn)"></i></div></div></div>';
+    statHTML += '<div class="stat '+(late.length ? 'late c-red' : 'good c-green')+'"><div class="k">Schedule</div><div class="v">' +
+      (late.length ? late.length + ' <small>behind</small>' : 'On track') + '</div><div class="h">' +
+      (inReview ? 'Content phase finished' : pace.toFixed(1) + ' chapters / week needed') + '</div></div>';
+    statHTML += '<div class="stat c-purple '+rcls+'"><div class="k">Readiness</div><div class="v">' +
+      (r.v == null ? '—' : Math.round(r.v) + '<small>%</small>') + '</div><div class="h">' +
+      (lastMock != null ? 'Latest mock ' + lastMock + ' · target ' + target
+        : r.v == null ? 'Enter drill scores to see this' : 'weighted by topic share · ' + Math.round(r.coverage*100) + '% measured') + '</div>' +
+      '<div class="bigbar"><i style="width:'+(r.v||0)+'%;background:var(--'+(r.v==null?'faint':rcls==='late'?'late':rcls)+')"></i><span class="mark" style="left:'+GOOD+'%" title="70% target"></span></div></div>';
+    statHTML += '<div class="stat c-orange"><div class="k">Days to test</div><div class="v">'+Math.max(0, daysLeft)+'</div><div class="h">' +
+      (s.deadline ? (retakeFits ? 'A retake (' + esc(pretty(retakeOn)) + ') would still land by ' + esc(pretty(s.deadline))
+                                : 'Too late to retake before ' + esc(pretty(s.deadline))) : '') + '</div></div>';
+    document.getElementById('stats').innerHTML = statHTML;
+
+    // ---- today ----
+    var li = function(c, cls, tag, btn){
+      var t = topicByKey[c.topic];
+      return '<li class="'+cls+'"><span class="tg">'+esc(tag)+'</span><span><b class="tcode" style="background:'+t.color+'">'+t.code+' '+c.num+'</b> '+esc(c.title)+'</span>' +
+        (btn ? '<button class="go" data-go="'+btn+'" data-id="'+c.id+'">'+(btn==='study'?'Studied':btn==='done'?'Done':'✓ Recalled')+'</button>' : '') + '</li>';
+    };
+    var due = all.filter(function(c){ return !studied(c) && c.date && c.date <= today; });
+    var nextUp = all.filter(function(c){ return !studied(c) && c.date > today; }).sort(function(a,b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : a.order - b.order; });
+    var needQs = content.filter(function(c){ return c.study && !c.pq; });
+    var recalls = content.map(function(c){ return {c:c, n:recallDue(c, today)}; }).filter(function(x){ return x.n; });
+    var weak = content.filter(function(c){ var v = norm(c); return v != null && v < GOOD && !c.review; })
+      .sort(function(a,b){ return norm(a) - norm(b); });
+
+    var note = '';
+    if(inBusy(today, s)){
+      note = '<div class="lightnote"><b>Busy period, light day.</b> About 45 minutes tonight is enough: one chapter, a short drill, or a vocab set. Back to full days on ' + esc(pretty(addDays(s.lightTo, 1), true)) + '.</div>';
+    } else if(s.lightFrom && s.lightFrom > today && daysBetween(today, s.lightFrom) <= 14){
+      note = '<div class="lightnote"><b>Busy period starts ' + esc(pretty(s.lightFrom, true)) + '</b> (in ' + daysBetween(today, s.lightFrom) + ' days). Get ahead now: study days before then are worth more.</div>';
+    }
+
+    var col1 = '<h2>Today · ' + esc(pretty(today, true)) + '</h2>';
+    if(due.length){
+      col1 += '<ul>' + due.map(function(c){
+        return c.date < today ? li(c, 'late', 'late ' + pretty(c.date), isOnce(c) ? 'done' : 'study') : li(c, '', 'study', isOnce(c) ? 'done' : 'study');
+      }).join('') + '</ul>';
+    } else {
+      col1 += '<div class="none">Nothing scheduled today.</div>';
+    }
+    if(nextUp.length) col1 += '<h2>Up next</h2><ul>' + nextUp.slice(0, 3).map(function(c){ return li(c, '', pretty(c.date, true)); }).join('') + '</ul>';
+
+    var col2 = '';
+    if(needQs.length) col2 += '<h2>Drills to do</h2><ul>' + needQs.slice(0, 4).map(function(c){ return li(c, 'late', 'Drill'); }).join('') + '</ul>';
+    col2 += '<h2>Recall checks</h2>';
+    col2 += recalls.length
+      ? '<ul>' + recalls.slice(0, 5).map(function(x){ return li(x.c, '', x.n === 1 ? '1 week' : '3 weeks', 'recall'); }).join('') + '</ul>'
+      : '<div class="none">None due. Chapters show up here 7 days after their drill.</div>';
+    if(weak.length) col2 += '<h2>Weak spots (under 70%)</h2><ul>' + weak.slice(0, 4).map(function(c){ return li(c, 'late', isSix(c) ? c.pqScore + '/6' : c.pqScore + '%'); }).join('') + '</ul>';
+    document.getElementById('today').innerHTML = note + '<div class="col">' + col1 + '</div><div class="col">' + col2 + '</div>';
+
+    if(typing) return; // don't redraw rows under the cursor; the blur re-renders
+
+    // ---- topics ----
+    var weekEnd = addDays(today, 7);
+    main.innerHTML = TOPICS.map(function(t){
+      var chs = all.filter(function(c){ return c.topic === t.key; });
+      var dn = chs.filter(complete).length;
+      var shown = chs.filter(function(c){
+        if(filter === 'left') return !studied(c);
+        if(filter === 'week') return !complete(c) && c.date && c.date <= weekEnd;
+        if(filter === 'weak') return !t.once && norm(c) != null && norm(c) < GOOD;
+        return true;
+      });
+      if(filter !== 'all' && !shown.length) return '';
+      var dated = chs.map(function(c){ return c.date; }).filter(Boolean).sort();
+      var range = dated.length ? pretty(dated[0]) + ' – ' + pretty(dated[dated.length-1]) : 'no dates';
+      var isOpen = filter !== 'all' ? true : (openTopics ? openTopics.indexOf(t.key) !== -1 : dn < chs.length);
+      var sc = t.once ? null : topicScore(t, chs);
+      var head = t.once
+        ? '<div class="colhead"><span>#</span><span>Item</span><span>Day</span><span></span><span></span><span>Total</span><span>Done</span><span></span></div>'
+        : '<div class="colhead"><span>#</span><span>Chapter</span><span>Day</span><span>Learn</span><span>Drill</span><span>' + (t.six ? '0–6' : 'Score') + '</span><span>Review</span><span></span></div>';
+      var foot = (t.once || t.six) ? '' :
+        '<div class="topicfoot"><label>Topic test (20–30 mixed Qs) <input class="ttscore" type="number" min="0" max="100" data-topic="'+t.key+'" value="'+esc((s.tt||{})[t.key] == null ? '' : s.tt[t.key])+'" placeholder="%"></label>' +
+        '<span>' + (sc.v == null ? 'No scores yet' : 'Topic score <span class="score '+band(sc.v)+'">'+Math.round(sc.v)+'%</span> from ' + sc.src) + '</span></div>';
+      return '<details class="topic'+(dn===chs.length?' complete':'')+'" style="--tc:'+t.color+'" data-topic="'+t.key+'"'+(isOpen?' open':'')+'>' +
+        '<summary><span class="code" style="background:'+t.color+'">'+t.code+'</span>' +
+        '<div><div class="name">'+esc(t.name)+'</div><div class="meta">'+(t.weight ? 'Share of score '+t.weight+' · ' : '')+range+'</div></div>' +
+        '<div class="right">' + (sc && sc.v != null ? '<span class="score '+band(sc.v)+'">'+fmtTopicScore(t, sc.v)+'</span>' : '') +
+        '<span><b>'+dn+'</b> / '+chs.length+' done</span></div>' +
+        '<div class="tbar"><i style="width:'+(dn/chs.length*100)+'%;background:'+t.color+'"></i></div></summary>' +
+        '<div class="rows">' + head + shown.map(function(c){ return rowHTML(c, t, today, s); }).join('') + '</div>' + foot + '</details>';
+    }).join('');
+  }
+
+  function cb(c, field, label, extra){
+    var on = !!c[field];
+    return '<button class="cb '+(extra||'')+(on?' on':'')+'" data-act="toggle" data-field="'+field+'" title="'+label+'">'+(on?'✓':'')+'<span class="lbl">'+label+'</span></button>';
+  }
+
+  function rowHTML(c, t, today, s){
+    var cls = 'ch';
+    if(complete(c)) cls += ' complete';
+    if(!studied(c) && c.date === today) cls += ' is-today';
+    if(!studied(c) && c.date && c.date < today) cls += ' is-late';
+    if(c.date && inBusy(c.date, s)) cls += ' is-light';
+    var v = num(c.pqScore), kind = isMock(c) ? 'mock' : t.six ? 'six' : 'pct', bcls;
+    if(kind === 'mock') bcls = mockBand(v, num(s.target) || 315);
+    else bcls = v == null ? '' : band(norm(c));
+    var attrs = kind === 'mock' ? 'min="260" max="340" placeholder="260–340"' : kind === 'six' ? 'min="0" max="6" step="0.5" placeholder="/6"' : 'min="0" max="100" placeholder="%"';
+    var scoreInput = '<input class="pqscore '+(bcls === 'none' ? '' : bcls)+'" type="number" data-kind="'+kind+'" '+attrs+' value="'+esc(c.pqScore)+'" title="'+(kind === 'mock' ? 'Total score' : kind === 'six' ? 'Essay score out of 6' : 'Score %')+'">';
+    var bits = [];
+    if(!isOnce(c)){
+      if(c.studyOn) bits.push('<span>Studied ' + pretty(c.studyOn) + '</span>');
+      if(c.pqOn) bits.push('<span>Drill ' + pretty(c.pqOn) + '</span>');
+      if(c.recall1On) bits.push('<span class="ok">Recall ✓ ' + pretty(c.recall1On) + '</span>');
+      if(c.recall2On) bits.push('<span class="ok">Recall ✓ ' + pretty(c.recall2On) + '</span>');
+      if(c.reviewOn) bits.push('<span class="ok">Final review ' + pretty(c.reviewOn) + '</span>');
+    } else if(c.doneOn){
+      bits.push('<span class="ok">Done ' + pretty(c.doneOn) + '</span>');
+    }
+    var mid = isOnce(c)
+      ? '<span></span><span></span>' + (isMock(c) ? scoreInput : '<span></span>') + cb(c, 'done', 'Done', 'review')
+      : cb(c, 'study', 'Learn') + cb(c, 'pq', 'Drill') + scoreInput + cb(c, 'review', 'Review', 'review');
+    return '<div class="'+cls+'" data-id="'+c.id+'">' +
+      '<span class="num">'+t.code+' '+c.num+'</span>' +
+      '<div class="title" contenteditable="true" data-field="title" spellcheck="false">'+esc(c.title)+'</div>' +
+      '<input class="date" type="date" required value="'+esc(c.date)+'" title="Scheduled day">' +
+      mid +
+      '<button class="addnote'+(c.note?' has':'')+'" data-act="note" title="Comments">✎</button>' +
+      '<div class="note" contenteditable="true" data-field="note" data-ph="Comments: what was hard, formulas or words to remember, page refs…">'+esc(c.note)+'</div>' +
+      '<div class="meta">'+bits.join('')+'</div>' +
+      '</div>';
+  }
+
+  // ---------- interactions ----------
+  var ON_FIELD = {study:'studyOn', pq:'pqOn', review:'reviewOn', done:'doneOn'};
+  function toggle(id, field){
+    var c = state.items[id], on = !c[field], p = {};
+    p[field] = on;
+    if(ON_FIELD[field]) p[ON_FIELD[field]] = on ? todayISO() : '';
+    // Doing a drill implies you've learned the chapter.
+    if(on && field === 'pq' && !c.study){ p.study = true; p.studyOn = todayISO(); }
+    patchOne(id, p);
+    if(on && field === 'pq'){
+      var inp = document.querySelector('.ch[data-id="'+id+'"] .pqscore');
+      if(inp && !inp.value) inp.focus();
+    }
+  }
+
+  main.addEventListener('click', function(e){
+    var btn = e.target.closest('button[data-act]');
+    if(!btn) return;
+    var row = btn.closest('.ch'), id = row.dataset.id;
+    if(btn.dataset.act === 'toggle') toggle(id, btn.dataset.field);
+    else if(btn.dataset.act === 'note'){ row.classList.add('show-note'); row.querySelector('.note').focus(); }
+  });
+  main.addEventListener('change', function(e){
+    var el = e.target, row = el.closest('.ch');
+    if(el.classList.contains('date')) patchOne(row.dataset.id, {date: el.value});
+    else if(el.classList.contains('pqscore')){
+      var kind = el.dataset.kind, v = '';
+      if(el.value !== ''){
+        if(kind === 'mock') v = String(Math.max(260, Math.min(340, Math.round(+el.value))));
+        else if(kind === 'six') v = String(Math.max(0, Math.min(6, Math.round(+el.value * 2) / 2)));
+        else v = String(Math.max(0, Math.min(100, Math.round(+el.value))));
+      }
+      var c = state.items[row.dataset.id], p = {pqScore: v};
+      var once = topicByKey[c.topic].once;
+      if(v !== '' && !once && !c.pq){ p.pq = true; p.pqOn = todayISO(); if(!c.study){ p.study = true; p.studyOn = todayISO(); } }
+      if(v !== '' && once && !c.done){ p.done = true; p.doneOn = todayISO(); }
+      patchOne(row.dataset.id, p);
+    } else if(el.classList.contains('ttscore')){
+      var tt = {}; tt[el.dataset.topic] = el.value === '' ? null : Math.max(0, Math.min(100, Math.round(+el.value)));
+      write({}, {tt: tt});
+    }
+  });
+  main.addEventListener('keydown', function(e){
+    if(e.target.isContentEditable && e.key === 'Enter' && !(e.target.dataset.field === 'note' && e.shiftKey)){ e.preventDefault(); e.target.blur(); }
+    if(e.target.tagName === 'INPUT' && e.key === 'Enter') e.target.blur();
+  });
+  main.addEventListener('focusout', function(e){
+    var el = e.target;
+    if(el.isContentEditable){
+      var id = el.closest('.ch').dataset.id, field = el.dataset.field, val = (field === 'note' ? el.innerText : el.textContent).trim();
+      if(state.items[id][field] !== val){ var p = {}; p[field] = val; patchOne(id, p); return; }
+    }
+    setTimeout(function(){ if(!main.contains(document.activeElement) || document.activeElement === document.body) render(); }, 0);
+  });
+  main.addEventListener('toggle', function(e){
+    if(filter !== 'all' || !e.target.matches('details.topic')) return;
+    openTopics = Array.prototype.map.call(main.querySelectorAll('details.topic[open]'), function(d){ return d.dataset.topic; });
+    try { localStorage.setItem('badriyah-gre-open', JSON.stringify(openTopics)); } catch(err){}
+  }, true);
+
+  document.getElementById('today').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-go]'); if(!b) return;
+    var id = b.dataset.id, go = b.dataset.go;
+    if(go === 'recall'){
+      var c = state.items[id];
+      patchOne(id, c.recall1On ? {recall2On: todayISO()} : {recall1On: todayISO()});
+    } else if(!state.items[id][go]) toggle(id, go);
+  });
+
+  document.getElementById('filter').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    filter = b.dataset.f;
+    this.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); });
+    render();
+  });
+  function bindSetting(id, key, conv){
+    document.getElementById(id).addEventListener('change', function(){
+      var v = conv(this.value);
+      if(v === undefined) return;
+      var p = {}; p[key] = v; write({}, p);
+    });
+  }
+  function dateVal(v){ return v ? v : undefined; }
+  function clampInt(lo, hi){ return function(v){ var n = parseInt(v, 10); return isNaN(n) ? undefined : Math.max(lo, Math.min(hi, n)); }; }
+  bindSetting('examdate', 'exam', dateVal);
+  bindSetting('deadline', 'deadline', dateVal);
+  bindSetting('lightfrom', 'lightFrom', function(v){ return v; });
+  bindSetting('lightto', 'lightTo', function(v){ return v; });
+  bindSetting('bufferdays', 'buffer', clampInt(0, 45));
+  bindSetting('target', 'target', clampInt(260, 340));
+  bindSetting('lightcap', 'lightCap', clampInt(0, 100));
+
+  var replanBtn = document.getElementById('replan');
+  function resetReplan(){ pendingReplan = false; replanBtn.textContent = 'Re-plan remaining'; replanBtn.classList.remove('confirm'); }
+  replanBtn.addEventListener('click', function(){
+    if(!pendingReplan){
+      pendingReplan = true;
+      replanBtn.textContent = 'Move dates of all unstudied chapters?';
+      replanBtn.classList.add('confirm');
+      setTimeout(function(){ if(pendingReplan) resetReplan(); }, 4000);
+      return;
+    }
+    resetReplan();
+    var dates = plan(list(), state.settings, todayISO()), patch = {};
+    Object.keys(dates).forEach(function(id){ patch[id] = {date: dates[id]}; });
+    write(patch);
+  });
+
+  // Keeps "today" correct if the tab stays open past midnight.
+  setInterval(function(){ var a = document.activeElement; if(!a || a === document.body) render(); }, 60000);
+
+  // ---------- backup / restore ----------
+  document.getElementById('backup').addEventListener('click', function(){
+    var blob = new Blob([JSON.stringify({items: state.items, settings: state.settings}, null, 1)], {type:'application/json'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'gre-backup-' + todayISO() + '.json';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+  });
+  var restoreFile = document.getElementById('restorefile');
+  document.getElementById('restore').addEventListener('click', function(){ restoreFile.click(); });
+  restoreFile.addEventListener('change', function(){
+    var f = restoreFile.files[0]; if(!f) return;
+    f.text().then(function(txt){
+      var data = JSON.parse(txt);
+      if(!data.items || !Object.keys(data.items).length) throw new Error('empty');
+      if(!confirm('Replace everything here with the backup from ' + f.name + '?')) return;
+      Object.keys(state.items).forEach(function(id){ if(!data.items[id]) delete state.items[id]; });
+      var patches = {};
+      Object.keys(data.items).forEach(function(id){ state.items[id] = state.items[id] || {}; patches[id] = data.items[id]; });
+      write(patches, data.settings || {});
+    }).catch(function(){ alert('That file is not a tracker backup.'); })
+      .then(function(){ restoreFile.value = ''; });
+  });
+
+  if(window.firebase){
+    startCloud();
+    setTimeout(function(){ if(state.mode === 'connecting') startLocal('offline'); }, 8000);
+  } else {
+    startLocal('');
+  }
+})();
+</script>
+</body>
+</html>
