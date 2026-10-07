@@ -542,6 +542,8 @@ body{
 .assist-body{padding:0 16px 14px;}
 .q{padding:12px 0;border-top:1px solid var(--line);}
 .q-text{font-family:"IBM Plex Serif",serif;font-size:14.5px;line-height:1.5;}
+.q-link{color:inherit;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px;}
+.q-link:hover{color:var(--accent);text-decoration-color:var(--accent);}
 .q-meta{display:block;font-family:"IBM Plex Sans",sans-serif;font-size:11px;color:var(--overdue);margin-top:2px;}
 .q-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center;}
 .q-actions button,.q-chips button,.q-form button,.q-more,.toast button{

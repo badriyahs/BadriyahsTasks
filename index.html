@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=35">
+<link rel="stylesheet" href="styles.css?v=36">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -488,7 +488,10 @@
       '</span>';
   }
   function questionHTML(q){
-    var name = function(t){ return '<b>“' + L.escapeHTML(t.description || 'Untitled') + '”</b>'; };
+    /* Each name links straight to that item on its own page (same jump-and-highlight
+       as the timeline below), so a question can be checked against the real row. */
+    var ql = function(href, title){ return '<a class="q-link" href="' + href + '"><b>\u201C' + L.escapeHTML(title) + '\u201D</b></a>'; };
+    var name = function(t){ return ql('tasks.html#task-' + t.id, t.description || 'Untitled'); };
     var open = openMode && openMode.qid === q.qid ? openMode.mode : null;
     var text = '', actions = '', extra = '';
     var skip = '<button type="button" class="q-skip" data-a="skip">Not now</button>';
@@ -509,7 +512,7 @@
       actions = '<button type="button" data-a="step">Add the first step</button><button type="button" data-a="move">Move the date</button>' + skip;
     } else if(q.type === 'call'){
       var cd = L.daysUntil(q.c.deadline);
-      text = 'Are you applying to <b>“' + L.escapeHTML(q.c.name) + '”</b>? <span class="q-meta">Closes ' + (cd === 0 ? 'today' : 'in ' + cd + (cd === 1 ? ' day' : ' days')) + '</span>';
+      text = 'Are you applying to ' + ql('calls.html#call-' + q.c.id, q.c.name) + '? <span class="q-meta">Closes ' + (cd === 0 ? 'today' : 'in ' + cd + (cd === 1 ? ' day' : ' days')) + '</span>';
       actions = '<button type="button" data-a="callyes">Yes, plan it</button><button type="button" data-a="callno">No, skip it</button>' + skip;
     } else if(q.type === 'nodue'){
       text = 'When should ' + name(q.t) + ' happen? <span class="q-meta">No date yet</span>';
@@ -526,15 +529,15 @@
       actions = '<button type="button" data-a="done">Yes, mark it done</button>' + skip;
     } else if(q.type === 'callsub'){
       var sd = L.daysUntil(q.c.deadline);
-      text = 'Have you submitted <b>“' + L.escapeHTML(q.c.name) + '”</b>? <span class="q-meta">Closes ' + (sd === 0 ? 'today' : 'in ' + sd + (sd === 1 ? ' day' : ' days')) + '</span>';
+      text = 'Have you submitted ' + ql('calls.html#call-' + q.c.id, q.c.name) + '? <span class="q-meta">Closes ' + (sd === 0 ? 'today' : 'in ' + sd + (sd === 1 ? ' day' : ' days')) + '</span>';
       actions = '<button type="button" data-a="callsubmitted">Yes, submitted</button><button type="button" data-a="skip">Still working on it</button>' +
         '<button type="button" data-a="callno">Drop it</button>';
     } else if(q.type === 'event'){
       var ed = diffDays(L.todayISO(), q.o.due);
-      text = 'Are you going to <b>“' + L.escapeHTML(q.o.description || 'Untitled') + '”</b>? <span class="q-meta" style="color:var(--muted)">' + (ed === 0 ? 'Today' : ed === 1 ? 'Tomorrow' : prettyDate(q.o.due)) + '</span>';
+      text = 'Are you going to ' + ql('events.html#task-' + q.o.id, q.o.description || 'Untitled') + '? <span class="q-meta" style="color:var(--muted)">' + (ed === 0 ? 'Today' : ed === 1 ? 'Tomorrow' : prettyDate(q.o.due)) + '</span>';
       actions = '<button type="button" data-a="eventyes">Yes</button><button type="button" data-a="eventno">No, clear it</button>' + skip;
     } else if(q.type === 'reading'){
-      text = 'Still reading <b>“' + L.escapeHTML(q.o.title) + '”</b>?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
+      text = 'Still reading ' + ql('reading.html#task-' + q.o.id, q.o.title) + '?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
       actions = '<button type="button" data-a="readfinished">Finished it</button><button type="button" data-a="skip">Still reading</button>' +
         '<button type="button" data-a="readback">Put it back</button>';
     } else if(q.type === 'prompt'){
