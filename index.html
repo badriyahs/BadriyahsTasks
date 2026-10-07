@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=34">
+<link rel="stylesheet" href="styles.css?v=35">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -31,19 +31,38 @@
         <div class="home-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
       </div>
 
+      <form class="qa" id="qaform" autocomplete="off">
+        <div class="qa-row">
+          <span class="qa-plus" aria-hidden="true">+</span>
+          <input class="qa-text" id="qatext" type="text" placeholder="Add a task… e.g. email Laura tomorrow" enterkeyhint="done" aria-label="New task">
+          <input class="qa-date" id="qadate" type="date" aria-label="Due date (optional)" title="Due date (optional)">
+          <button class="qa-add" id="qabtn" type="submit">Add</button>
+        </div>
+        <div class="qa-sub">
+          <span class="qa-hint" id="qahint">Type a date in words (tomorrow, friday, oct 12) and a #category if you like.</span>
+          <span class="qa-chips"><button type="button" data-d="0">Today</button><button type="button" data-d="1">Tomorrow</button><button type="button" data-d="7">Next week</button></span>
+        </div>
+      </form>
+
       <div class="dua-box" id="duabox"></div>
 
       <img class="home-photo" src="img/sun-setting.jpg" alt="A detail from the Resistant Atlas project.">
+
+      <details class="assist" id="assist" open>
+        <summary><span class="assist-title">Quick questions</span><span class="assist-count" id="assistcount"></span></summary>
+        <div class="assist-body" id="assistbody"></div>
+      </details>
 
       <div class="home-days" id="homedays"></div>
     </div>
   </div>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 <script>
 (function(){
   "use strict";
@@ -125,6 +144,7 @@
 
   function render(){
     renderDua();
+    renderAssistant();
 
     var todayStr = L.todayISO();
     var horizon = new Date(todayStr + 'T00:00:00');
@@ -219,6 +239,333 @@
         '</div>';
     }).join('');
   }
+
+
+  // ---------- small helpers ----------
+  function addDaysISO(iso, n){
+    var d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return L.fmtISO(d);
+  }
+  function diffDays(a, b){ return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+  function prettyDate(iso){
+    return new Date(iso + 'T00:00:00').toLocaleDateString(undefined, {weekday:'short', month:'short', day:'numeric'});
+  }
+
+  var toastTimer = null;
+  function toast(msg, undoable){
+    var el = document.getElementById('toast');
+    el.innerHTML = '<span>' + L.escapeHTML(msg) + '</span>' + (undoable ? '<button type="button" id="toastundo">Undo</button>' : '');
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 6000);
+    if(undoable){
+      document.getElementById('toastundo').addEventListener('click', function(){ L.undo(); el.classList.remove('show'); });
+    }
+  }
+
+  // ---------- quick add ----------
+  var MONTHS = {jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  var WEEKDAYS = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sun:0,mon:1,tue:2,tues:2,wed:3,thu:4,thur:4,thurs:4,fri:5,sat:6};
+  var MON_RE = '(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*';
+
+  /* Pulls a due date (and a #category) out of what was typed, so
+     "email Laura tomorrow #SAT" becomes the task "email Laura", due
+     tomorrow, category SAT. Short weekday names (sat, mon…) only count
+     after "by/on/due/before" so a word like "SAT" isn't taken as Saturday. */
+  function parseQuick(text){
+    var today = L.todayISO(), lead = '(?:\\b(?:by|on|due|before)\\s+)?';
+    var date = '', cut = '', rest = text;
+    function take(re, fn){
+      if(date) return;
+      var m = re.exec(rest);
+      if(!m) return;
+      var d = fn(m);
+      if(d){ date = d; cut = m[0]; }
+    }
+    function monthDay(mon, day){
+      var d = parseInt(day, 10);
+      if(!(d >= 1 && d <= 31)) return '';
+      var now = new Date(today + 'T00:00:00'), y = now.getFullYear();
+      var cand = new Date(y, MONTHS[mon.slice(0,3).toLowerCase()], d);
+      if(cand.getDate() !== d) return '';
+      if(L.fmtISO(cand) < today) cand = new Date(y + 1, MONTHS[mon.slice(0,3).toLowerCase()], d);
+      return L.fmtISO(cand);
+    }
+    function nextWeekday(name){
+      var target = WEEKDAYS[name.toLowerCase()];
+      var cur = new Date(today + 'T00:00:00').getDay();
+      var delta = (target - cur + 7) % 7;
+      return addDaysISO(today, delta === 0 ? 7 : delta);
+    }
+    take(new RegExp(lead + '\\b(\\d{4}-\\d{2}-\\d{2})\\b', 'i'), function(m){ return m[1]; });
+    take(new RegExp(lead + '\\b(?:today|tonight)\\b', 'i'), function(){ return today; });
+    take(new RegExp(lead + '\\b(?:tomorrow|tmrw)\\b', 'i'), function(){ return addDaysISO(today, 1); });
+    take(new RegExp(lead + '\\bnext week\\b', 'i'), function(){ return addDaysISO(today, 7); });
+    take(new RegExp(lead + '\\bin (\\d{1,2}) days?\\b', 'i'), function(m){ return addDaysISO(today, parseInt(m[1], 10)); });
+    take(new RegExp(lead + '\\b' + MON_RE + '\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b', 'i'), function(m){ return monthDay(m[1], m[2]); });
+    take(new RegExp(lead + '\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+' + MON_RE + '\\b', 'i'), function(m){ return monthDay(m[2], m[1]); });
+    take(/\b(?:next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i, function(m){ return nextWeekday(m[1]); });
+    take(/\b(?:by|on|due|before)\s+(?:next\s+)?(sun|mon|tues?|wed|thur?s?|fri|sat)\b/i, function(m){ return nextWeekday(m[1]); });
+    if(cut) rest = rest.replace(cut, ' ');
+
+    var category = '';
+    var tag = /(?:^|\s)#([\w-]+)/.exec(rest);
+    if(tag){
+      var typed = tag[1];
+      var known = {};
+      L.state.tasks.forEach(function(t){ if(t.category) known[t.category.toLowerCase()] = t.category; });
+      category = known[typed.toLowerCase()] || typed;
+      rest = rest.replace(tag[0], ' ');
+    }
+    var desc = rest.replace(/\s+/g, ' ').replace(/^[\s,.\-–—:;]+|[\s,.\-–—:;]+$/g, '');
+    return {desc: desc || text.trim(), due: date, category: category};
+  }
+
+  var qaForm = document.getElementById('qaform');
+  var qaText = document.getElementById('qatext');
+  var qaDate = document.getElementById('qadate');
+  var qaBtn = document.getElementById('qabtn');
+  var qaHint = document.getElementById('qahint');
+  var DEFAULT_HINT = qaHint.textContent;
+  var manualDate = false;
+
+  function updateQuickHint(){
+    var raw = qaText.value;
+    if(!raw.trim()){ qaHint.textContent = DEFAULT_HINT; if(!manualDate) qaDate.value = ''; return; }
+    var p = parseQuick(raw);
+    if(!manualDate) qaDate.value = p.due;
+    var due = qaDate.value;
+    var bits = [];
+    if(due) bits.push('Due ' + prettyDate(due));
+    if(p.category) bits.push('Category ' + p.category);
+    qaHint.textContent = bits.length ? bits.join(' · ') : 'No due date. That\'s fine, you can add one later.';
+  }
+  qaText.addEventListener('input', updateQuickHint);
+  qaDate.addEventListener('change', function(){
+    manualDate = !!qaDate.value;
+    updateQuickHint();
+  });
+  qaForm.querySelector('.qa-chips').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-d]');
+    if(!b) return;
+    qaDate.value = addDaysISO(L.todayISO(), parseInt(b.dataset.d, 10));
+    manualDate = true;
+    updateQuickHint();
+    qaText.focus();
+  });
+  qaForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var raw = qaText.value.trim();
+    if(!raw) return;
+    var p = parseQuick(raw), due = qaDate.value;
+    qaBtn.disabled = true;
+    L.addTask({description: p.desc, due: due, category: p.category}).then(function(r){
+      qaText.value = ''; qaDate.value = ''; manualDate = false;
+      updateQuickHint();
+      toast('Added ' + r.no + ' · ' + p.desc + (due ? ' · due ' + prettyDate(due) : ''), true);
+    }).catch(function(err){
+      console.error(err);
+      toast('Could not add that. Check your connection and try again.', false);
+    }).then(function(){ qaBtn.disabled = false; qaText.focus(); });
+  });
+
+  // ---------- quick questions (the little assistant) ----------
+  /* Looks through the live task list for things that are stuck and asks
+     one plain question about each, with buttons that make the change
+     right here. Nothing is guessed: every change comes from a button
+     press, and "Not now" hides a question until tomorrow. */
+  var DISMISS_KEY = 'badriyah-assistant-dismissed-v1';
+  var openMode = null; // {qid, mode}
+  var showAll = false;
+
+  function loadDismissed(){
+    var today = L.todayISO();
+    try {
+      var o = JSON.parse(localStorage.getItem(DISMISS_KEY) || 'null');
+      if(o && o.day === today) return o;
+    } catch(e){}
+    return {day: today, keys: [], someday: (function(){ try { return (JSON.parse(localStorage.getItem(DISMISS_KEY) || 'null') || {}).someday || []; } catch(e){ return []; } })()};
+  }
+  function saveDismissed(o){ try { localStorage.setItem(DISMISS_KEY, JSON.stringify(o)); } catch(e){} }
+  function dismissQuestion(qid, forever){
+    var o = loadDismissed();
+    (forever ? o.someday : o.keys).push(qid);
+    saveDismissed(o);
+  }
+
+  function buildQuestions(){
+    var T = L.todayISO();
+    var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck; });
+    function leaf(t){ return !L.hasChildren(t.no); }
+    var by = {overdue: [], waiting: [], call: [], step: [], nodue: []};
+
+    tasks.filter(function(t){ return t.due && t.due < T && leaf(t) && !isPending(t); })
+      .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
+      .forEach(function(t){ by.overdue.push({qid: 'ovr:' + t.id, type: 'overdue', t: t}); });
+
+    tasks.filter(function(t){ return t.due && t.due < T && leaf(t) && isPending(t) && diffDays(t.due, T) >= 4; })
+      .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
+      .forEach(function(t){ by.waiting.push({qid: 'wait:' + t.id, type: 'waiting', t: t}); });
+
+    L.callsState.items.filter(function(c){
+      var d = L.daysUntil(c.deadline);
+      return !c.mine && c.status !== 'watch' && d !== null && d >= 0 && d <= 7;
+    }).sort(function(a, b){ return L.daysUntil(a.deadline) - L.daysUntil(b.deadline); })
+      .forEach(function(c){ by.call.push({qid: 'call:' + c.id, type: 'call', c: c}); });
+
+    tasks.filter(function(t){
+      var d = t.due ? diffDays(T, t.due) : -1;
+      return d >= 1 && d <= 5 && leaf(t) && !isPending(t) && !(t.details || '').trim();
+    }).sort(function(a, b){ return a.due < b.due ? -1 : 1; })
+      .forEach(function(t){ by.step.push({qid: 'step:' + t.id, type: 'step', t: t}); });
+
+    var undated = tasks.filter(function(t){ return !t.due && leaf(t) && !isPending(t) && (t.description || '').trim(); });
+    if(undated.length){
+      var t0 = undated[Math.floor(new Date().getTime() / 86400000) % undated.length];
+      by.nodue.push({qid: 'nodue:' + t0.id, type: 'nodue', t: t0});
+    }
+
+    // Round-robin across types so one kind of question doesn't crowd out the rest.
+    var order = ['overdue', 'waiting', 'call', 'step', 'nodue'], out = [], i = 0, more = true;
+    while(more){
+      more = false;
+      order.forEach(function(k){ if(by[k][i]){ out.push(by[k][i]); more = true; } });
+      i++;
+    }
+    var dis = loadDismissed();
+    return out.filter(function(q){ return dis.keys.indexOf(q.qid) === -1 && dis.someday.indexOf(q.qid) === -1; });
+  }
+
+  function chipsHTML(extraAttr){
+    return '<span class="q-chips">' +
+      '<button type="button" data-a="moveto" data-days="1"' + extraAttr + '>Tomorrow</button>' +
+      '<button type="button" data-a="moveto" data-days="3"' + extraAttr + '>In 3 days</button>' +
+      '<button type="button" data-a="moveto" data-days="7"' + extraAttr + '>Next week</button>' +
+      '<input type="date" data-a="movedate" aria-label="Pick a date">' +
+      '</span>';
+  }
+  function questionHTML(q){
+    var name = function(t){ return '<b>“' + L.escapeHTML(t.description || 'Untitled') + '”</b>'; };
+    var open = openMode && openMode.qid === q.qid ? openMode.mode : null;
+    var text = '', actions = '', extra = '';
+    var skip = '<button type="button" class="q-skip" data-a="skip">Not now</button>';
+    if(q.type === 'overdue'){
+      var n = diffDays(q.t.due, L.todayISO());
+      text = 'Is ' + name(q.t) + ' done, waiting on someone, or still yours? <span class="q-meta">' + n + (n === 1 ? ' day' : ' days') + ' overdue</span>';
+      actions = '<button type="button" data-a="done">Done</button><button type="button" data-a="wait">Waiting on someone</button>' +
+        '<button type="button" data-a="move">Move the date</button><button type="button" data-a="step">First step</button>' + skip;
+    } else if(q.type === 'waiting'){
+      var w = diffDays(q.t.due, L.todayISO());
+      text = 'You’re waiting on <b>' + L.escapeHTML(q.t.dependency) + '</b> for ' + name(q.t) + '. Have you followed up? <span class="q-meta">' + w + ' days past its date</span>';
+      actions = '<button type="button" data-a="done">It’s sorted</button><button type="button" data-a="followed">I followed up</button>' +
+        '<button type="button" data-a="nudge">Nudge me tomorrow</button>' + skip;
+    } else if(q.type === 'step'){
+      var dd = diffDays(L.todayISO(), q.t.due);
+      text = name(q.t) + ' is due ' + (dd === 1 ? 'tomorrow' : 'in ' + dd + ' days') + ' and has no notes yet. What’s the very first step?';
+      actions = '<button type="button" data-a="step">Add the first step</button><button type="button" data-a="move">Move the date</button>' + skip;
+    } else if(q.type === 'call'){
+      var cd = L.daysUntil(q.c.deadline);
+      text = 'Are you applying to <b>“' + L.escapeHTML(q.c.name) + '”</b>? <span class="q-meta">Closes ' + (cd === 0 ? 'today' : 'in ' + cd + (cd === 1 ? ' day' : ' days')) + '</span>';
+      actions = '<button type="button" data-a="callyes">Yes, plan it</button><button type="button" data-a="callno">No, skip it</button>' + skip;
+    } else if(q.type === 'nodue'){
+      text = 'When should ' + name(q.t) + ' happen? <span class="q-meta">No date yet</span>';
+      actions = chipsHTML('') + '<button type="button" class="q-skip" data-a="someday">Someday</button>' + skip;
+    }
+    if(open === 'wait'){
+      extra = '<form class="q-form" data-a="savewait"><input type="text" placeholder="Who or what are you waiting on?" aria-label="Waiting on"><button type="submit">Save</button></form>';
+    } else if(open === 'move'){
+      extra = chipsHTML('');
+    } else if(open === 'step'){
+      extra = '<form class="q-form" data-a="savestep"><input type="text" placeholder="e.g. open the form and read the requirements" aria-label="First step"><button type="submit">Add as sub-task</button></form>';
+    }
+    return '<div class="q" data-qid="' + q.qid + '" data-id="' + ((q.t || q.c).id) + '" data-type="' + q.type + '">' +
+      '<div class="q-text">' + text + '</div>' +
+      '<div class="q-actions">' + actions + '</div>' +
+      (extra ? '<div class="q-extra">' + extra + '</div>' : '') +
+      '</div>';
+  }
+
+  var assistBody = document.getElementById('assistbody');
+  var assistCount = document.getElementById('assistcount');
+  var assistEl = document.getElementById('assist');
+  function renderAssistant(){
+    var ae = document.activeElement;
+    if(ae && assistBody.contains(ae) && ae.tagName === 'INPUT') return; // don't wipe what she's typing
+    if(!L.state.tasks.length){ assistEl.style.display = 'none'; return; }
+    assistEl.style.display = '';
+    var qs = buildQuestions();
+    assistCount.textContent = qs.length ? String(qs.length) : '';
+    if(!qs.length){
+      assistBody.innerHTML = '<div class="q-none">Nothing needs a decision right now.</div>';
+      return;
+    }
+    var shown = showAll ? qs : qs.slice(0, 3);
+    assistBody.innerHTML = shown.map(questionHTML).join('') +
+      (qs.length > 3 ? '<button type="button" class="q-more" data-a="more">' + (showAll ? 'Show fewer' : 'Show ' + (qs.length - 3) + ' more') + '</button>' : '');
+  }
+
+  function applyDue(id, iso, label){
+    L.updateField(id, 'due', iso);
+    toast((label || 'Moved') + ' to ' + prettyDate(iso), true);
+  }
+
+  assistBody.addEventListener('click', function(e){
+    var more = e.target.closest('button[data-a="more"]');
+    if(more){ showAll = !showAll; renderAssistant(); return; }
+    var btn = e.target.closest('button[data-a]');
+    if(!btn || btn.closest('form')) return;
+    var card = btn.closest('.q'); if(!card) return;
+    var id = card.dataset.id, qid = card.dataset.qid, a = btn.dataset.a, T = L.todayISO();
+    var task = L.state.tasks.find(function(t){ return t.id === id; });
+    if(a === 'done'){ L.toggleStrike(id); toast('Marked done', true); }
+    else if(a === 'wait' || a === 'move' || a === 'step'){
+      openMode = (openMode && openMode.qid === qid && openMode.mode === a) ? null : {qid: qid, mode: a};
+      renderAssistant();
+      var inp = assistBody.querySelector('.q[data-qid="' + qid + '"] .q-form input');
+      if(inp) inp.focus();
+    }
+    else if(a === 'moveto'){ applyDue(id, addDaysISO(T, parseInt(btn.dataset.days, 10))); openMode = null; }
+    else if(a === 'followed'){
+      var note = ((task && task.details) ? task.details + ' · ' : '') + 'Followed up ' + prettyDate(T);
+      L.updateField(id, 'details', note);
+      applyDue(id, addDaysISO(T, 3), 'Checking again');
+    }
+    else if(a === 'nudge'){ applyDue(id, addDaysISO(T, 1), 'Moved'); }
+    else if(a === 'callyes'){ L.setCallMine(id, 'planning'); toast('Added to your tasks (Planning)', false); }
+    else if(a === 'callno'){ L.setCallMine(id, 'skip'); toast('Skipped', false); }
+    else if(a === 'someday'){ dismissQuestion(qid, true); renderAssistant(); }
+    else if(a === 'skip'){ dismissQuestion(qid, false); openMode = null; renderAssistant(); }
+  });
+  assistBody.addEventListener('change', function(e){
+    var el = e.target;
+    if(el.matches && el.matches('input[type="date"][data-a="movedate"]') && el.value){
+      var card = el.closest('.q');
+      applyDue(card.dataset.id, el.value);
+      openMode = null;
+      el.blur();
+      renderAssistant();
+    }
+  });
+  assistBody.addEventListener('submit', function(e){
+    e.preventDefault();
+    var form = e.target, card = form.closest('.q');
+    var val = form.querySelector('input').value.trim();
+    if(!val) return;
+    var id = card.dataset.id;
+    if(form.dataset.a === 'savewait'){
+      L.updateField(id, 'dependency', val);
+      toast('Marked as waiting on ' + val, true);
+    } else if(form.dataset.a === 'savestep'){
+      L.addChildTask(id, {description: val, due: L.todayISO()}).then(function(r){
+        toast('Added ' + r.no + ' for today', true);
+      });
+    }
+    openMode = null;
+    form.querySelector('input').blur();
+    renderAssistant();
+  });
+  assistBody.addEventListener('focusout', function(){
+    setTimeout(function(){ if(!assistBody.contains(document.activeElement)) renderAssistant(); }, 0);
+  });
 
   L.onChange(render);
   L.Events.onChange(render);

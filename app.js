@@ -252,6 +252,32 @@ window.Ledger = (function(){
       }).catch(function(e){ console.error(e); });
     }
 
+    /* Creates a fully filled-in row in one go (used by the quick-add bar and
+       the Today assistant), as a new top-level item or as the next child of
+       `parentId`. Resolves with the new doc's id. */
+    function addWith(fields, parentId){
+      var parent = parentId ? state.tasks.find(function(t){ return t.id === parentId; }) : null;
+      if(parentId && !parent) return Promise.reject(new Error('parent not found'));
+      var no = parent ? (parent.no + '.' + nextChildNumber(parent.no)) : String(nextTopLevelNumber());
+      var ord = parent ? insertOrderForChild(parent) : state.tasks.reduce(function(m,t){ return Math.max(m, t.order||0); }, 0) + 10;
+      var data = {
+        no:no, category:'', description:'', due:'', link:'', dependency:'', owner:'', details:'',
+        order: ord, archived:false, struck:false
+      };
+      Object.keys(fields || {}).forEach(function(k){ if(k !== 'no' && k !== 'order') data[k] = fields[k]; });
+      return colRef.add(data).then(function(ref){
+        logActivity(data, 'added');
+        pushUndo({
+          label: 'adding ' + no,
+          undo: function(){ colRef.doc(ref.id).delete().catch(function(e){ console.error(e); }); },
+          redo: function(){ colRef.doc(ref.id).set(data).catch(function(e){ console.error(e); }); }
+        });
+        return {id: ref.id, no: no};
+      });
+    }
+    function addTaskWith(fields){ return addWith(fields, null); }
+    function addChildWith(parentId, fields){ return addWith(fields, parentId); }
+
     function archiveTask(id){
       var t = state.tasks.find(function(x){ return x.id === id; });
       setField(id, 'archived', true);
@@ -372,6 +398,8 @@ window.Ledger = (function(){
       updateField: updateField,
       addTopLevel: addTopLevel,
       addSiblingAfter: addSiblingAfter,
+      addTaskWith: addTaskWith,
+      addChildWith: addChildWith,
       archiveTask: archiveTask,
       restoreTask: restoreTask,
       deleteTask: deleteTask,
@@ -783,6 +811,8 @@ window.Ledger = (function(){
     updateField: Tasks.updateField,
     addTopLevel: Tasks.addTopLevel,
     addSiblingAfter: Tasks.addSiblingAfter,
+    addTask: Tasks.addTaskWith,
+    addChildTask: Tasks.addChildWith,
     archiveTask: Tasks.archiveTask,
     restoreTask: Tasks.restoreTask,
     deleteTask: Tasks.deleteTask,
