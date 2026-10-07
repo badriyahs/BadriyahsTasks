@@ -251,14 +251,17 @@
   }
 
   var toastTimer = null;
-  function toast(msg, undoable){
+  function toast(msg, undo){
     var el = document.getElementById('toast');
-    el.innerHTML = '<span>' + L.escapeHTML(msg) + '</span>' + (undoable ? '<button type="button" id="toastundo">Undo</button>' : '');
+    el.innerHTML = '<span>' + L.escapeHTML(msg) + '</span>' + (undo ? '<button type="button" id="toastundo">Undo</button>' : '');
     el.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 6000);
-    if(undoable){
-      document.getElementById('toastundo').addEventListener('click', function(){ L.undo(); el.classList.remove('show'); });
+    if(undo){
+      document.getElementById('toastundo').addEventListener('click', function(){
+        (typeof undo === 'function' ? undo : L.undo)();
+        el.classList.remove('show');
+      });
     }
   }
 
@@ -396,7 +399,7 @@
     var T = L.todayISO();
     var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck; });
     function leaf(t){ return !L.hasChildren(t.no); }
-    var by = {overdue: [], waiting: [], call: [], step: [], nodue: []};
+    var by = {today: [], overdue: [], waiting: [], callsub: [], call: [], event: [], step: [], nodue: [], nodep: [], parentdone: [], reading: [], prompt: []};
 
     tasks.filter(function(t){ return t.due && t.due < T && leaf(t) && !isPending(t); })
       .sort(function(a, b){ return a.due < b.due ? -1 : 1; })
@@ -424,8 +427,49 @@
       by.nodue.push({qid: 'nodue:' + t0.id, type: 'nodue', t: t0});
     }
 
+
+    tasks.filter(function(t){ return t.due === T && leaf(t); })
+      .forEach(function(t){ by.today.push({qid: 'today:' + t.id, type: 'today', t: t}); });
+
+    tasks.filter(function(t){ return !t.due && leaf(t) && isPending(t); })
+      .forEach(function(t){ by.nodep.push({qid: 'nodep:' + t.id, type: 'nodep', t: t}); });
+
+    L.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.no && L.hasChildren(t.no); }).forEach(function(t){
+      var kids = L.state.tasks.filter(function(x){ return x.no && x.no.indexOf(t.no + '.') === 0; });
+      if(kids.length && kids.every(function(x){ return x.struck || x.archived; })){
+        by.parentdone.push({qid: 'pdone:' + t.id, type: 'parentdone', t: t});
+      }
+    });
+
+    L.callsState.items.filter(function(c){
+      var d = L.daysUntil(c.deadline);
+      return c.mine === 'planning' && d !== null && d >= 0 && d <= 14;
+    }).sort(function(a, b){ return L.daysUntil(a.deadline) - L.daysUntil(b.deadline); })
+      .forEach(function(c){ by.callsub.push({qid: 'callsub:' + c.id, type: 'callsub', c: c}); });
+
+    L.Events.state.tasks.filter(function(e){
+      var d = e.due ? diffDays(T, e.due) : -1;
+      return !e.archived && !e.struck && d >= 0 && d <= 3;
+    }).sort(function(a, b){ return a.due < b.due ? -1 : 1; })
+      .forEach(function(e){ by.event.push({qid: 'event:' + e.id, type: 'event', o: e}); });
+
+    L.readingState.items.filter(function(r){ return r.status === 'reading' && r.title; })
+      .forEach(function(r){ by.reading.push({qid: 'read:' + r.id, type: 'reading', o: r}); });
+
+    // One reflective prompt a day, so there is always a way to get something out of your head.
+    var PROMPTS = [
+      {text: 'What’s one thing you’ve been putting off?', ph: 'e.g. call the ministry about the license', due: 1},
+      {text: 'Anything on your mind that isn’t written down yet?', ph: 'Type it here and it becomes a task', due: 0},
+      {text: 'What would make tomorrow easier if you did it tonight?', ph: 'e.g. lay out the files for the Sharjah submission', due: 1}
+    ];
+    var pi = Math.floor(new Date().getTime() / 86400000) % PROMPTS.length;
+    by.prompt.push({qid: 'prompt:' + T, type: 'prompt', p: PROMPTS[pi]});
+
+    // Keep the chatty types short so the list stays a few quick decisions, not a chore.
+    ['today', 'callsub', 'event', 'reading'].forEach(function(k){ by[k] = by[k].slice(0, 2); });
+
     // Round-robin across types so one kind of question doesn't crowd out the rest.
-    var order = ['overdue', 'waiting', 'call', 'step', 'nodue'], out = [], i = 0, more = true;
+    var order = ['today', 'overdue', 'waiting', 'callsub', 'call', 'event', 'step', 'nodep', 'parentdone', 'nodue', 'reading', 'prompt'], out = [], i = 0, more = true;
     while(more){
       more = false;
       order.forEach(function(k){ if(by[k][i]){ out.push(by[k][i]); more = true; } });
@@ -452,7 +496,8 @@
       var n = diffDays(q.t.due, L.todayISO());
       text = 'Is ' + name(q.t) + ' done, waiting on someone, or still yours? <span class="q-meta">' + n + (n === 1 ? ' day' : ' days') + ' overdue</span>';
       actions = '<button type="button" data-a="done">Done</button><button type="button" data-a="wait">Waiting on someone</button>' +
-        '<button type="button" data-a="move">Move the date</button><button type="button" data-a="step">First step</button>' + skip;
+        '<button type="button" data-a="move">Move the date</button><button type="button" data-a="step">First step</button>' +
+        '<button type="button" data-a="drop">Drop it</button>' + skip;
     } else if(q.type === 'waiting'){
       var w = diffDays(q.t.due, L.todayISO());
       text = 'You’re waiting on <b>' + L.escapeHTML(q.t.dependency) + '</b> for ' + name(q.t) + '. Have you followed up? <span class="q-meta">' + w + ' days past its date</span>';
@@ -469,6 +514,33 @@
     } else if(q.type === 'nodue'){
       text = 'When should ' + name(q.t) + ' happen? <span class="q-meta">No date yet</span>';
       actions = chipsHTML('') + '<button type="button" class="q-skip" data-a="someday">Someday</button>' + skip;
+    } else if(q.type === 'today'){
+      text = 'Will you finish ' + name(q.t) + ' today? <span class="q-meta" style="color:var(--muted)">Due today</span>';
+      actions = '<button type="button" data-a="done">Already done</button><button type="button" data-a="skip">Yes, on it</button>' +
+        '<button type="button" data-a="move">Move the date</button><button type="button" data-a="wait">Blocked by someone</button>';
+    } else if(q.type === 'nodep'){
+      text = 'You’re waiting on <b>' + L.escapeHTML(q.t.dependency) + '</b> for ' + name(q.t) + '. When will you check in? <span class="q-meta" style="color:var(--muted)">No date yet</span>';
+      actions = chipsHTML('') + skip;
+    } else if(q.type === 'parentdone'){
+      text = 'Everything under ' + name(q.t) + ' is done. Mark the whole thing done?';
+      actions = '<button type="button" data-a="done">Yes, mark it done</button>' + skip;
+    } else if(q.type === 'callsub'){
+      var sd = L.daysUntil(q.c.deadline);
+      text = 'Have you submitted <b>“' + L.escapeHTML(q.c.name) + '”</b>? <span class="q-meta">Closes ' + (sd === 0 ? 'today' : 'in ' + sd + (sd === 1 ? ' day' : ' days')) + '</span>';
+      actions = '<button type="button" data-a="callsubmitted">Yes, submitted</button><button type="button" data-a="skip">Still working on it</button>' +
+        '<button type="button" data-a="callno">Drop it</button>';
+    } else if(q.type === 'event'){
+      var ed = diffDays(L.todayISO(), q.o.due);
+      text = 'Are you going to <b>“' + L.escapeHTML(q.o.description || 'Untitled') + '”</b>? <span class="q-meta" style="color:var(--muted)">' + (ed === 0 ? 'Today' : ed === 1 ? 'Tomorrow' : prettyDate(q.o.due)) + '</span>';
+      actions = '<button type="button" data-a="eventyes">Yes</button><button type="button" data-a="eventno">No, clear it</button>' + skip;
+    } else if(q.type === 'reading'){
+      text = 'Still reading <b>“' + L.escapeHTML(q.o.title) + '”</b>?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
+      actions = '<button type="button" data-a="readfinished">Finished it</button><button type="button" data-a="skip">Still reading</button>' +
+        '<button type="button" data-a="readback">Put it back</button>';
+    } else if(q.type === 'prompt'){
+      text = q.p.text;
+      extra = '<form class="q-form" data-a="saveprompt"><input type="text" placeholder="' + L.escapeHTML(q.p.ph) + '" aria-label="Your answer"><button type="submit">Add as task</button></form>';
+      actions = skip;
     }
     if(open === 'wait'){
       extra = '<form class="q-form" data-a="savewait"><input type="text" placeholder="Who or what are you waiting on?" aria-label="Waiting on"><button type="submit">Save</button></form>';
@@ -477,7 +549,7 @@
     } else if(open === 'step'){
       extra = '<form class="q-form" data-a="savestep"><input type="text" placeholder="e.g. open the form and read the requirements" aria-label="First step"><button type="submit">Add as sub-task</button></form>';
     }
-    return '<div class="q" data-qid="' + q.qid + '" data-id="' + ((q.t || q.c).id) + '" data-type="' + q.type + '">' +
+    return '<div class="q" data-qid="' + q.qid + '" data-id="' + ((q.t || q.c || q.o || {}).id || '') + '" data-type="' + q.type + '" data-due="' + (q.p ? q.p.due : '') + '">' +
       '<div class="q-text">' + text + '</div>' +
       '<div class="q-actions">' + actions + '</div>' +
       (extra ? '<div class="q-extra">' + extra + '</div>' : '') +
@@ -532,6 +604,12 @@
     else if(a === 'nudge'){ applyDue(id, addDaysISO(T, 1), 'Moved'); }
     else if(a === 'callyes'){ L.setCallMine(id, 'planning'); toast('Added to your tasks (Planning)', false); }
     else if(a === 'callno'){ L.setCallMine(id, 'skip'); toast('Skipped', false); }
+    else if(a === 'drop'){ L.archiveTask(id); toast('Dropped. You can find it in Archive', true); }
+    else if(a === 'callsubmitted'){ L.setCallMine(id, 'submitted'); toast('Marked as submitted', false); }
+    else if(a === 'eventyes'){ dismissQuestion(qid, true); renderAssistant(); }
+    else if(a === 'eventno'){ L.Events.toggleStrike(id); toast('Cleared from your events', function(){ L.Events.undo(); }); }
+    else if(a === 'readfinished'){ L.setReadingStatus(id, 'finished'); toast('Marked as finished', false); }
+    else if(a === 'readback'){ L.setReadingStatus(id, 'not-started'); toast('Moved back to not started', false); }
     else if(a === 'someday'){ dismissQuestion(qid, true); renderAssistant(); }
     else if(a === 'skip'){ dismissQuestion(qid, false); openMode = null; renderAssistant(); }
   });
@@ -551,6 +629,16 @@
     var val = form.querySelector('input').value.trim();
     if(!val) return;
     var id = card.dataset.id;
+    if(form.dataset.a === 'saveprompt'){
+      var pdue = card.dataset.due === '1' ? addDaysISO(L.todayISO(), 1) : '';
+      L.addTask({description: val, due: pdue}).then(function(r){
+        toast('Added ' + r.no + ' · ' + val + (pdue ? ' · due ' + prettyDate(pdue) : ''), true);
+      });
+      dismissQuestion(card.dataset.qid, false);
+      form.querySelector('input').blur();
+      renderAssistant();
+      return;
+    }
     if(form.dataset.a === 'savewait'){
       L.updateField(id, 'dependency', val);
       toast('Marked as waiting on ' + val, true);
