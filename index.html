@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=36">
+<link rel="stylesheet" href="styles.css?v=38">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -15,7 +15,7 @@
   <a class="tab" href="calendar.html">Calendar</a>
   <a class="tab" href="archive.html">Archive</a>
   <a class="tab" href="activity.html">Activity</a>
-  <a class="tab" href="reading.html">Reading</a>
+  <a class="tab" href="reading.html">Library</a>
   <a class="tab" href="notes.html">Notes</a>
   <a class="tab" href="events.html">Events</a>
   <a class="tab" href="calls.html">Calls</a>
@@ -62,7 +62,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 <script>
 (function(){
   "use strict";
@@ -154,9 +154,11 @@
     var buckets = {}; // label -> {order, diff, items:[]}
     function pushItem(dateKey, order, item){
       var label, diff;
+      var tail = dateKey === 'reading' || dateKey === 'listen';
       if(dateKey === 'reading'){ label = 'Worth a Read'; diff = 9999; }
+      else if(dateKey === 'listen'){ label = 'Worth a Listen'; diff = 9998; }
       else { var info = dayInfo(dateKey, todayStr); label = info.label; diff = info.diff; }
-      if(!buckets[label]) buckets[label] = {order: dateKey === 'reading' ? 9999 : order, diff: diff, items: []};
+      if(!buckets[label]) buckets[label] = {order: tail ? '9999-' + dateKey : order, diff: diff, items: []};
       buckets[label].items.push(item);
     }
 
@@ -198,13 +200,22 @@
       });
     });
 
-    var pool = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
-    var pick = pickRotating(pool, 1)[0];
+    var open = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
+    var pick = pickRotating(open.filter(function(r){ return r.kind !== 'podcast'; }), 1)[0];
     if(pick){
       pushItem('reading', 9999, {
         href: 'reading.html#task-' + pick.id,
         text: pick.title,
         meta: pick.author || '',
+        cls: 'is-reading'
+      });
+    }
+    var listen = pickRotating(open.filter(function(r){ return r.kind === 'podcast'; }), 1)[0];
+    if(listen){
+      pushItem('listen', 9998, {
+        href: 'reading.html#task-' + listen.id,
+        text: listen.title,
+        meta: listen.author || listen.category || '',
         cls: 'is-reading'
       });
     }
@@ -537,8 +548,9 @@
       text = 'Are you going to ' + ql('events.html#task-' + q.o.id, q.o.description || 'Untitled') + '? <span class="q-meta" style="color:var(--muted)">' + (ed === 0 ? 'Today' : ed === 1 ? 'Tomorrow' : prettyDate(q.o.due)) + '</span>';
       actions = '<button type="button" data-a="eventyes">Yes</button><button type="button" data-a="eventno">No, clear it</button>' + skip;
     } else if(q.type === 'reading'){
-      text = 'Still reading ' + ql('reading.html#task-' + q.o.id, q.o.title) + '?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
-      actions = '<button type="button" data-a="readfinished">Finished it</button><button type="button" data-a="skip">Still reading</button>' +
+      var pod = q.o.kind === 'podcast';
+      text = (pod ? 'Still listening to ' : 'Still reading ') + ql('reading.html#task-' + q.o.id, q.o.title) + '?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
+      actions = '<button type="button" data-a="readfinished">Finished it</button><button type="button" data-a="skip">' + (pod ? 'Still listening' : 'Still reading') + '</button>' +
         '<button type="button" data-a="readback">Put it back</button>';
     } else if(q.type === 'prompt'){
       text = q.p.text;

@@ -627,6 +627,56 @@ body{
 }
 .addnotecard:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-tint);}
 
+/* === LIBRARY (reading + podcasts share one tab) === */
+.hidden{display:none !important;}
+.lib-switch{display:inline-flex;flex:none;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
+.lib-switch button{border:0;background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit;padding:6px 14px;font-size:12.5px;font-weight:600;}
+.lib-switch button+button{border-left:1px solid var(--line-strong);}
+.lib-switch button.on{background:var(--ink);color:var(--paper);}
+.lib-n{font-weight:500;opacity:.7;margin-left:2px;}
+.lib-n:empty{display:none;}
+.paste{flex:none;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
+.paste textarea{
+  width:100%;resize:vertical;border:1px solid var(--line-strong);border-radius:10px;background:var(--paper);
+  color:var(--ink);font:inherit;font-size:14px;line-height:1.45;padding:10px 12px;
+}
+.paste textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint);}
+.paste-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:8px;}
+.paste-hint{font-size:11.5px;color:var(--muted);line-height:1.4;}
+.paste button{
+  flex:none;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);
+  font:inherit;font-weight:600;font-size:13px;padding:8px 16px;cursor:pointer;
+}
+.paste button:disabled{opacity:.5;cursor:default;}
+.podsheet{
+  display:grid;
+  grid-template-columns: 118px 124px minmax(240px,1.6fr) 170px 76px 140px minmax(180px,1.1fr) 50px;
+  min-width:1100px;
+}
+.podsheet .p-title .desc-text:empty:before{content:attr(data-ph);color:var(--faint);font-weight:400;}
+@media (max-width:700px){
+  .paste{padding:10px 14px;}
+  .paste textarea{font-size:16px;}
+  .paste-row{flex-direction:column;align-items:stretch;}
+  .paste button{padding:11px 16px;}
+  .podsheet{display:block;min-width:0;padding:6px 0 20px;}
+  .podsheet .row.head{display:none;}
+  .podsheet .row:not(.head){
+    display:grid;grid-template-columns:1fr 1fr;margin:10px 12px;border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;background:var(--surface);
+  }
+  .podsheet .row:not(.head) .cell{border-right:0;min-height:36px;}
+  .podsheet .p-title{grid-column:1/-1;order:1;font-size:15px;}
+  .podsheet .p-show{grid-column:1/-1;order:2;color:var(--muted);}
+  .podsheet .p-link{order:3;}
+  .podsheet .p-status{order:4;}
+  .podsheet .p-src{order:5;}
+  .podsheet .p-len{order:6;}
+  .podsheet .p-note{grid-column:1/-1;order:7;}
+  .podsheet .p-del{grid-column:1/-1;order:8;justify-content:flex-end;}
+  .podsheet .addrow{margin:0 12px;border:0;}
+}
+
 /* === DARK MODE === */
 /* Follows the device's own light/dark setting automatically — no toggle,
    no manual switch, just whatever the phone/laptop is already set to.

@@ -451,6 +451,7 @@ window.Ledger = (function(){
         status: data.status || 'not-started',
         link: data.link || '',
         note: data.note || '',
+        kind: data.kind === 'podcast' ? 'podcast' : 'read',
         order: typeof data.order === 'number' ? data.order : 0
       };
     });
@@ -474,9 +475,9 @@ window.Ledger = (function(){
     return max + 1;
   }
 
-  function addReadingItem(){
+  function addReadingItem(kind){
     var maxOrder = readingState.items.reduce(function(m,r){ return Math.max(m, r.order||0); }, 0);
-    var data = {ref:String(nextReadingRef()), category:'', title:'', author:'', year:'', pages:'', priority:'', status:'not-started', link:'', note:'', order: maxOrder + 10};
+    var data = {ref:String(nextReadingRef()), category:'', title:'', author:'', year:'', pages:'', priority:'', status:'not-started', link:'', note:'', kind: kind === 'podcast' ? 'podcast' : 'read', order: maxOrder + 10};
     readingCol.add(data).then(function(ref){
       pendingReadingFocusId = ref.id;
     }).catch(function(e){ console.error(e); });
@@ -490,6 +491,118 @@ window.Ledger = (function(){
   }
   function deleteReadingItem(id){
     readingCol.doc(id).delete().catch(function(e){ console.error(e); });
+  }
+
+  /* ---------- podcasts (live in the same "reading" collection, kind: 'podcast') ---------- */
+  var PODCAST_STATUSES = {
+    'not-started': {label:'To listen',  bg:'transparent', fg:'var(--muted)'},
+    'reading':     {label:'Listening',  bg:'var(--accent-tint)', fg:'var(--accent)'},
+    'finished':    {label:'Listened',   bg:'var(--cat4-bg)', fg:'var(--cat4-fg)'}
+  };
+  function platformFor(url){
+    var host = '';
+    try { host = new URL(url).hostname.replace(/^www\./, '').replace(/^m\./, ''); } catch(e){ return ''; }
+    if(/(^|\.)spotify\.com$/.test(host)) return 'Spotify';
+    if(host === 'podcasts.apple.com') return 'Apple Podcasts';
+    if(host === 'youtube.com' || host === 'youtu.be') return 'YouTube';
+    if(host === 'soundcloud.com') return 'SoundCloud';
+    if(host === 'overcast.fm') return 'Overcast';
+    return host;
+  }
+  /* One podcast per line: "Title - https://link", or just a link, or just a title. */
+  function parsePodcastLines(text){
+    return String(text || '').split(/\r?\n/).map(function(line){
+      line = line.trim();
+      if(!line) return null;
+      var m = /https?:\/\/\S+/.exec(line);
+      var url = m ? m[0].replace(/[)\].,;]+$/, '') : '';
+      var title = line.replace(m ? m[0] : '', ' ').replace(/\s+/g, ' ').replace(/^[\s\-–—|:•*>]+|[\s\-–—|:•*(\[]+$/g, '');
+      return {title: title, link: url, category: url ? platformFor(url) : ''};
+    }).filter(Boolean);
+  }
+  function fillIfEmpty(id, patch){
+    var cur = readingState.items.find(function(r){ return r.id === id; });
+    if(!cur) return;
+    var out = {};
+    Object.keys(patch).forEach(function(k){ if(patch[k] && !cur[k]) out[k] = patch[k]; });
+    if(Object.keys(out).length) readingCol.doc(id).update(out).catch(function(e){ console.error(e); });
+  }
+  /* Best effort only: YouTube and Apple Podcasts allow looking a link up from the
+     browser; Spotify doesn't, so those titles are typed by hand. */
+  function enrichPodcast(id, url){
+    var u; try { u = new URL(url); } catch(e){ return; }
+    var host = u.hostname.replace(/^www\./, '').replace(/^m\./, '');
+    if(host === 'youtube.com' || host === 'youtu.be'){
+      fetch('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent(url))
+        .then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(j){ if(j) fillIfEmpty(id, {title: j.title, author: j.author_name}); })
+        .catch(function(){});
+    } else if(host === 'podcasts.apple.com'){
+      var m = /\/id(\d+)/.exec(u.pathname), ep = u.searchParams.get('i');
+      if(!m) return;
+      fetch('https://itunes.apple.com/lookup?id=' + m[1] + '&entity=podcastEpisode&limit=200')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          var results = j.results || [], show = results.filter(function(x){ return x.kind === 'podcast'; })[0];
+          var epr = ep ? results.filter(function(x){ return String(x.trackId) === ep; })[0] : null;
+          var patch = {};
+          if(show) patch.author = show.collectionName;
+          if(epr){
+            patch.title = epr.trackName;
+            if(epr.trackTimeMillis) patch.pages = Math.round(epr.trackTimeMillis / 60000) + ' min';
+          } else if(show && !ep){
+            patch.title = show.collectionName;
+          }
+          fillIfEmpty(id, patch);
+        }).catch(function(){});
+    }
+  }
+  function addPodcasts(text){
+    var lines = parsePodcastLines(text);
+    if(!lines.length) return Promise.resolve([]);
+    var maxOrder = readingState.items.reduce(function(m, r){ return Math.max(m, r.order || 0); }, 0);
+    var ref = nextReadingRef();
+    var batch = db.batch(), refs = [];
+    lines.forEach(function(l, i){
+      var docRef = readingCol.doc();
+      refs.push({id: docRef.id, link: l.link});
+      batch.set(docRef, {
+        ref: String(ref + i), category: l.category, title: l.title, author: '', year: '', pages: '', priority: '',
+        status: 'not-started', link: l.link, note: '', kind: 'podcast', order: maxOrder + 10 * (i + 1)
+      });
+    });
+    return batch.commit().then(function(){
+      refs.forEach(function(r){ if(r.link) setTimeout(function(){ enrichPodcast(r.id, r.link); }, 600); });
+      return refs;
+    });
+  }
+  function podcastRowHTML(r, confirmingId){
+    var confirming = confirmingId === r.id;
+    var status = PODCAST_STATUSES[r.status] ? r.status : 'not-started';
+    var sStyle = PODCAST_STATUSES[status];
+    var catStyle = catClassStyle(r.category);
+    var statusHTML = '<div class="cell rstatus p-status">' +
+      '<select data-action="setstatus" data-id="'+r.id+'" style="background:'+sStyle.bg+';color:'+sStyle.fg+'">' +
+      Object.keys(PODCAST_STATUSES).map(function(k){
+        return '<option value="'+k+'"'+(k===status?' selected':'')+'>'+PODCAST_STATUSES[k].label+'</option>';
+      }).join('') + '</select></div>';
+    var srcHTML = '<div class="cell p-src"><span class="tag" contenteditable="true" data-id="'+r.id+'" data-field="category" data-ph="source" style="background:'+catStyle.bg+';color:'+catStyle.fg+'">'+escapeHTML(r.category)+'</span></div>';
+    var titleHTML = '<div class="cell desc-wrap p-title"><div class="desc-text" contenteditable="true" data-id="'+r.id+'" data-field="title" data-ph="Add the episode title">'+escapeHTML(r.title)+'</div></div>';
+    var linkHTML = '<div class="cell linkcell p-link">' +
+      (isURL(r.link) ? '<a class="linkopen" href="'+escapeHTML(r.link)+'" target="_blank" rel="noopener noreferrer">Listen ↗</a>' : '') +
+      '<div class="cell-text" contenteditable="true" data-id="'+r.id+'" data-field="link" data-ph="paste link" style="'+(isURL(r.link)?'color:var(--muted);':'')+'">'+escapeHTML(r.link)+'</div>' +
+      '</div>';
+    var actionsHTML = confirming
+      ? '<div class="cell rowactions p-del"><button class="confirm" data-action="confirmdel" data-id="'+r.id+'">Delete?</button></div>'
+      : '<div class="cell rowactions p-del"><button class="del" data-action="del" data-id="'+r.id+'" title="Delete"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg></button></div>';
+    return '<div class="row'+(status==='finished'?' done':'')+'" data-row-id="'+r.id+'">' +
+      statusHTML + srcHTML + titleHTML +
+      readingCellEditableHTML(r.id,'author',r.author,'show','p-show') +
+      readingCellEditableHTML(r.id,'pages',r.pages,'length','ryear p-len') +
+      linkHTML +
+      readingCellEditableHTML(r.id,'note',r.note,'notes','wrap p-note') +
+      actionsHTML +
+      '</div>';
   }
 
   function readingCellEditableHTML(id, field, value, ph, extraClass){
@@ -850,6 +963,8 @@ window.Ledger = (function(){
     deleteReadingItem: deleteReadingItem,
     focusReadingIdOnce: focusReadingIdOnce,
     readingRowHTML: readingRowHTML,
+    podcastRowHTML: podcastRowHTML,
+    addPodcasts: addPodcasts,
 
     notesState: notesState,
     onNotesChange: onNotesChange,
