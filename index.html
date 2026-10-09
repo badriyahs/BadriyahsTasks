@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=40">
+<link rel="stylesheet" href="styles.css?v=43">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -47,26 +47,33 @@
         </div>
       </form>
 
-      <div class="dua-box" id="duabox"></div>
-
-      <img class="home-photo" src="img/sun-setting.jpg" alt="A detail from the Resistant Atlas project.">
+      <div class="home-banner">
+        <div class="dua-box" id="duabox"></div>
+        <img class="home-photo" src="img/sun-setting.jpg" alt="A detail from the Resistant Atlas project.">
+      </div>
 
       <div class="focus" id="focus"></div>
 
-      <div class="apps" id="apps"></div>
+      <div class="home-cols">
+      <div class="home-col home-col-main">
 
-      <section class="scout hidden" id="scout">
-        <div class="scout-head"><span class="home-section-label" id="scoutlabel">From the Gulf</span><span class="scout-count" id="scoutcount"></span></div>
-        <div id="scoutbody"></div>
-      </section>
 
-      <details class="assist" id="assist" open>
-        <summary><span class="assist-title">Quick questions</span><span class="assist-count" id="assistcount"></span></summary>
+      <details class="drawer assist" id="assist" open>
+        <summary><span class="drawer-title">Quick questions</span><span class="drawer-count" id="assistcount"></span></summary>
         <div class="assist-body" id="assistbody"></div>
       </details>
 
-      <div class="home-section-label">Schedule</div>
-      <div class="home-days" id="homedays"></div>
+      <details class="drawer scout hidden" id="scout" open>
+        <summary><span class="drawer-title" id="scoutlabel">From the Gulf</span><span class="drawer-count" id="scoutcount"></span></summary>
+        <div class="drawer-body" id="scoutbody"></div>
+      </details>
+
+      </div>
+      <div class="home-col home-col-side">
+        <div class="home-section-label">Schedule</div>
+        <div class="home-days" id="homedays"></div>
+      </div>
+      </div>
     </div>
   </div>
 </div>
@@ -201,8 +208,12 @@
       });
     });
 
+    // A call you're planning already has its own task above, so don't list it twice.
+    var taskIds = {};
+    L.state.tasks.forEach(function(t){ if(!t.archived && !t.struck) taskIds[t.id] = true; });
     L.callsState.items.filter(function(c){
       if(c.status === 'watch' || c.mine === 'skip') return false;
+      if(c.linkedTaskId && taskIds[c.linkedTaskId]) return false;
       var d = L.daysUntil(c.deadline);
       return d !== null && d >= 0 && d <= 6;
     }).forEach(function(c){
@@ -242,7 +253,7 @@
       return;
     }
 
-    els.days.innerHTML = labels.map(function(label){
+    var groupHTML = function(label){
       var b = buckets[label];
       var late = b.diff < 0 && b.diff > -9000;
       /* The further overdue a bucket's date, the bigger/more intense its
@@ -263,9 +274,15 @@
             '</a>';
         }).join('') +
         '</div>';
-    }).join('');
+    };
+    /* Everything overdue folds into one quiet line, so the page opens on today. */
+    var isLate = function(l){ return buckets[l].diff < 0 && buckets[l].diff > -9000; };
+    var lateLabels = labels.filter(isLate), restLabels = labels.filter(function(l){ return !isLate(l); });
+    var lateCount = lateLabels.reduce(function(n, l){ return n + buckets[l].items.length; }, 0);
+    els.days.innerHTML =
+      (lateCount ? '<details class="overdue-fold"><summary>' + lateCount + ' overdue</summary>' + lateLabels.map(groupHTML).join('') + '</details>' : '') +
+      restLabels.map(groupHTML).join('');
   }
-
 
   // ---------- small helpers ----------
   function addDaysISO(iso, n){
@@ -513,6 +530,38 @@
       '<input type="date" data-a="movedate" aria-label="Pick a date">' +
       '</span>';
   }
+  /* Conferences and calls are hard to judge from a name alone, so a call question carries the
+     facts plus a plain read of how much it would help: peer review and a close fit count for
+     more, venues that accept almost everyone count for less. The reasons are always shown. */
+  function callRead(c){
+    var tags = (c.tags || []).map(function(t){ return String(t).toLowerCase(); });
+    var fit = String(c.fit || ''), fmt = String(c.format || '');
+    var peer = tags.indexOf('peer-reviewed') !== -1 || /peer|double-blind|proceedings/i.test(fit + ' ' + fmt);
+    var wide = tags.indexOf('quantity') !== -1 || /accepts widely|accept widely|quantity/i.test(fit);
+    var online = c.online === true || tags.indexOf('online') !== -1;
+    var close = /strong fit|close fit|fits well|natural fit|good fit|fits the|fits both/i.test(fit);
+    var chips = [];
+    if(peer) chips.push('Peer-reviewed');
+    if(close) chips.push('Close fit');
+    if(online) chips.push('Online ok');
+    if(wide) chips.push('Accepts widely');
+    var label = '';
+    if(c.kind !== 'award'){
+      var score = (peer ? 2 : 0) + (close ? 1 : 0) - (wide ? 1 : 0);
+      label = score >= 2 ? 'Strong for your CV' : score === 1 ? 'Solid for your CV' : 'Lighter weight for a CV';
+    }
+    return {label: label, chips: chips, fit: fit};
+  }
+  function callFactsHTML(c){
+    var r = callRead(c), L2 = L.escapeHTML;
+    var facts = [c.location, c.eventDates, c.format].filter(Boolean).map(L2).join(' · ');
+    return '<span class="q-facts">' +
+      (r.label ? '<span class="q-read">' + L2(r.label) + '</span>' : '') +
+      (facts ? '<span class="q-fact-line">' + facts + '</span>' : '') +
+      (r.chips.length ? '<span class="q-chips2">' + r.chips.map(function(x){ return '<span>' + L2(x) + '</span>'; }).join('') + '</span>' : '') +
+      (r.fit ? '<span class="q-fit">' + L2(r.fit) + '</span>' : '') +
+      '</span>';
+  }
   function questionHTML(q){
     /* Each name links straight to that item on its own page (same jump-and-highlight
        as the timeline below), so a question can be checked against the real row. */
@@ -540,13 +589,14 @@
       var cd = L.daysUntil(q.c.deadline);
       text = 'Are you applying to ' + ql('calls.html#call-' + q.c.id, q.c.name) + '? <span class="q-meta">Closes ' + (cd === 0 ? 'today' : 'in ' + cd + (cd === 1 ? ' day' : ' days')) + '</span>';
       actions = '<button type="button" data-a="callyes">Yes, plan it</button><button type="button" data-a="callno">No, skip it</button>' + skip;
+      text += callFactsHTML(q.c);
     } else if(q.type === 'nodue'){
       text = 'When should ' + name(q.t) + ' happen? <span class="q-meta">No date yet</span>';
       actions = chipsHTML('') + '<button type="button" class="q-skip" data-a="someday">Someday</button>' + skip;
     } else if(q.type === 'today'){
       text = 'Will you finish ' + name(q.t) + ' today? <span class="q-meta" style="color:var(--muted)">Due today</span>';
       actions = '<button type="button" data-a="done">Already done</button><button type="button" data-a="skip">Yes, on it</button>' +
-        '<button type="button" data-a="move">Move the date</button><button type="button" data-a="wait">Blocked by someone</button>';
+        '<button type="button" data-a="move">Move the date</button><button type="button" data-a="wait">Blocked by someone</button>' + skip;
     } else if(q.type === 'nodep'){
       text = 'You’re waiting on <b>' + L.escapeHTML(q.t.dependency) + '</b> for ' + name(q.t) + '. When will you check in? <span class="q-meta" style="color:var(--muted)">No date yet</span>';
       actions = chipsHTML('') + skip;
@@ -557,7 +607,8 @@
       var sd = L.daysUntil(q.c.deadline);
       text = 'Have you submitted ' + ql('calls.html#call-' + q.c.id, q.c.name) + '? <span class="q-meta">Closes ' + (sd === 0 ? 'today' : 'in ' + sd + (sd === 1 ? ' day' : ' days')) + '</span>';
       actions = '<button type="button" data-a="callsubmitted">Yes, submitted</button><button type="button" data-a="skip">Still working on it</button>' +
-        '<button type="button" data-a="callno">Drop it</button>';
+        '<button type="button" data-a="callno">Drop it</button>' + skip;
+      text += callFactsHTML(q.c);
     } else if(q.type === 'event'){
       var ed = diffDays(L.todayISO(), q.o.due);
       text = 'Are you going to ' + ql('events.html#task-' + q.o.id, q.o.description || 'Untitled') + '? <span class="q-meta" style="color:var(--muted)">' + (ed === 0 ? 'Today' : ed === 1 ? 'Tomorrow' : prettyDate(q.o.due)) + '</span>';
@@ -566,7 +617,7 @@
       var pod = q.o.kind === 'podcast';
       text = (pod ? 'Still listening to ' : 'Still reading ') + ql('reading.html#task-' + q.o.id, q.o.title) + '?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
       actions = '<button type="button" data-a="readfinished">Finished it</button><button type="button" data-a="skip">' + (pod ? 'Still listening' : 'Still reading') + '</button>' +
-        '<button type="button" data-a="readback">Put it back</button>';
+        '<button type="button" data-a="readback">Put it back</button>' + skip;
     } else if(q.type === 'prompt'){
       text = q.p.text;
       extra = '<form class="q-form" data-a="saveprompt"><input type="text" placeholder="' + L.escapeHTML(q.p.ph) + '" aria-label="Your answer"><button type="submit">Add as task</button></form>';
@@ -769,25 +820,7 @@
     f.push('<a class="focus-item" href="jobs.html"><span class="focus-k">Job search</span><span class="focus-v">' +
       (jobs.ok ? researched + '<small> of ' + goal + ' researched</small>' : '—') + '</span><span class="focus-c">' +
       (jobs.ok ? (jobs.items.length ? (jn ? L.escapeHTML('Next: ' + clip(jn.text, 52)) : 'Nothing left to prepare') : 'Add your first company') : 'Open the tracker') + '</span></a>');
-    var dd = dl ? diffDays(T, dl.due) : null;
-    f.push('<a class="focus-item" href="' + (dl ? 'tasks.html#task-' + dl.id : 'tasks.html') + '"><span class="focus-k">Next deadline</span><span class="focus-v">' +
-      (dl ? (dd === 0 ? 'Today' : dd + '<small> ' + (dd === 1 ? 'day' : 'days') + '</small>') : '—') + '</span><span class="focus-c">' +
-      (dl ? L.escapeHTML(clip(dl.description, 56)) : 'Nothing dated ahead') + '</span></a>');
     document.getElementById('focus').innerHTML = f.join('');
-
-    // app tiles
-    var tile = function(href, name, big, cap, cls){
-      return '<a class="app-tile ' + (cls || '') + '" href="' + href + '"><span class="app-k">' + name + '</span><span class="app-v">' + big + '</span><span class="app-c">' + cap + '</span></a>';
-    };
-    document.getElementById('apps').innerHTML =
-      tile('tasks.html', 'Tasks', tasksAttention.length, overdue ? overdue + ' overdue' : 'due within a week', overdue ? 'warn' : '') +
-      tile('calendar.html', 'Calendar', evWeek + tasksAttention.length, 'items this week') +
-      tile('jobs.html', 'Jobs', jobs.ok ? researched + '/' + goal : '—', 'companies researched') +
-      tile('gre.html', 'GRE', greDays === null ? '—' : Math.max(0, greDays), greProg || 'days to test') +
-      tile('reading.html', 'Library', lib.length, toRead + ' to read, ' + toListen + ' to listen') +
-      tile('calls.html', 'Calls', calls14, 'closing within 2 weeks', calls14 ? 'warn' : '') +
-      tile('events.html', 'Events', evWeek, 'this week') +
-      tile('notes.html', 'Notes', nNotes, nNotes === 1 ? 'note' : 'notes');
 
     // start-here line: one small thing, chosen in this order
     var start = null;
@@ -826,7 +859,7 @@
     document.getElementById('scoutlabel').textContent = SCOUT_TAGS[dayOfYear() % SCOUT_TAGS.length];
     var fresh = items.filter(function(i){ return i.found === T; }).length;
     document.getElementById('scoutcount').textContent = fresh ? fresh + ' new today' : items.length + (items.length === 1 ? ' find' : ' finds');
-    var shown = scoutAll ? items : items.slice(0, 4);
+    var shown = scoutAll ? items : items.slice(0, 3);
     body.innerHTML = shown.map(function(i){
       var meta = [i.country, i.dateLabel, i.source].filter(Boolean).map(L.escapeHTML).join(' · ');
       return '<div class="scout-item" data-id="' + L.escapeHTML(i.id) + '">' +
@@ -835,7 +868,7 @@
         (i.blurb ? '<span class="scout-blurb">' + L.escapeHTML(i.blurb) + '</span>' : '') +
         '<span class="scout-meta">' + meta + '<button type="button" class="scout-x" data-a="hide">Not for me</button></span>' +
         '</div>';
-    }).join('') + (items.length > 4 ? '<button type="button" class="q-more" data-a="more">' + (scoutAll ? 'Show fewer' : 'Show ' + (items.length - 4) + ' more') + '</button>' : '');
+    }).join('') + (items.length > 3 ? '<button type="button" class="q-more" data-a="more">' + (scoutAll ? 'Show fewer' : 'Show ' + (items.length - 3) + ' more') + '</button>' : '');
   }
   document.getElementById('scoutbody').addEventListener('click', function(e){
     var b = e.target.closest('button[data-a]'); if(!b) return;
