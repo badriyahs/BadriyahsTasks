@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badriyah's Tasks — Jobs</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=40">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
+<style>
+:root{color-scheme:light dark;}
+/* Scoped to .jobs so it can't touch the other pages. Colors come from the site's own
+   variables (styles.css), which already follow the device's light/dark setting. */
+.jobs{--good:#2E7D4F;--good-tint:#E3F2E8;--warn:#A8591A;--warn-tint:#FBEEDF;--bar:#E9E6DF;}
+@media (prefers-color-scheme: dark){
+  .jobs{--good:#6FD39A;--good-tint:#16301F;--warn:#F0B270;--warn-tint:#33240F;--bar:#2A2E35;}
+}
+.jobs-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.jobs .jwrap{max-width:860px;margin:0 auto;padding:30px 20px calc(80px + env(safe-area-inset-bottom));}
+.jobs h1{font-family:"IBM Plex Serif",Georgia,serif;font-weight:500;font-size:30px;margin:0 0 4px;letter-spacing:-.01em;}
+.jobs .lede{color:var(--muted);font-size:13.5px;margin:0 0 20px;line-height:1.5;}
+
+.jobs .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 16px;}
+.jobs .stat{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:12px 14px;}
+.jobs .stat .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);}
+.jobs .stat .v{font-family:"IBM Plex Serif",serif;font-size:26px;margin-top:2px;font-variant-numeric:tabular-nums;}
+.jobs .stat .v small{font-size:13px;color:var(--muted);font-family:"IBM Plex Sans",sans-serif;}
+.jobs .bar{height:4px;border-radius:2px;background:var(--bar);margin-top:8px;overflow:hidden;}
+.jobs .bar i{display:block;height:100%;background:var(--accent);}
+
+.jobs .nudge{display:block;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;background:var(--surface);
+  padding:12px 16px;margin:0 0 16px;font-size:14px;line-height:1.5;color:var(--ink);text-decoration:none;cursor:pointer;}
+.jobs .nudge:hover{border-color:var(--accent);}
+.jobs .nudge .k{display:block;font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;}
+
+.jobs .addbox{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px;margin:0 0 18px;}
+.jobs .addbox textarea{width:100%;resize:vertical;border:1px solid var(--line-strong);border-radius:8px;background:var(--paper);color:var(--ink);
+  font:inherit;font-size:14px;line-height:1.45;padding:9px 11px;}
+.jobs .addbox textarea:focus,.jobs .f input:focus,.jobs .f textarea:focus,.jobs .f select:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-tint);}
+.jobs .addrow2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:8px;flex-wrap:wrap;}
+.jobs .hint{font-size:11.5px;color:var(--muted);line-height:1.4;}
+.jobs .btn{border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);font:inherit;font-weight:600;font-size:13px;padding:8px 16px;cursor:pointer;}
+.jobs .btn:disabled{opacity:.5;cursor:default;}
+.jobs .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line-strong);}
+
+.jobs .toolrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 12px;font-size:13px;color:var(--muted);}
+.jobs .seg{display:inline-flex;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
+.jobs .seg button{border:0;background:var(--surface);color:var(--muted);cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;}
+.jobs .seg button+button{border-left:1px solid var(--line-strong);}
+.jobs .seg button.on{background:var(--ink);color:var(--paper);}
+.jobs .goal input{width:54px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line-strong);border-radius:6px;padding:4px 6px;text-align:center;}
+.jobs .spacer{flex:1;}
+
+.jobs details.co{border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0 0 10px;overflow:hidden;}
+.jobs details.co[open]{border-color:var(--line-strong);}
+.jobs details.co > summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 14px;align-items:center;padding:12px 16px;}
+.jobs details.co > summary::-webkit-details-marker{display:none;}
+.jobs .co-name{font-family:"IBM Plex Serif",serif;font-size:17px;line-height:1.3;}
+.jobs .co-name .role{display:block;font-family:"IBM Plex Sans",sans-serif;font-size:12.5px;color:var(--muted);margin-top:1px;}
+.jobs .co-side{display:flex;align-items:center;gap:10px;}
+.jobs .pips{display:flex;gap:5px;}
+.jobs .pip{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--line-strong);}
+.jobs .pip.on{background:var(--good);border-color:var(--good);}
+.jobs .stage{font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--parent-tint);color:var(--muted);white-space:nowrap;}
+.jobs .stage.s-researching,.jobs .stage.s-tailoring{background:var(--accent-tint);color:var(--accent);}
+.jobs .stage.s-applied,.jobs .stage.s-interview,.jobs .stage.s-offer{background:var(--good-tint);color:var(--good);}
+.jobs .stage.s-closed{opacity:.6;}
+.jobs .co-body{padding:4px 16px 16px;border-top:1px solid var(--line);}
+.jobs .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:12px;}
+.jobs .f{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.jobs .f.full{grid-column:1/-1;}
+.jobs .f label{font-size:12px;font-weight:600;color:var(--ink);}
+.jobs .f label span{font-weight:400;color:var(--muted);}
+.jobs .f input,.jobs .f select,.jobs .f textarea{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--paper);border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;}
+.jobs .f textarea{resize:none;line-height:1.5;min-height:64px;overflow:hidden;}
+.jobs .checks{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.jobs .check{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:20px;padding:6px 13px;font-size:13px;cursor:pointer;background:var(--paper);color:var(--ink);user-select:none;}
+.jobs .check input{accent-color:var(--good);width:16px;height:16px;margin:0;}
+.jobs .check.on{border-color:var(--good);background:var(--good-tint);color:var(--good);}
+.jobs .stars{display:inline-flex;gap:2px;}
+.jobs .stars button{border:0;background:none;cursor:pointer;font-size:19px;line-height:1;color:var(--line-strong);padding:0 1px;}
+.jobs .stars button.on{color:#D99A1E;}
+.jobs .foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:10px;}
+.jobs .del{border:0;background:none;color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer;text-decoration:underline;}
+.jobs .del.confirm{color:#fff;background:#C0392B;border-radius:6px;text-decoration:none;padding:4px 10px;}
+.jobs .empty{border:1px dashed var(--line-strong);border-radius:12px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.55;}
+.jobs .banner{background:var(--warn-tint);color:var(--warn);border-radius:8px;padding:10px 14px;font-size:13px;margin:0 0 16px;line-height:1.5;}
+.jobs .banner code{font-family:"IBM Plex Mono",monospace;font-size:12px;}
+.jobs .hidden{display:none !important;}
+@media (max-width:700px){
+  .jobs .jwrap{padding:20px 14px calc(70px + env(safe-area-inset-bottom));}
+  .jobs h1{font-size:26px;}
+  .jobs .stats{grid-template-columns:repeat(2,1fr);}
+  .jobs .grid2{grid-template-columns:1fr;}
+  .jobs .f input,.jobs .f select,.jobs .f textarea,.jobs .addbox textarea{font-size:16px;}
+  .jobs .co-side .pips{display:none;}
+}
+</style>
+</head>
+<body>
+<div class="tabbar">
+  <a class="tab" href="index.html">Today</a>
+  <a class="tab" href="tasks.html">Tasks</a>
+  <a class="tab" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab" href="activity.html">Activity</a>
+  <a class="tab" href="reading.html">Library</a>
+  <a class="tab" href="notes.html">Notes</a>
+  <a class="tab" href="events.html">Events</a>
+  <a class="tab" href="calls.html">Calls</a>
+  <a class="tab active" href="jobs.html">Jobs</a>
+  <a class="tab" href="gre.html">GRE</a>
+</div>
+
+<div class="topbar">
+  <h1>Badriyah's Tasks</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+</div>
+
+<div class="jobs-scroll jobs">
+<div class="jwrap">
+  <h1>Job search</h1>
+  <p class="lede">One page per company. Write down what you think, then tailor your CV and portfolio for the ones you care about most. Each question below takes a few minutes.</p>
+
+  <div class="banner hidden" id="rulebanner"></div>
+
+  <section class="stats" id="stats"></section>
+
+  <a class="nudge hidden" id="nudge" href="#"></a>
+
+  <form class="addbox" id="addform">
+    <textarea id="addtext" rows="2" placeholder="One company per line, e.g. Studio Name - Role"></textarea>
+    <div class="addrow2">
+      <span class="hint">You can fill in the details afterward. Cmd/Ctrl+Enter adds them.</span>
+      <button class="btn" type="submit" id="addbtn">Add companies</button>
+    </div>
+  </form>
+
+  <div class="toolrow">
+    <div class="seg" id="filter">
+      <button data-f="all" class="on">All</button>
+      <button data-f="research">To research</button>
+      <button data-f="tailor">To tailor</button>
+      <button data-f="applied">Applied</button>
+    </div>
+    <span class="spacer"></span>
+    <label class="goal">Goal <input type="number" id="goal" min="1" max="100"> companies</label>
+  </div>
+
+  <div id="list"></div>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var STAGES = [['idea','Idea'],['researching','Researching'],['tailoring','Tailoring'],['applied','Applied'],['interview','Interview'],['offer','Offer'],['closed','Closed']];
+  var STAGE_LABEL = {}; STAGES.forEach(function(s){ STAGE_LABEL[s[0]] = s[1]; });
+  var PROMPTS = [
+    ['why',   'Why do I like them?', 'The work, the people, the values, what draws me in'],
+    ['know',  'What do I know about them?', 'Projects, clients, size, location, how they work'],
+    ['pros',  'Pros', 'What would be great about working here?'],
+    ['cons',  'Cons', 'What worries me, or doesn’t fit?'],
+    ['pitch', 'How would I pitch myself?', 'What should my CV and portfolio highlight for them?'],
+    ['people','Who do I know there?', 'Anyone who could introduce me or give me advice']
+  ];
+  var DEFAULT_SETTINGS = {goal: 20};
+
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M",
+    authDomain: "badriyahstasks.firebaseapp.com",
+    projectId: "badriyahstasks",
+    storageBucket: "badriyahstasks.firebasestorage.app",
+    messagingSenderId: "97057321631",
+    appId: "1:97057321631:web:fa339e1352631ecb9d68aa"
+  };
+
+  var LS_KEY = 'badriyah-jobs-v1', OPEN_KEY = 'badriyah-jobs-open';
+  var state = {items: {}, settings: JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), mode: 'connecting'};
+  var db = null, col = null, filter = 'all', confirmDel = null;
+  var openIds = {};
+  try { (JSON.parse(localStorage.getItem(OPEN_KEY) || '[]')).forEach(function(id){ openIds[id] = true; }); } catch(e){}
+
+  function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  function todayISO(){ var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function lsLoad(){ try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){ return null; } }
+  function lsSave(){ try { localStorage.setItem(LS_KEY, JSON.stringify({items: state.items, settings: state.settings})); } catch(e){} }
+  function saveOpen(){ try { localStorage.setItem(OPEN_KEY, JSON.stringify(Object.keys(openIds).filter(function(k){ return openIds[k]; }))); } catch(e){} }
+
+  function newDoc(name, role, order){
+    return {name: name, role: role || '', link: '', location: '', deadline: '', stage: 'idea', fit: 0,
+      why: '', know: '', pros: '', cons: '', pitch: '', people: '', notes: '',
+      researchDone: false, cvDone: false, portfolioDone: false, appliedOn: '', order: order};
+  }
+  function list(){
+    return Object.keys(state.items).map(function(id){ return Object.assign({id: id}, state.items[id]); })
+      .sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+  }
+
+  // ---------- storage (Firestore "jobs", or this browser until its rule is published) ----------
+  function showBanner(reason){
+    var b = document.getElementById('rulebanner');
+    b.innerHTML = 'Saving in this browser only (' + esc(reason) + '). To keep this on all your devices, add this rule in the Firebase console and publish: ' +
+      '<code>match /jobs/{id} { allow read, write: if true; }</code> It goes inside the <code>documents</code> block, next to the others.';
+    b.classList.remove('hidden');
+  }
+  function write(id, patch, settingsPatch){
+    if(id){ state.items[id] = Object.assign(state.items[id] || {}, patch); }
+    if(settingsPatch){ Object.assign(state.settings, settingsPatch); }
+    if(state.mode === 'cloud'){
+      if(id) col.doc(id).set(patch, {merge: true}).catch(function(e){ console.error(e); });
+      if(settingsPatch) col.doc('_settings').set(settingsPatch, {merge: true}).catch(function(e){ console.error(e); });
+    } else { lsSave(); }
+    render();
+  }
+  function addCompanies(text){
+    var lines = String(text || '').split(/\r?\n/).map(function(l){ return l.trim(); }).filter(Boolean);
+    if(!lines.length) return Promise.resolve(0);
+    var max = list().reduce(function(m, c){ return Math.max(m, c.order || 0); }, 0);
+    var docs = lines.map(function(line, i){
+      var m = /^(.*?)\s+[\-–—|]\s+(.+)$/.exec(line);
+      return newDoc(m ? m[1].trim() : line, m ? m[2].trim() : '', max + 10 * (i + 1));
+    });
+    if(state.mode === 'cloud'){
+      var batch = db.batch();
+      docs.forEach(function(d){ batch.set(col.doc(), d); });
+      return batch.commit().then(function(){ return docs.length; });
+    }
+    docs.forEach(function(d, i){ state.items['j' + Date.now() + '_' + i] = d; });
+    lsSave(); render();
+    return Promise.resolve(docs.length);
+  }
+  function removeCompany(id){
+    delete state.items[id];
+    if(state.mode === 'cloud') col.doc(id).delete().catch(function(e){ console.error(e); }); else lsSave();
+    render();
+  }
+
+  function startLocal(reason){
+    state.mode = 'local';
+    var saved = lsLoad();
+    if(saved){ state.items = saved.items || {}; state.settings = Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), saved.settings); }
+    if(reason) showBanner(reason);
+    render();
+  }
+  function startCloud(){
+    try { firebase.initializeApp(FIREBASE_CONFIG); db = firebase.firestore(); col = db.collection('jobs'); }
+    catch(e){ startLocal('Firebase unavailable'); return; }
+    var first = true;
+    col.onSnapshot(function(snap){
+      var items = {}, settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), hasSettings = false;
+      snap.docs.forEach(function(d){ if(d.id === '_settings'){ hasSettings = true; Object.assign(settings, d.data()); } else items[d.id] = d.data(); });
+      if(first){
+        first = false;
+        state.mode = 'cloud';
+        document.getElementById('rulebanner').classList.add('hidden');
+        var saved = lsLoad();
+        if(!Object.keys(items).length && saved && saved.items && Object.keys(saved.items).length){
+          var batch = db.batch();   // carry over anything saved here before the rule existed
+          Object.keys(saved.items).forEach(function(id){ batch.set(col.doc(), saved.items[id]); });
+          batch.set(col.doc('_settings'), Object.assign({}, settings, saved.settings));
+          batch.commit().then(function(){ try { localStorage.removeItem(LS_KEY); } catch(e){} });
+          return;
+        }
+        if(!hasSettings) col.doc('_settings').set(settings).catch(function(){});
+      }
+      state.items = items; state.settings = settings;
+      render();
+    }, function(err){
+      if(state.mode !== 'local') startLocal(err && err.code === 'permission-denied' ? 'the database rule isn’t published yet' : 'offline');
+    });
+  }
+
+  // ---------- derived ----------
+  function isApplied(c){ return c.stage === 'applied' || c.stage === 'interview' || c.stage === 'offer'; }
+  function emptyPrompt(c){ return PROMPTS.filter(function(p){ return p[0] !== 'people' && !(c[p[0]] || '').trim(); })[0] || null; }
+  function nextStep(items){
+    var open = items.filter(function(c){ return c.stage !== 'closed'; });
+    var a = open.filter(function(c){ return !c.researchDone; })[0];
+    if(a){
+      var p = emptyPrompt(a);
+      return {id: a.id, text: p ? 'Answer “' + p[1] + '” for ' + a.name + '. A few lines is enough.' : 'Look over your notes on ' + a.name + ' and tick “Research done”.'};
+    }
+    var b = open.filter(function(c){ return !c.cvDone; })[0];
+    if(b) return {id: b.id, text: 'Tailor your CV for ' + b.name + '.'};
+    var d = open.filter(function(c){ return !c.portfolioDone; })[0];
+    if(d) return {id: d.id, text: 'Tailor your portfolio for ' + d.name + '.'};
+    var e = open.filter(function(c){ return !isApplied(c); })[0];
+    if(e) return {id: e.id, text: 'Everything is ready for ' + e.name + '. Apply, then set its stage to Applied.'};
+    return null;
+  }
+
+  // ---------- render ----------
+  var listEl = document.getElementById('list'), statsEl = document.getElementById('stats'), nudgeEl = document.getElementById('nudge');
+  function stat(k, n, total, extra){
+    var pct = total ? Math.min(100, n / total * 100) : 0;
+    return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + n + ' <small>/ ' + total + (extra || '') + '</small></div><div class="bar"><i style="width:' + pct + '%"></i></div></div>';
+  }
+  function render(){
+    var dot = document.getElementById('syncdot'), st = document.getElementById('syncstate');
+    dot.className = 'dot' + (state.mode === 'connecting' ? ' off' : '');
+    st.textContent = state.mode === 'cloud' ? 'Live — anyone with this link can edit' : state.mode === 'local' ? 'Saved in this browser only' : 'Connecting…';
+
+    var ae = document.activeElement;
+    var goalEl = document.getElementById('goal');
+    if(ae !== goalEl) goalEl.value = state.settings.goal;
+    var all = list(), goal = Math.max(1, parseInt(state.settings.goal, 10) || 20);
+    statsEl.innerHTML =
+      stat('Researched', all.filter(function(c){ return c.researchDone; }).length, goal) +
+      stat('CV tailored', all.filter(function(c){ return c.cvDone; }).length, goal) +
+      stat('Portfolio tailored', all.filter(function(c){ return c.portfolioDone; }).length, goal) +
+      stat('Applied', all.filter(isApplied).length, goal);
+
+    var ns = nextStep(all);
+    if(ns){ nudgeEl.classList.remove('hidden'); nudgeEl.dataset.id = ns.id; nudgeEl.innerHTML = '<span class="k">Next step</span>' + esc(ns.text); }
+    else if(all.length && all.length < goal){ nudgeEl.classList.remove('hidden'); delete nudgeEl.dataset.id; nudgeEl.innerHTML = '<span class="k">Next step</span>Add ' + (goal - all.length) + ' more ' + (goal - all.length === 1 ? 'company' : 'companies') + ' to reach your goal of ' + goal + '.'; }
+    else nudgeEl.classList.add('hidden');
+
+    if(ae && listEl.contains(ae) && (ae.tagName === 'TEXTAREA' || ae.tagName === 'INPUT' || ae.tagName === 'SELECT')) return; // never redraw under the cursor
+    var shown = all.filter(function(c){
+      if(filter === 'research') return !c.researchDone && c.stage !== 'closed';
+      if(filter === 'tailor') return c.researchDone && (!c.cvDone || !c.portfolioDone) && !isApplied(c) && c.stage !== 'closed';
+      if(filter === 'applied') return isApplied(c);
+      return true;
+    });
+    if(!all.length){
+      listEl.innerHTML = '<div class="empty">No companies yet.<br>Paste a few names in the box above to start. Even three is a good beginning.</div>';
+      return;
+    }
+    if(!shown.length){ listEl.innerHTML = '<div class="empty">Nothing here right now.</div>'; return; }
+    listEl.innerHTML = shown.map(companyHTML).join('');
+    listEl.querySelectorAll('textarea').forEach(grow);
+  }
+
+  function companyHTML(c){
+    var pips = '<span class="pips" title="Research, CV, portfolio">' +
+      ['researchDone', 'cvDone', 'portfolioDone'].map(function(k){ return '<span class="pip' + (c[k] ? ' on' : '') + '"></span>'; }).join('') + '</span>';
+    var stage = c.stage || 'idea';
+    var stars = '<span class="stars" title="How much I want this one">' + [1, 2, 3, 4, 5].map(function(n){
+      return '<button type="button" data-act="fit" data-n="' + n + '" class="' + (n <= (c.fit || 0) ? 'on' : '') + '" aria-label="' + n + ' of 5">★</button>'; }).join('') + '</span>';
+    var prompts = PROMPTS.map(function(p){
+      return '<div class="f full"><label>' + p[1] + ' <span>' + esc(p[2]) + '</span></label><textarea data-field="' + p[0] + '" rows="2">' + esc(c[p[0]]) + '</textarea></div>';
+    }).join('');
+    var check = function(k, label){ return '<label class="check' + (c[k] ? ' on' : '') + '"><input type="checkbox" data-field="' + k + '"' + (c[k] ? ' checked' : '') + '>' + label + '</label>'; };
+    return '<details class="co" data-id="' + c.id + '" id="co-' + c.id + '"' + (openIds[c.id] ? ' open' : '') + '>' +
+      '<summary><span class="co-name">' + esc(c.name || 'Untitled company') + (c.role ? '<span class="role">' + esc(c.role) + '</span>' : '') + '</span>' +
+      '<span class="co-side">' + pips + '<span class="stage s-' + stage + '">' + (STAGE_LABEL[stage] || 'Idea') + '</span></span></summary>' +
+      '<div class="co-body">' +
+        '<div class="grid2">' +
+          '<div class="f"><label>Company</label><input type="text" data-field="name" value="' + esc(c.name) + '"></div>' +
+          '<div class="f"><label>Role I’d apply for</label><input type="text" data-field="role" value="' + esc(c.role) + '"></div>' +
+          '<div class="f"><label>Link <span>careers page or job post</span></label><input type="url" data-field="link" value="' + esc(c.link) + '" placeholder="https://"></div>' +
+          '<div class="f"><label>Location</label><input type="text" data-field="location" value="' + esc(c.location) + '"></div>' +
+          '<div class="f"><label>Stage</label><select data-field="stage">' + STAGES.map(function(s){ return '<option value="' + s[0] + '"' + (s[0] === stage ? ' selected' : '') + '>' + s[1] + '</option>'; }).join('') + '</select></div>' +
+          '<div class="f"><label>Deadline <span>if there is one</span></label><input type="date" data-field="deadline" value="' + esc(c.deadline) + '"></div>' +
+          '<div class="f"><label>How much I want this one</label>' + stars + '</div>' +
+        '</div>' +
+        '<div class="grid2">' + prompts + '</div>' +
+        '<div class="checks">' + check('researchDone', 'Research done') + check('cvDone', 'CV tailored') + check('portfolioDone', 'Portfolio tailored') + '</div>' +
+        '<div class="grid2"><div class="f full"><label>Notes</label><textarea data-field="notes" rows="2">' + esc(c.notes) + '</textarea></div></div>' +
+        '<div class="foot"><span class="hint">' + (c.appliedOn ? 'Applied ' + esc(c.appliedOn) : '') + '</span>' +
+        (confirmDel === c.id ? '<button type="button" class="del confirm" data-act="confirmdel">Delete company?</button>' : '<button type="button" class="del" data-act="del">Delete</button>') + '</div>' +
+      '</div></details>';
+  }
+  function grow(t){ t.style.height = 'auto'; t.style.height = Math.max(64, t.scrollHeight + 2) + 'px'; }
+
+  // ---------- interactions ----------
+  listEl.addEventListener('toggle', function(e){
+    var d = e.target; if(!d.matches || !d.matches('details.co')) return;
+    openIds[d.dataset.id] = d.open; saveOpen();
+    if(d.open) d.querySelectorAll('textarea').forEach(grow);
+  }, true);
+  listEl.addEventListener('input', function(e){ if(e.target.tagName === 'TEXTAREA') grow(e.target); });
+  listEl.addEventListener('change', function(e){
+    var el = e.target, card = el.closest('details.co'); if(!card) return;
+    var id = card.dataset.id, f = el.dataset.field; if(!f) return;
+    var patch = {}, c = state.items[id] || {};
+    if(el.type === 'checkbox') patch[f] = el.checked;
+    else patch[f] = el.value.trim();
+    if(f === 'stage'){
+      if(isApplied({stage: el.value}) && !c.appliedOn) patch.appliedOn = todayISO();
+    }
+    if(f === 'name' && !patch.name) return;
+    write(id, patch);
+  });
+  listEl.addEventListener('click', function(e){
+    var b = e.target.closest('button[data-act]'); if(!b) return;
+    var card = b.closest('details.co'), id = card.dataset.id;
+    if(b.dataset.act === 'fit'){
+      var n = parseInt(b.dataset.n, 10), cur = (state.items[id] || {}).fit || 0;
+      write(id, {fit: n === cur ? 0 : n});
+    } else if(b.dataset.act === 'del'){
+      confirmDel = id; render();
+      setTimeout(function(){ if(confirmDel === id){ confirmDel = null; render(); } }, 3500);
+    } else if(b.dataset.act === 'confirmdel'){
+      confirmDel = null; delete openIds[id]; saveOpen(); removeCompany(id);
+    }
+  });
+  listEl.addEventListener('focusout', function(){
+    setTimeout(function(){ var a = document.activeElement; if(!a || !listEl.contains(a)) render(); }, 0);
+  });
+
+  nudgeEl.addEventListener('click', function(e){
+    e.preventDefault();
+    var id = nudgeEl.dataset.id;
+    if(!id){ document.getElementById('addtext').focus(); return; }
+    filter = 'all'; document.querySelectorAll('#filter button').forEach(function(b){ b.classList.toggle('on', b.dataset.f === 'all'); });
+    openIds[id] = true; saveOpen(); render();
+    var el = document.getElementById('co-' + id);
+    if(el){ el.open = true; el.scrollIntoView({block: 'start', behavior: 'smooth'}); el.querySelectorAll('textarea').forEach(grow); }
+  });
+
+  document.getElementById('filter').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if(!b) return;
+    filter = b.dataset.f;
+    this.querySelectorAll('button').forEach(function(x){ x.classList.toggle('on', x === b); });
+    render();
+  });
+  document.getElementById('goal').addEventListener('change', function(){
+    var n = Math.max(1, Math.min(100, parseInt(this.value, 10) || 20));
+    write(null, null, {goal: n});
+  });
+  var addForm = document.getElementById('addform'), addText = document.getElementById('addtext'), addBtn = document.getElementById('addbtn');
+  addForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!addText.value.trim()) return;
+    addBtn.disabled = true;
+    addCompanies(addText.value).then(function(n){
+      addText.value = '';
+      addBtn.textContent = n === 1 ? 'Added 1' : 'Added ' + n;
+      setTimeout(function(){ addBtn.textContent = 'Add companies'; }, 1800);
+    }).catch(function(err){ console.error(err); addBtn.textContent = 'Could not add. Try again'; setTimeout(function(){ addBtn.textContent = 'Add companies'; }, 2500); })
+      .then(function(){ addBtn.disabled = false; });
+  });
+  addText.addEventListener('keydown', function(e){ if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)){ e.preventDefault(); addForm.requestSubmit(); } });
+
+  if(window.firebase){
+    startCloud();
+    setTimeout(function(){ if(state.mode === 'connecting') startLocal('offline'); }, 8000);
+  } else { startLocal(''); }
+})();
+</script>
+</body>
+</html>

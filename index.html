@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=38">
+<link rel="stylesheet" href="styles.css?v=40">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -19,6 +19,7 @@
   <a class="tab" href="notes.html">Notes</a>
   <a class="tab" href="events.html">Events</a>
   <a class="tab" href="calls.html">Calls</a>
+  <a class="tab" href="jobs.html">Jobs</a>
   <a class="tab" href="gre.html">GRE</a>
 </div>
 
@@ -30,6 +31,8 @@
         <h1 class="home-date" id="digestdate"></h1>
         <div class="home-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
       </div>
+
+      <a class="home-start hidden" id="homestart" href="#"></a>
 
       <form class="qa" id="qaform" autocomplete="off">
         <div class="qa-row">
@@ -48,11 +51,21 @@
 
       <img class="home-photo" src="img/sun-setting.jpg" alt="A detail from the Resistant Atlas project.">
 
+      <div class="focus" id="focus"></div>
+
+      <div class="apps" id="apps"></div>
+
+      <section class="scout hidden" id="scout">
+        <div class="scout-head"><span class="home-section-label" id="scoutlabel">From the Gulf</span><span class="scout-count" id="scoutcount"></span></div>
+        <div id="scoutbody"></div>
+      </section>
+
       <details class="assist" id="assist" open>
         <summary><span class="assist-title">Quick questions</span><span class="assist-count" id="assistcount"></span></summary>
         <div class="assist-body" id="assistbody"></div>
       </details>
 
+      <div class="home-section-label">Schedule</div>
       <div class="home-days" id="homedays"></div>
     </div>
   </div>
@@ -145,6 +158,8 @@
   function render(){
     renderDua();
     renderAssistant();
+    renderDashboard();
+    renderScout();
 
     var todayStr = L.todayISO();
     var horizon = new Date(todayStr + 'T00:00:00');
@@ -668,6 +683,167 @@
   });
   assistBody.addEventListener('focusout', function(){
     setTimeout(function(){ if(!assistBody.contains(document.activeElement)) renderAssistant(); }, 0);
+  });
+
+
+  // ---------- dashboard: focus numbers, app tiles, start-here line ----------
+  /* GRE and Jobs keep their own collections, so the dashboard listens to them directly.
+     If a collection isn't readable (its rule isn't published yet), Jobs falls back to the
+     copy saved in this browser, and both degrade to a plain link. */
+  var gre = {ok: false, items: [], settings: {}};
+  var jobs = {ok: false, items: [], settings: {}};
+  try {
+    var fsdb = firebase.firestore();
+    fsdb.collection('gre').onSnapshot(function(snap){
+      gre.items = []; gre.settings = {};
+      snap.docs.forEach(function(d){ if(d.id === '_settings') gre.settings = d.data(); else gre.items.push(Object.assign({id: d.id}, d.data())); });
+      gre.ok = true; renderDashboard();
+    }, function(){ gre.ok = false; renderDashboard(); });
+    fsdb.collection('jobs').onSnapshot(function(snap){
+      jobs.items = []; jobs.settings = {};
+      snap.docs.forEach(function(d){ if(d.id === '_settings') jobs.settings = d.data(); else jobs.items.push(Object.assign({id: d.id}, d.data())); });
+      jobs.ok = true; renderDashboard();
+    }, function(){
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem('badriyah-jobs-v1') || 'null'); } catch(e){}
+      if(saved){
+        jobs.items = Object.keys(saved.items || {}).map(function(k){ return Object.assign({id: k}, saved.items[k]); });
+        jobs.settings = saved.settings || {};
+        jobs.ok = true;
+      } else { jobs.ok = false; }
+      renderDashboard();
+    });
+  } catch(e){}
+
+  function clip(str, n){ str = String(str || ''); return str.length > n ? str.slice(0, n - 1).replace(/\s+\S*$/, '') + '…' : str; }
+  function greOnce(c){ return c.id.indexOf('dx-') === 0 || c.id.indexOf('rev-') === 0; }
+  function greStudied(c){ return greOnce(c) ? !!c.done : !!c.study; }
+
+  function jobsNext(){
+    var open = jobs.items.filter(function(c){ return c.stage !== 'closed'; }).sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+    var a = open.filter(function(c){ return !c.researchDone; })[0];
+    if(a) return {text: 'Research ' + a.name, short: a.name};
+    var b = open.filter(function(c){ return !c.cvDone; })[0];
+    if(b) return {text: 'Tailor your CV for ' + b.name, short: b.name};
+    var d = open.filter(function(c){ return !c.portfolioDone; })[0];
+    if(d) return {text: 'Tailor your portfolio for ' + d.name, short: d.name};
+    return null;
+  }
+
+  function renderDashboard(){
+    var T = L.todayISO();
+    var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck; });
+    var leaf = function(t){ return !L.hasChildren(t.no); };
+
+    // GRE
+    var greDays = null, greNext = null, greProg = '';
+    if(gre.ok && gre.settings.exam){
+      greDays = diffDays(T, gre.settings.exam);
+      var left = gre.items.filter(function(c){ return !greStudied(c) && c.date; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); });
+      greNext = left[0] || null;
+      var content = gre.items.filter(function(c){ return !greOnce(c); });
+      greProg = content.filter(greStudied).length + ' of ' + content.length + ' chapters';
+    }
+    // Jobs
+    var goal = parseInt(jobs.settings.goal, 10) || 20;
+    var researched = jobs.items.filter(function(c){ return c.researchDone; }).length;
+    var jn = jobsNext();
+    // Next deadline: nearest dated task that isn't waiting on someone
+    var dl = tasks.filter(function(t){ return t.due && t.due >= T && leaf(t) && !isPending(t); })
+      .sort(function(a, b){ return a.due < b.due ? -1 : 1; })[0];
+
+    var weekEnd = addDaysISO(T, 7);
+    var tasksAttention = tasks.filter(function(t){ return t.due && t.due <= weekEnd && leaf(t); });
+    var overdue = tasksAttention.filter(function(t){ return t.due < T && !isPending(t); }).length;
+    var evWeek = L.Events.state.tasks.filter(function(e){ return !e.archived && !e.struck && e.due && e.due >= T && e.due <= weekEnd; }).length;
+    var calls14 = L.callsState.items.filter(function(c){ var d = L.daysUntil(c.deadline); return c.status !== 'watch' && c.mine !== 'skip' && c.mine !== 'submitted' && d !== null && d >= 0 && d <= 14; }).length;
+    var lib = L.readingState.items.filter(function(r){ return r.status !== 'finished'; });
+    var toRead = lib.filter(function(r){ return r.kind !== 'podcast'; }).length, toListen = lib.length - toRead;
+    var nNotes = (L.notesState && L.notesState.items) ? L.notesState.items.length : 0;
+
+    // focus strip
+    var f = [];
+    f.push('<a class="focus-item" href="gre.html"><span class="focus-k">GRE</span><span class="focus-v">' +
+      (greDays === null ? '—' : (greDays < 0 ? 'Done' : greDays + '<small> days to test</small>')) + '</span><span class="focus-c">' +
+      (greNext ? L.escapeHTML('Next: ' + clip(greNext.title, 52)) : (gre.ok ? 'All chapters done' : 'Open the tracker')) + '</span></a>');
+    f.push('<a class="focus-item" href="jobs.html"><span class="focus-k">Job search</span><span class="focus-v">' +
+      (jobs.ok ? researched + '<small> of ' + goal + ' researched</small>' : '—') + '</span><span class="focus-c">' +
+      (jobs.ok ? (jobs.items.length ? (jn ? L.escapeHTML('Next: ' + clip(jn.text, 52)) : 'Nothing left to prepare') : 'Add your first company') : 'Open the tracker') + '</span></a>');
+    var dd = dl ? diffDays(T, dl.due) : null;
+    f.push('<a class="focus-item" href="' + (dl ? 'tasks.html#task-' + dl.id : 'tasks.html') + '"><span class="focus-k">Next deadline</span><span class="focus-v">' +
+      (dl ? (dd === 0 ? 'Today' : dd + '<small> ' + (dd === 1 ? 'day' : 'days') + '</small>') : '—') + '</span><span class="focus-c">' +
+      (dl ? L.escapeHTML(clip(dl.description, 56)) : 'Nothing dated ahead') + '</span></a>');
+    document.getElementById('focus').innerHTML = f.join('');
+
+    // app tiles
+    var tile = function(href, name, big, cap, cls){
+      return '<a class="app-tile ' + (cls || '') + '" href="' + href + '"><span class="app-k">' + name + '</span><span class="app-v">' + big + '</span><span class="app-c">' + cap + '</span></a>';
+    };
+    document.getElementById('apps').innerHTML =
+      tile('tasks.html', 'Tasks', tasksAttention.length, overdue ? overdue + ' overdue' : 'due within a week', overdue ? 'warn' : '') +
+      tile('calendar.html', 'Calendar', evWeek + tasksAttention.length, 'items this week') +
+      tile('jobs.html', 'Jobs', jobs.ok ? researched + '/' + goal : '—', 'companies researched') +
+      tile('gre.html', 'GRE', greDays === null ? '—' : Math.max(0, greDays), greProg || 'days to test') +
+      tile('reading.html', 'Library', lib.length, toRead + ' to read, ' + toListen + ' to listen') +
+      tile('calls.html', 'Calls', calls14, 'closing within 2 weeks', calls14 ? 'warn' : '') +
+      tile('events.html', 'Events', evWeek, 'this week') +
+      tile('notes.html', 'Notes', nNotes, nNotes === 1 ? 'note' : 'notes');
+
+    // start-here line: one small thing, chosen in this order
+    var start = null;
+    var dueGre = gre.ok ? gre.items.filter(function(c){ return !greStudied(c) && c.date && c.date <= T; }).sort(function(a, b){ return a.date < b.date ? -1 : 1; })[0] : null;
+    if(dueGre) start = {href: 'gre.html', text: 'GRE: ' + clip(dueGre.title, 70)};
+    else if(jobs.ok && jn) start = {href: 'jobs.html', text: 'Job search: ' + jn.text};
+    var el = document.getElementById('homestart');
+    if(start){ el.classList.remove('hidden'); el.href = start.href; el.innerHTML = '<span class="start-k">Start here</span>' + L.escapeHTML(start.text); }
+    else el.classList.add('hidden');
+  }
+
+
+  // ---------- scout: daily art and architecture finds from the Gulf ----------
+  /* A scheduled task files a few verified finds a day into the "scout" collection.
+     Text comes from the web, so it is always escaped and links must be http(s). */
+  var SCOUT_DISMISS = 'badriyah-scout-dismissed-v1';
+  var scout = {ok: false, items: []};
+  var scoutAll = false;
+  var SCOUT_TYPES = {opening: 'Opening', call: 'Call', news: 'News', job: 'Job'};
+  var SCOUT_TAGS = ['From the Gulf', 'Today’s scout report', 'Worth a look', 'Scouted for you'];
+  try {
+    firebase.firestore().collection('scout').onSnapshot(function(snap){
+      scout.items = snap.docs.map(function(d){ return Object.assign({id: d.id}, d.data()); });
+      scout.ok = true; renderScout();
+    }, function(){ scout.ok = false; renderScout(); });
+  } catch(e){}
+  function scoutDismissed(){ try { return JSON.parse(localStorage.getItem(SCOUT_DISMISS) || '[]'); } catch(e){ return []; } }
+  function renderScout(){
+    var box = document.getElementById('scout'), body = document.getElementById('scoutbody');
+    var T = L.todayISO(), hidden = scoutDismissed();
+    var items = scout.items.filter(function(i){
+      return i.title && /^https?:\/\//i.test(i.link || '') && (!i.expires || i.expires >= T) && hidden.indexOf(i.id) === -1;
+    }).sort(function(a, b){ return (b.order || 0) - (a.order || 0); });
+    if(!scout.ok || !items.length){ box.classList.add('hidden'); return; }
+    box.classList.remove('hidden');
+    document.getElementById('scoutlabel').textContent = SCOUT_TAGS[dayOfYear() % SCOUT_TAGS.length];
+    var fresh = items.filter(function(i){ return i.found === T; }).length;
+    document.getElementById('scoutcount').textContent = fresh ? fresh + ' new today' : items.length + (items.length === 1 ? ' find' : ' finds');
+    var shown = scoutAll ? items : items.slice(0, 4);
+    body.innerHTML = shown.map(function(i){
+      var meta = [i.country, i.dateLabel, i.source].filter(Boolean).map(L.escapeHTML).join(' · ');
+      return '<div class="scout-item" data-id="' + L.escapeHTML(i.id) + '">' +
+        '<span class="scout-type t-' + L.escapeHTML(i.type || 'news') + '">' + L.escapeHTML(SCOUT_TYPES[i.type] || 'News') + (i.found === T ? ' · new' : '') + '</span>' +
+        '<a class="scout-title" href="' + L.escapeHTML(i.link) + '" target="_blank" rel="noopener noreferrer">' + L.escapeHTML(i.title) + ' ↗</a>' +
+        (i.blurb ? '<span class="scout-blurb">' + L.escapeHTML(i.blurb) + '</span>' : '') +
+        '<span class="scout-meta">' + meta + '<button type="button" class="scout-x" data-a="hide">Not for me</button></span>' +
+        '</div>';
+    }).join('') + (items.length > 4 ? '<button type="button" class="q-more" data-a="more">' + (scoutAll ? 'Show fewer' : 'Show ' + (items.length - 4) + ' more') + '</button>' : '');
+  }
+  document.getElementById('scoutbody').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-a]'); if(!b) return;
+    if(b.dataset.a === 'more'){ scoutAll = !scoutAll; renderScout(); return; }
+    var id = b.closest('.scout-item').dataset.id, list = scoutDismissed();
+    list.push(id);
+    try { localStorage.setItem(SCOUT_DISMISS, JSON.stringify(list.slice(-300))); } catch(err){}
+    renderScout();
   });
 
   L.onChange(render);
