@@ -770,17 +770,6 @@
   function greOnce(c){ return c.id.indexOf('dx-') === 0 || c.id.indexOf('rev-') === 0; }
   function greStudied(c){ return greOnce(c) ? !!c.done : !!c.study; }
 
-  function jobsNext(){
-    var open = jobs.items.filter(function(c){ return c.stage !== 'closed'; }).sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
-    var a = open.filter(function(c){ return !c.researchDone; })[0];
-    if(a) return {text: 'Research ' + a.name, short: a.name};
-    var b = open.filter(function(c){ return !c.cvDone; })[0];
-    if(b) return {text: 'Tailor your CV for ' + b.name, short: b.name};
-    var d = open.filter(function(c){ return !c.portfolioDone; })[0];
-    if(d) return {text: 'Tailor your portfolio for ' + d.name, short: d.name};
-    return null;
-  }
-
   function renderDashboard(){
     var T = L.todayISO();
     var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck; });
@@ -796,9 +785,8 @@
       greProg = content.filter(greStudied).length + ' of ' + content.length + ' chapters';
     }
     // Jobs
-    var goal = parseInt(jobs.settings.goal, 10) || 20;
-    var researched = jobs.items.filter(function(c){ return c.researchDone; }).length;
-    var jn = jobsNext();
+    var jobRows = jobs.items.filter(function(c){ return (c.name || '').trim(); });
+    var jobsApplied = jobRows.filter(function(c){ return c.stage === 'applied' || c.stage === 'interview' || c.stage === 'offer'; }).length;
     // Next deadline: nearest dated task that isn't waiting on someone
     var dl = tasks.filter(function(t){ return t.due && t.due >= T && leaf(t) && !isPending(t); })
       .sort(function(a, b){ return a.due < b.due ? -1 : 1; })[0];
@@ -818,15 +806,14 @@
       (greDays === null ? '—' : (greDays < 0 ? 'Done' : greDays + '<small> days to test</small>')) + '</span><span class="focus-c">' +
       (greNext ? L.escapeHTML('Next: ' + clip(greNext.title, 52)) : (gre.ok ? 'All chapters done' : 'Open the tracker')) + '</span></a>');
     f.push('<a class="focus-item" href="jobs.html"><span class="focus-k">Job search</span><span class="focus-v">' +
-      (jobs.ok ? researched + '<small> of ' + goal + ' researched</small>' : '—') + '</span><span class="focus-c">' +
-      (jobs.ok ? (jobs.items.length ? (jn ? L.escapeHTML('Next: ' + clip(jn.text, 52)) : 'Nothing left to prepare') : 'Add your first company') : 'Open the tracker') + '</span></a>');
+      (jobs.ok ? jobRows.length + '<small> ' + (jobRows.length === 1 ? 'company' : 'companies') + '</small>' : '\u2014') + '</span><span class="focus-c">' +
+      (jobs.ok ? (jobRows.length ? jobsApplied + ' applied' : 'Add your first company') : 'Open the sheet') + '</span></a>');
     document.getElementById('focus').innerHTML = f.join('');
 
     // start-here line: one small thing, chosen in this order
     var start = null;
     var dueGre = gre.ok ? gre.items.filter(function(c){ return !greStudied(c) && c.date && c.date <= T; }).sort(function(a, b){ return a.date < b.date ? -1 : 1; })[0] : null;
     if(dueGre) start = {href: 'gre.html', text: 'GRE: ' + clip(dueGre.title, 70)};
-    else if(jobs.ok && jn) start = {href: 'jobs.html', text: 'Job search: ' + jn.text};
     var el = document.getElementById('homestart');
     if(start){ el.classList.remove('hidden'); el.href = start.href; el.innerHTML = '<span class="start-k">Start here</span>' + L.escapeHTML(start.text); }
     else el.classList.add('hidden');
