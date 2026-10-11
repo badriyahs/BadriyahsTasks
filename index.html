@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=44">
+<link rel="stylesheet" href="styles.css?v=50">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,14 +34,31 @@
 <div class="view" id="view-digest">
   <div class="home-scroll">
     <div class="home-wrap">
+      <div class="home-top">
       <div class="home-head">
         <div class="home-greeting" lang="ar" dir="rtl">صباح الخير بدرية</div>
         <h1 class="home-date" id="digestdate"></h1>
         <div class="home-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
       </div>
 
-      <a class="home-start hidden" id="homestart" href="#"></a>
+      <div class="home-banner">
+        <div class="dua-box" id="duabox"></div>
+      </div>
+      </div>
 
+      <div class="focus" id="focus"></div>
+
+      <nav class="board-tabs" id="boardtabs" aria-label="Sections">
+        <button type="button" data-p="todos" class="on">To-dos</button>
+        <button type="button" data-p="cal">Calendar</button>
+        <button type="button" data-p="scout">Scouts</button>
+      </nav>
+
+      <div class="board">
+        <section class="panel p-todos on" data-panel="todos">
+          <div class="panel-photo" style="background-image:url('img/sun-setting.jpg')"></div>
+          <header class="panel-head"><h2>To-dos</h2><span class="panel-count" id="todocount"></span></header>
+          <div class="today-sum" id="todaysum"></div>
       <form class="qa" id="qaform" autocomplete="off">
         <div class="qa-row">
           <span class="qa-plus" aria-hidden="true">+</span>
@@ -55,32 +72,25 @@
         </div>
       </form>
 
-      <div class="home-banner">
-        <div class="dua-box" id="duabox"></div>
-        <img class="home-photo" src="img/sun-setting.jpg" alt="A detail from the Resistant Atlas project.">
-      </div>
+          <div id="todolist"></div>
+          <details class="drawer assist" id="assist" open>
+            <summary><span class="drawer-title">Quick questions</span><span class="drawer-count" id="assistcount"></span></summary>
+            <div class="assist-body" id="assistbody"></div>
+          </details>
+        </section>
 
-      <div class="focus" id="focus"></div>
+        <section class="panel p-cal" data-panel="cal">
+          <div class="panel-photo" style="background-image:url('img/astrolabes.jpg')"></div>
+          <header class="panel-head"><h2>Calendar</h2><span class="panel-count" id="calcount"></span></header>
+          <div class="home-days" id="homedays"></div>
+        </section>
 
-      <div class="home-cols">
-      <div class="home-col home-col-main">
-
-
-      <details class="drawer assist" id="assist" open>
-        <summary><span class="drawer-title">Quick questions</span><span class="drawer-count" id="assistcount"></span></summary>
-        <div class="assist-body" id="assistbody"></div>
-      </details>
-
-      <details class="drawer scout hidden" id="scout" open>
-        <summary><span class="drawer-title" id="scoutlabel">From the Gulf</span><span class="drawer-count" id="scoutcount"></span></summary>
-        <div class="drawer-body" id="scoutbody"></div>
-      </details>
-
-      </div>
-      <div class="home-col home-col-side">
-        <div class="home-section-label">Schedule</div>
-        <div class="home-days" id="homedays"></div>
-      </div>
+        <section class="panel p-scout" id="scout" data-panel="scout">
+          <div class="panel-photo" style="background-image:url('img/atlas-disc.jpg')"></div>
+          <header class="panel-head"><h2>Scouts</h2><span class="panel-sub" id="scoutlabel">From the Gulf</span><span class="panel-count" id="scoutcount"></span></header>
+          <div id="scoutbody"></div>
+          <div id="libpicks"></div>
+        </section>
       </div>
     </div>
   </div>
@@ -170,127 +180,136 @@
     return {label: label, diff: diff};
   }
 
+  var todoAll = false;
   function render(){
     renderDua();
     renderAssistant();
     renderDashboard();
     renderScout();
+    renderTodos();
+    renderCalendar();
+    renderLibPicks();
+  }
 
-    var todayStr = L.todayISO();
-    var horizon = new Date(todayStr + 'T00:00:00');
-    horizon.setDate(horizon.getDate() + 6);
-    var horizonStr = L.fmtISO(horizon);
+  /* ---- To-dos: only tasks (late, today, the next week), each with a box to tick ---- */
+  function todoRow(t, chip, cls){
+    return '<div class="todo ' + (cls || '') + '" data-id="' + t.id + '">' +
+      '<button type="button" class="todo-check" data-act="done" aria-label="Mark done"></button>' +
+      '<a class="todo-text" href="tasks.html#task-' + t.id + '">' + L.escapeHTML(t.description || 'Untitled') + '</a>' +
+      '<span class="todo-due">' + L.escapeHTML(chip) + '</span></div>';
+  }
+  function tickDays(){ try { return JSON.parse(localStorage.getItem('badriyah-ticks') || '[]'); } catch(e){ return []; } }
+  function streakCount(){
+    var days = tickDays(), set = {}; days.forEach(function(d){ set[d] = true; });
+    var d = L.todayISO(), n = 0;
+    if(!set[d]) d = addDaysISO(d, -1);              // today doesn't break a streak until it's over
+    while(set[d]){ n++; d = addDaysISO(d, -1); }
+    return n;
+  }
+  function recordTick(){
+    var T = L.todayISO(), days = tickDays();
+    if(days.indexOf(T) === -1){ days.push(T); try { localStorage.setItem('badriyah-ticks', JSON.stringify(days.slice(-60))); } catch(e){} }
+  }
+  function renderSummary(dueToday, doneToday){
+    var el = document.getElementById('todaysum');
+    var total = dueToday, left = total - doneToday, pct = total ? doneToday / total : 0, C = 163.4;
+    var streak = streakCount();
+    var line = !total ? 'Nothing due today. A calm day.' : left === 0 ? 'Clean sheet today. Well done.' : doneToday + ' of ' + total + ' done today. ' + left + ' to go, then you’re free.';
+    el.innerHTML = '<div class="ring"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="7"/>' +
+      '<circle cx="32" cy="32" r="26" fill="none" stroke="var(--good,#2E7D4F)" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + (C * (1 - pct)).toFixed(1) + '"/></svg>' +
+      '<b>' + (total ? doneToday + '/' + total : '✓') + '</b></div>' +
+      '<div class="sum-text"><div class="sum-line">' + L.escapeHTML(line) + '</div>' +
+      (streak >= 2 ? '<div class="sum-sub">' + streak + '-day streak of ticking things off</div>' : '') + '</div>';
+  }
+  function renderTodos(){
+    var T = L.todayISO(), weekEnd = addDaysISO(T, 7);
+    var all = L.state.tasks.filter(function(t){ return !t.archived && (t.description || '').trim() && t.due && !L.hasChildren(t.no); });
+    var tasks = all.filter(function(t){ return !t.struck; });
+    var byDue = function(a, b){ return a.due < b.due ? -1 : a.due > b.due ? 1 : (a.order || 0) - (b.order || 0); };
+    var late = tasks.filter(function(t){ return t.due < T && !isPending(t); }).sort(byDue);
+    var todayAll = all.filter(function(t){ return t.due === T; }).sort(function(a, b){ return (a.struck ? 1 : 0) - (b.struck ? 1 : 0) || (a.order || 0) - (b.order || 0); });
+    var today = todayAll.filter(function(t){ return !t.struck; });
+    var soon = tasks.filter(function(t){ return t.due > T && t.due <= weekEnd; }).sort(byDue);
+    var cap = todoAll ? 99 : 6;
+    var html = '';
+    if(todayAll.length) html += '<div class="todo-group">Today</div>' + todayAll.slice(0, cap + 4).map(function(t){ return todoRow(t, 'Today', t.struck ? 'is-done' : ''); }).join('');
+    if(soon.length) html += '<div class="todo-group">Next 7 days</div>' + soon.slice(0, cap).map(function(t){
+      var d = diffDays(T, t.due); return todoRow(t, d === 1 ? 'Tomorrow' : prettyDate(t.due).replace(/,.*/, '') + ' ' + new Date(t.due + 'T00:00:00').getDate()); }).join('');
+    if(late.length) html += '<details class="todo-late"><summary>' + late.length + ' late, one at a time</summary>' + late.slice(0, todoAll ? 99 : 8).map(function(t){
+      var d = diffDays(t.due, T); return todoRow(t, d + 'd late', 'is-late'); }).join('') + '</details>';
+    if(!html) html = '<div class="panel-empty">Nothing due. Add something above, or enjoy the quiet.</div>';
+    var hidden = Math.max(0, soon.length - cap);
+    if(hidden > 0 || todoAll) html += '<button type="button" class="q-more" data-act="todomore">' + (todoAll ? 'Show fewer' : 'Show ' + hidden + ' more') + '</button>';
+    document.getElementById('todolist').innerHTML = html;
+    var parts = [];
+    if(today.length) parts.push(today.length + ' left today');
+    if(late.length) parts.push(late.length + ' late');
+    document.getElementById('todocount').textContent = parts.join(' · ');
+    renderSummary(todayAll.length, todayAll.length - today.length);
+  }
+  document.getElementById('todolist').addEventListener('click', function(e){
+    var more = e.target.closest('button[data-act="todomore"]');
+    if(more){ todoAll = !todoAll; renderTodos(); return; }
+    var b = e.target.closest('button[data-act="done"]'); if(!b) return;
+    var row = b.closest('.todo'), wasDone = row.classList.contains('is-done');
+    row.classList.toggle('is-done');
+    L.toggleStrike(row.dataset.id);
+    if(wasDone){ toast('Back on your list', true); } else { recordTick(); toast('Nicely done', true); }
+  });
 
-    var buckets = {}; // label -> {order, diff, items:[]}
-    function pushItem(dateKey, order, item){
-      var label, diff;
-      var tail = dateKey === 'reading' || dateKey === 'listen';
-      if(dateKey === 'reading'){ label = 'Worth a Read'; diff = 9999; }
-      else if(dateKey === 'listen'){ label = 'Worth a Listen'; diff = 9998; }
-      else { var info = dayInfo(dateKey, todayStr); label = info.label; diff = info.diff; }
-      if(!buckets[label]) buckets[label] = {order: tail ? '9999-' + dateKey : order, diff: diff, items: []};
-      buckets[label].items.push(item);
+  /* ---- Calendar: events and call deadlines for the next week, grouped by day ---- */
+  function renderCalendar(){
+    var T = L.todayISO(), horizonStr = addDaysISO(T, 13), buckets = {};
+    function push(iso, item){
+      var info = dayInfo(iso, T);
+      if(!buckets[info.label]) buckets[info.label] = {order: iso, items: []};
+      buckets[info.label].items.push(item);
     }
-
-    L.state.tasks.filter(function(t){
-      return !t.archived && !t.struck && t.due && t.due <= horizonStr;
-    }).forEach(function(t){
-      var overdue = t.due < todayStr;
-      var pending = overdue && isPending(t);
-      pushItem(t.due, t.due, {
-        href: 'tasks.html#task-' + t.id,
-        text: t.description || 'Untitled',
-        meta: pending ? ('Pending · ' + t.dependency) : '',
-        cls: pending ? 'is-pending' : (overdue ? 'is-overdue' : '')
-      });
+    L.Events.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due && t.due >= T && t.due <= horizonStr; }).forEach(function(t){
+      push(t.due, {href: 'events.html#task-' + t.id, text: t.description || 'Untitled', meta: t.details || '', cls: 'is-event'});
     });
-
-    L.Events.state.tasks.filter(function(t){
-      return !t.archived && !t.struck && t.due && t.due >= todayStr && t.due <= horizonStr;
-    }).forEach(function(t){
-      pushItem(t.due, t.due, {
-        href: 'events.html#task-' + t.id,
-        text: t.description || 'Untitled',
-        meta: t.details || '',
-        cls: 'is-event'
-      });
-    });
-
-    // A call you're planning already has its own task above, so don't list it twice.
     var taskIds = {};
     L.state.tasks.forEach(function(t){ if(!t.archived && !t.struck) taskIds[t.id] = true; });
     L.callsState.items.filter(function(c){
       if(c.status === 'watch' || c.mine === 'skip') return false;
       if(c.linkedTaskId && taskIds[c.linkedTaskId]) return false;
       var d = L.daysUntil(c.deadline);
-      return d !== null && d >= 0 && d <= 6;
+      return d !== null && d >= 0 && d <= 13;
     }).forEach(function(c){
       var d = L.daysUntil(c.deadline);
-      pushItem(c.deadline, c.deadline, {
-        href: 'calls.html#call-' + c.id,
-        text: c.name,
-        meta: d === 0 ? 'Today' : (d + 'd left'),
-        cls: 'is-call'
-      });
+      push(c.deadline, {href: 'calls.html#call-' + c.id, text: c.name, meta: 'Deadline · ' + (d === 0 ? 'today' : d + 'd left'), cls: 'is-call'});
     });
+    var labels = Object.keys(buckets).sort(function(a, b){ return buckets[a].order < buckets[b].order ? -1 : 1; });
+    els.days.innerHTML = labels.length ? labels.map(function(label){
+      return '<div class="day-group"><div class="day-group-label"><span class="day-node"></span>' + L.escapeHTML(label) + '</div>' +
+        buckets[label].items.map(function(it){
+          return '<a class="day-item ' + it.cls + '" href="' + it.href + '"><span class="day-item-dot"></span><span class="day-item-text">' + L.escapeHTML(it.text) +
+            (it.meta ? '<span class="day-item-meta">' + L.escapeHTML(it.meta) + '</span>' : '') + '</span></a>';
+        }).join('') + '</div>';
+    }).join('') : '<div class="panel-empty">Nothing on the calendar this week.</div>';
+  }
 
+  /* ---- Library picks sit under the scouts ---- */
+  function renderLibPicks(){
     var open = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
     var pick = pickRotating(open.filter(function(r){ return r.kind !== 'podcast'; }), 1)[0];
-    if(pick){
-      pushItem('reading', 9999, {
-        href: 'reading.html#task-' + pick.id,
-        text: pick.title,
-        meta: pick.author || '',
-        cls: 'is-reading'
-      });
-    }
     var listen = pickRotating(open.filter(function(r){ return r.kind === 'podcast'; }), 1)[0];
-    if(listen){
-      pushItem('listen', 9998, {
-        href: 'reading.html#task-' + listen.id,
-        text: listen.title,
-        meta: listen.author || listen.category || '',
-        cls: 'is-reading'
-      });
-    }
-
-    var labels = Object.keys(buckets).sort(function(a,b){ return buckets[a].order < buckets[b].order ? -1 : 1; });
-
-    if(!labels.length){
-      els.days.innerHTML = '<div class="home-empty">A quiet few days ahead.</div>';
-      return;
-    }
-
-    var groupHTML = function(label){
-      var b = buckets[label];
-      var late = b.diff < 0 && b.diff > -9000;
-      /* The further overdue a bucket's date, the bigger/more intense its
-         timeline node — a quick-glance read of "how overdue" beyond the
-         day count in the header. */
-      var sev = late ? Math.min(1, Math.abs(b.diff) / 21) : 0;
-      var nodeStyle = late
-        ? 'style="width:' + (8 + sev*7).toFixed(0) + 'px;height:' + (8 + sev*7).toFixed(0) + 'px;background:var(--overdue);border-color:var(--overdue);opacity:' + (0.55 + sev*0.45).toFixed(2) + '"'
-        : '';
-      return '<div class="day-group' + (late ? ' is-late' : '') + '">' +
-        '<div class="day-group-label"><span class="day-node" ' + nodeStyle + '></span>' + L.escapeHTML(label) + '</div>' +
-        b.items.map(function(it){
-          return '<a class="day-item ' + it.cls + '" href="' + it.href + '">' +
-            '<span class="day-item-dot"></span>' +
-            '<span class="day-item-text">' + L.escapeHTML(it.text) +
-            (it.meta ? '<span class="day-item-meta">' + L.escapeHTML(it.meta) + '</span>' : '') +
-            '</span>' +
-            '</a>';
-        }).join('') +
-        '</div>';
-    };
-    /* Everything overdue folds into one quiet line, so the page opens on today. */
-    var isLate = function(l){ return buckets[l].diff < 0 && buckets[l].diff > -9000; };
-    var lateLabels = labels.filter(isLate), restLabels = labels.filter(function(l){ return !isLate(l); });
-    var lateCount = lateLabels.reduce(function(n, l){ return n + buckets[l].items.length; }, 0);
-    els.days.innerHTML =
-      (lateCount ? '<details class="overdue-fold"><summary>' + lateCount + ' overdue</summary>' + lateLabels.map(groupHTML).join('') + '</details>' : '') +
-      restLabels.map(groupHTML).join('');
+    var row = function(label, r){ return '<a class="lib-pick" href="reading.html#task-' + r.id + '"><span class="lib-k">' + label + '</span><span class="lib-t">' + L.escapeHTML(r.title) + '</span></a>'; };
+    document.getElementById('libpicks').innerHTML = (pick || listen) ?
+      '<div class="todo-group">From your library</div>' + (pick ? row('Worth a read', pick) : '') + (listen ? row('Worth a listen', listen) : '') : '';
   }
+
+  // ---- tabs (phone): one section at a time. On wide screens all three show. ----
+  var TAB_KEY = 'badriyah-home-tab';
+  function setTab(p){
+    document.querySelectorAll('#boardtabs button').forEach(function(b){ b.classList.toggle('on', b.dataset.p === p); });
+    document.querySelectorAll('.board .panel').forEach(function(sec){ sec.classList.toggle('on', sec.dataset.panel === p); });
+    try { localStorage.setItem(TAB_KEY, p); } catch(e){}
+  }
+  document.getElementById('boardtabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-p]'); if(b) setTab(b.dataset.p);
+  });
+  (function(){ var saved = null; try { saved = localStorage.getItem(TAB_KEY); } catch(e){} if(saved) setTab(saved); })();
 
   // ---------- small helpers ----------
   function addDaysISO(iso, n){
@@ -823,6 +842,7 @@
     var dueGre = gre.ok ? gre.items.filter(function(c){ return !greStudied(c) && c.date && c.date <= T; }).sort(function(a, b){ return a.date < b.date ? -1 : 1; })[0] : null;
     if(dueGre) start = {href: 'gre.html', text: 'GRE: ' + clip(dueGre.title, 70)};
     var el = document.getElementById('homestart');
+    if(!el) return;
     if(start){ el.classList.remove('hidden'); el.href = start.href; el.innerHTML = '<span class="start-k">Start here</span>' + L.escapeHTML(start.text); }
     else el.classList.add('hidden');
   }
@@ -849,9 +869,12 @@
     var items = scout.items.filter(function(i){
       return i.title && /^https?:\/\//i.test(i.link || '') && (!i.expires || i.expires >= T) && hidden.indexOf(i.id) === -1;
     }).sort(function(a, b){ return (b.order || 0) - (a.order || 0); });
-    if(!scout.ok || !items.length){ box.classList.add('hidden'); return; }
-    box.classList.remove('hidden');
     document.getElementById('scoutlabel').textContent = SCOUT_TAGS[dayOfYear() % SCOUT_TAGS.length];
+    if(!scout.ok || !items.length){
+      document.getElementById('scoutcount').textContent = '';
+      body.innerHTML = '<div class="panel-empty">' + (scout.ok ? 'Nothing new from the scout right now.' : 'The scout hasn\u2019t checked in yet.') + '</div>';
+      return;
+    }
     var fresh = items.filter(function(i){ return i.found === T; }).length;
     document.getElementById('scoutcount').textContent = fresh ? fresh + ' new today' : items.length + (items.length === 1 ? ' find' : ' finds');
     var shown = scoutAll ? items : items.slice(0, 3);
