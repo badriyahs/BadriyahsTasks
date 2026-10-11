@@ -5,7 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=43">
+<link rel="stylesheet" href="styles.css?v=44">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15181D" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body>
@@ -847,20 +855,82 @@
     var fresh = items.filter(function(i){ return i.found === T; }).length;
     document.getElementById('scoutcount').textContent = fresh ? fresh + ' new today' : items.length + (items.length === 1 ? ' find' : ' finds');
     var shown = scoutAll ? items : items.slice(0, 3);
+    var added = scoutAdded();
     body.innerHTML = shown.map(function(i){
       var meta = [i.country, i.dateLabel, i.source].filter(Boolean).map(L.escapeHTML).join(' · ');
       return '<div class="scout-item" data-id="' + L.escapeHTML(i.id) + '">' +
         '<span class="scout-type t-' + L.escapeHTML(i.type || 'news') + '">' + L.escapeHTML(SCOUT_TYPES[i.type] || 'News') + (i.found === T ? ' · new' : '') + '</span>' +
         '<a class="scout-title" href="' + L.escapeHTML(i.link) + '" target="_blank" rel="noopener noreferrer">' + L.escapeHTML(i.title) + ' ↗</a>' +
         (i.blurb ? '<span class="scout-blurb">' + L.escapeHTML(i.blurb) + '</span>' : '') +
-        '<span class="scout-meta">' + meta + '<button type="button" class="scout-x" data-a="hide">Not for me</button></span>' +
+        '<span class="scout-meta">' + meta + '</span>' +
+        '<span class="scout-actions">' + scoutActionsHTML(i, added[i.id]) +
+        '<button type="button" class="scout-x" data-a="hide">Not for me</button></span>' +
         '</div>';
     }).join('') + (items.length > 3 ? '<button type="button" class="q-more" data-a="more">' + (scoutAll ? 'Show fewer' : 'Show ' + (items.length - 3) + ' more') + '</button>' : '');
+  }
+
+  /* One tap puts a find where it belongs: openings on the calendar (the Events tab, which the
+     Calendar page shows), calls as a task due the day before the deadline, jobs as a row in the
+     Jobs sheet, news in the Library. A Google Calendar link is there too for the phone's own calendar. */
+  var SCOUT_ADDED = 'badriyah-scout-added-v1';
+  var SCOUT_DONE = {cal: 'On your calendar', task: 'Added as a task', jobs: 'Added to Jobs', lib: 'Saved to Library'};
+  var SCOUT_DONE_HREF = {cal: 'calendar.html', task: 'tasks.html', jobs: 'jobs.html', lib: 'reading.html'};
+  function scoutAdded(){ try { return JSON.parse(localStorage.getItem(SCOUT_ADDED) || '{}'); } catch(e){ return {}; } }
+  function markScoutAdded(id, kind){ var a = scoutAdded(); a[id] = kind; try { localStorage.setItem(SCOUT_ADDED, JSON.stringify(a)); } catch(e){} }
+  function gcalURL(i){
+    var d = String(i.dateISO || '').replace(/-/g, ''); if(d.length !== 8) return '';
+    var nextDay = L.fmtISO(new Date(new Date(i.dateISO + 'T00:00:00').getTime() + 86400000)).replace(/-/g, '');
+    var text = (i.type === 'call' ? 'Deadline: ' : '') + i.title;
+    return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent(text) +
+      '&dates=' + d + '/' + nextDay + '&details=' + encodeURIComponent((i.blurb ? i.blurb + '\n\n' : '') + i.link) +
+      (i.country ? '&location=' + encodeURIComponent(i.country) : '');
+  }
+  function scoutActionsHTML(i, done){
+    if(done) return '<a class="scout-done" href="' + SCOUT_DONE_HREF[done] + '">' + SCOUT_DONE[done] + ' ✓</a>';
+    var g = gcalURL(i), gl = g ? '<a class="scout-gcal" href="' + L.escapeHTML(g) + '" target="_blank" rel="noopener noreferrer">Google Calendar ↗</a>' : '';
+    if(i.type === 'opening' && i.dateISO) return '<button type="button" class="scout-add" data-a="cal">Add to calendar</button>' + gl;
+    if(i.type === 'call') return '<button type="button" class="scout-add" data-a="task">Add as task</button>' + gl;
+    if(i.type === 'job') return '<button type="button" class="scout-add" data-a="jobs">Add to Jobs</button>';
+    return '<button type="button" class="scout-add" data-a="lib">Save to Library</button>';
+  }
+  function dayBefore(iso){ return L.fmtISO(new Date(new Date(iso + 'T00:00:00').getTime() - 86400000)); }
+  function addScoutItem(item, kind){
+    var det = [item.blurb, [item.country, item.source].filter(Boolean).join(' · ')].filter(Boolean).join(' — ');
+    var fs = firebase.firestore();
+    if(kind === 'cal'){
+      return L.Events.addTaskWith({description: item.title, details: det, due: item.dateISO, category: 'Scout', link: item.link})
+        .then(function(){ toast('On your calendar: ' + prettyDate(item.dateISO), function(){ L.Events.undo(); }); });
+    }
+    if(kind === 'task'){
+      var due = item.dateISO ? dayBefore(item.dateISO) : '';
+      return L.addTask({description: item.title, details: det + (item.dateLabel ? ' (' + item.dateLabel + ')' : ''), due: due, category: 'Calls', link: item.link})
+        .then(function(){ toast('Added as a task' + (due ? ', due ' + prettyDate(due) + ' (a day before the deadline)' : ''), true); });
+    }
+    if(kind === 'jobs'){
+      var m = /^(.*?):\s+(.+)$/.exec(item.title);
+      return fs.collection('jobs').get().then(function(snap){
+        var max = 0; snap.docs.forEach(function(d){ max = Math.max(max, d.data().order || 0); });
+        return fs.collection('jobs').add({name: m ? m[1] : item.title, role: m ? m[2] : '', stage: 'idea', cvDone: false, portfolioDone: false, applyVia: item.link, notes: 'Found by the scout', order: max + 10});
+      }).then(function(){ toast('Added to your Jobs sheet', false); });
+    }
+    return fs.collection('reading').get().then(function(snap){
+      var max = 0, ref = 0; snap.docs.forEach(function(d){ var v = d.data(); max = Math.max(max, v.order || 0); ref = Math.max(ref, parseInt(v.ref, 10) || 0); });
+      return fs.collection('reading').add({ref: String(ref + 1), category: 'Gulf', title: item.title, author: item.source || '', year: '', pages: '', priority: '', status: 'not-started', link: item.link, note: item.blurb || '', kind: 'read', order: max + 10});
+    }).then(function(){ toast('Saved to your Library', false); });
   }
   document.getElementById('scoutbody').addEventListener('click', function(e){
     var b = e.target.closest('button[data-a]'); if(!b) return;
     if(b.dataset.a === 'more'){ scoutAll = !scoutAll; renderScout(); return; }
-    var id = b.closest('.scout-item').dataset.id, list = scoutDismissed();
+    var id = b.closest('.scout-item').dataset.id;
+    if(b.dataset.a === 'cal' || b.dataset.a === 'task' || b.dataset.a === 'jobs' || b.dataset.a === 'lib'){
+      var item = scout.items.filter(function(x){ return x.id === id; })[0];
+      if(!item) return;
+      b.disabled = true;
+      addScoutItem(item, b.dataset.a).then(function(){ markScoutAdded(id, b.dataset.a); renderScout(); })
+        .catch(function(err){ console.error(err); b.disabled = false; toast('Could not add that. Try again.', false); });
+      return;
+    }
+    var list = scoutDismissed();
     list.push(id);
     try { localStorage.setItem(SCOUT_DISMISS, JSON.stringify(list.slice(-300))); } catch(err){}
     renderScout();
