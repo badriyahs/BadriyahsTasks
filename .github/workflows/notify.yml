@@ -1,0 +1,36 @@
+name: Notifications
+
+# Sends the three daily phone notifications (Kuwait time is UTC+3).
+on:
+  schedule:
+    - cron: '0 5 * * *'    # 08:00 what's on today
+    - cron: '0 13 * * *'   # 16:00 your task
+    - cron: '5 13 * * *'   # 16:05 your GRE chapter
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'test, morning, task or gre'
+        default: 'test'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send the notification
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_KIND: ${{ github.event.inputs.kind }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then KIND="${INPUT_KIND:-test}"
+          else
+            case "$SCHEDULE" in
+              "0 5 * * *") KIND=morning ;;
+              "0 13 * * *") KIND=task ;;
+              "5 13 * * *") KIND=gre ;;
+              *) KIND=test ;;
+            esac
+          fi
+          python3 .github/scripts/notify.py "$KIND"
