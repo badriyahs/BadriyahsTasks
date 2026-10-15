@@ -268,11 +268,9 @@
     L.Events.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due && t.due >= T && t.due <= horizonStr; }).forEach(function(t){
       push(t.due, {href: 'events.html#task-' + t.id, text: t.description || 'Untitled', meta: t.details || '', cls: 'is-event'});
     });
-    var taskIds = {};
-    L.state.tasks.forEach(function(t){ if(!t.archived && !t.struck) taskIds[t.id] = true; });
+    // Every call deadline belongs on the calendar, even one you're planning (it also has its own task in To-dos).
     L.callsState.items.filter(function(c){
-      if(c.status === 'watch' || c.mine === 'skip') return false;
-      if(c.linkedTaskId && taskIds[c.linkedTaskId]) return false;
+      if(c.status === 'watch' || c.mine === 'skip' || c.mine === 'submitted') return false;
       var d = L.daysUntil(c.deadline);
       return d !== null && d >= 0 && d <= 13;
     }).forEach(function(c){
