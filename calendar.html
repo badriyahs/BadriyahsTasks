@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Calendar</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=50">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=53">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,14 +42,15 @@
   </div></div>
 
 <div class="view" id="view-cal">
-  <div class="calnav">
-    <button class="navbtn" id="calprev" aria-label="Previous month">‹</button>
-    <button class="navbtn" id="calnext" aria-label="Next month">›</button>
-    <h2 id="calmonth"></h2>
-    <button class="todaybtn" id="caltoday">Today</button>
-    <div class="legend" id="callegend"></div>
-  </div>
   <div class="cal-scroll">
+    <section class="wkview" id="wkview" aria-label="This week"></section>
+    <div class="calnav">
+      <button class="navbtn" id="calprev" aria-label="Previous month">‹</button>
+      <button class="navbtn" id="calnext" aria-label="Next month">›</button>
+      <h2 id="calmonth"></h2>
+      <button class="todaybtn" id="caltoday">Today</button>
+      <div class="legend" id="callegend"></div>
+    </div>
     <div class="calgrid" id="calgrid"></div>
   </div>
 </div>
@@ -128,6 +129,24 @@
     return map;
   }
 
+  function chipFor(t){
+        if(t._store === 'calls'){
+          var cs = t.mine === 'skip' ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : L.catClassStyle(t.category);
+          var clabel = '<span class="evt-mark">◆</span>' + L.escapeHTML(t.description||'Untitled');
+          var ctip = 'Call — ' + (t.description||'');
+          return '<button class="evt is-call" data-goto="'+t.id+'" data-goto-store="calls" style="background:'+cs.bg+';color:'+cs.fg+'" title="'+L.escapeHTML(ctip)+'">'+clabel+'</button>';
+        }
+        var store = storeFor(t);
+        var isEvent = t._store === 'events';
+        var s = t.struck ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : store.sectionColor(t.no);
+        var depth = L.depthOf(t.no);
+        var prefix = depth>0 ? (store.ancestorTitle(t.no)||'').toUpperCase() : '';
+        var mark = isEvent ? '<span class="evt-mark">✦</span>' : '';
+        var label = mark + (prefix?'<b>'+L.escapeHTML(prefix)+':</b> ':'') + (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled');
+        var tip = (isEvent?'Event — ':'') + (prefix?prefix+' — ':'') + (t.description||'');
+        return '<button class="evt'+(t.struck?' struck':'')+(isEvent?' is-event':'')+'" data-goto="'+t.id+'" data-goto-store="'+t._store+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
+        }
+
   function renderLegend(){
     var seen = {}, items = [];
     sectionItems().forEach(function(t){
@@ -145,7 +164,112 @@
     }).join('');
   }
 
+
+  // ---------- week schedule: all-day things, then Morning / Afternoon / Evening / Night ----------
+  var weekOffset = 0, healthPlan = {}, greItems = [], wkExpanded = {};
+  var SLOT_ROWS = [['m', 'Morning'], ['a', 'Afternoon'], ['e', 'Evening'], ['n', 'Night']];
+  var HEALTH_LABEL = {p: 'Pilates', s: 'Supplements', w: 'Walk', b: 'Bedtime'};
+  // The week starts on Monday, to match the month grid below it.
+  function weekIsos(offset){
+    var now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7) + offset * 7), out = [];
+    for(var i = 0; i < 7; i++){ out.push(L.fmtISO(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))); }
+    return out;
+  }
+  // An event's time of day, read from its details ("5:00 PM Kuwait time"). A time written right before "Kuwait" wins.
+  // A time in another zone (EST, CET, ...) with no Kuwait time beside it is left alone, so the event stays under All day.
+  function slotFromText(txt){
+    var re = /\b(\d{1,2})(?::(\d{2}))?\s*(?:[-–—]\s*(\d{1,2})(?::\d{2})?\s*)?([AaPp])\.?[Mm]\b/g, m, pick = null, first = null, firstRest = '';
+    txt = String(txt || '');
+    while((m = re.exec(txt))){
+      var rest = txt.slice(m.index + m[0].length);
+      if(!first){ first = m; firstRest = rest; }
+      if(!pick && /^[\s(,\/—–-]*(?:kuwait|kwt)\b/i.test(rest)) pick = m;
+    }
+    if(!pick && first && /^[\s(,\/—–-]*(?:[ECMP][SD]?T|GMT|UTC|BST|CE?S?T|IST|JST|GST|AE[SD]T|SGT|HKT)\b/.test(firstRest)) return null;
+    m = pick || first; if(!m) return null;
+    var s0 = (+m[1]) % 12, pm = /p/i.test(m[4]);
+    if(pm && m[3] && s0 > (+m[3]) % 12) pm = false;   // "10-12 PM" and "11-1 PM" start in the morning
+    var h = s0 + (pm ? 12 : 0);
+    return h < 5 ? 'n' : h < 12 ? 'm' : h < 17 ? 'a' : h < 21 ? 'e' : 'n';
+  }
+  function renderWeek(){
+    var el = document.getElementById('wkview'); if(!el) return;
+    var days = weekIsos(weekOffset), todayStr = L.todayISO(), evMap = eventsByDate();
+    var f = parseISODate(days[0]), l = parseISODate(days[6]);
+    var mo = function(d){ return MONTH_NAMES[d.getMonth()].slice(0, 3); };
+    var label = weekOffset === 0 ? 'This week' : (mo(f) + ' ' + f.getDate() + ' to ' + (mo(l) !== mo(f) ? mo(l) + ' ' : '') + l.getDate());
+    var html = '<div class="wk-head"><button type="button" class="navbtn" data-wk="-1" aria-label="Previous week">‹</button>' +
+      '<div class="wk-title"><b>' + label + '</b><span>' + mo(f) + ' ' + f.getDate() + ' – ' + mo(l) + ' ' + l.getDate() + '</span></div>' +
+      '<button type="button" class="navbtn" data-wk="1" aria-label="Next week">›</button>' +
+      (weekOffset !== 0 ? '<button type="button" class="todaybtn" data-wk="0">This week</button>' : '') + '</div>';
+    html += '<div class="wk-scroll"><div class="wk-grid"><div class="wk-corner"></div>';
+    days.forEach(function(iso){
+      var d = parseISODate(iso);
+      html += '<div class="wk-dh' + (iso === todayStr ? ' now' : '') + '"><span>' + DAY_NAMES[(d.getDay() + 6) % 7] + '</span><b>' + d.getDate() + '</b></div>';
+    });
+    // all-day row
+    html += '<div class="wk-rl all">All day</div>';
+    days.forEach(function(iso){
+      var d = parseISODate(iso), items = [], greOn = greItems.filter(function(g){ return g.date === iso; });
+      (evMap[iso] || []).forEach(function(t){ if(t._store === 'events' && slotFromText(t.details)) return; items.push(chipFor(t)); });
+      if(greOn.length) items.unshift('<a class="evt wk-gre" href="gre.html" title="' + L.escapeHTML(greOn.map(function(g){ return g.title; }).join(' · ')) + '">GRE · ' + L.escapeHTML(greOn[0].title) + (greOn.length > 1 ? ' +' + (greOn.length - 1) : '') + '</a>');
+      var open = wkExpanded[iso], shown = open ? items : items.slice(0, 3), extra = items.length - shown.length;
+      html += '<div class="wk-cell all' + (iso === todayStr ? ' now' : '') + '">' + shown.join('') +
+        (extra > 0 ? '<button type="button" class="more" data-wkmore="' + iso + '">+' + extra + ' more</button>' : (open && items.length > 3 ? '<button type="button" class="more" data-wkless="' + iso + '">Show less</button>' : '')) + '</div>';
+    });
+    // time-of-day rows: planned health things (from the Health tab) and timed events
+    SLOT_ROWS.forEach(function(sr){
+      html += '<div class="wk-rl ' + sr[0] + '">' + sr[1] + '</div>';
+      days.forEach(function(iso){
+        var d = parseISODate(iso), codes = (((healthPlan[d.getDay()] || {})[sr[0]]) || ''), chips = '';
+        (evMap[iso] || []).forEach(function(t){ if(t._store === 'events' && slotFromText(t.details) === sr[0]) chips += chipFor(t); });
+        var dots = codes.split('').filter(Boolean).map(function(c){ return '<a class="wk-h ' + c + '" href="health.html" title="' + HEALTH_LABEL[c] + '">' + c.toUpperCase() + '</a>'; }).join('');
+        html += '<div class="wk-cell' + (iso === todayStr ? ' now' : '') + '">' + chips + (dots ? '<div class="wk-hs">' + dots + '</div>' : '') + '</div>';
+      });
+    });
+    html += '</div></div><div class="wk-legend"><span class="wk-h p">P</span> pilates <span class="wk-h s">S</span> supplements <span class="wk-h w">W</span> walk <span class="wk-h b">B</span> bedtime <em>planned on the Health tab</em></div>';
+    var prevScroll = el.querySelector('.wk-scroll'), keepLeft = prevScroll ? prevScroll.scrollLeft : null;
+    el.innerHTML = html;
+    var sc = el.querySelector('.wk-scroll'), nowCol = el.querySelector('.wk-dh.now');
+    if(sc){
+      if(keepLeft !== null) sc.scrollLeft = keepLeft;
+      else if(nowCol) sc.scrollLeft = Math.max(0, nowCol.offsetLeft - 64 - 48);   // first open: today in view, with a day of context
+    }
+    el.querySelectorAll('[data-wk]').forEach(function(b){
+      b.addEventListener('click', function(){ var v = +b.dataset.wk; weekOffset = v === 0 ? 0 : weekOffset + v; renderWeek(); });
+    });
+    el.querySelectorAll('[data-wkmore]').forEach(function(b){ b.addEventListener('click', function(){ wkExpanded[b.dataset.wkmore] = true; renderWeek(); }); });
+    el.querySelectorAll('[data-wkless]').forEach(function(b){ b.addEventListener('click', function(){ delete wkExpanded[b.dataset.wkless]; renderWeek(); }); });
+    bindGoto(el);
+  }
+  function parseISODate(s){ var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function bindGoto(root){
+    root.querySelectorAll('[data-goto]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var store = el.dataset.gotoStore;
+        var page = store === 'events' ? 'events.html' : (store === 'calls' ? 'calls.html' : 'tasks.html');
+        var prefix = store === 'calls' ? 'call-' : 'task-';
+        window.location.href = page + '#' + prefix + el.dataset.goto;
+      });
+    });
+  }
+  // The Health plan and the GRE chapters live in their own collections.
+  try {
+    var fsdb = firebase.firestore();
+    fsdb.collection('health').doc('_settings').onSnapshot(function(doc){
+      var pj = doc.exists ? doc.data().planJson : ''; try { healthPlan = pj ? JSON.parse(pj) : {}; } catch(e){ healthPlan = {}; }
+      renderWeek();
+    }, function(){ healthPlan = {}; try { var sv = JSON.parse(localStorage.getItem('badriyah-health-v1') || 'null'); healthPlan = sv && sv.goals && sv.goals.planJson ? JSON.parse(sv.goals.planJson) : {}; } catch(e){} renderWeek(); });
+    fsdb.collection('gre').onSnapshot(function(snap){
+      greItems = snap.docs.filter(function(d){ return d.id !== '_settings'; }).map(function(d){ return Object.assign({id: d.id}, d.data()); })
+        .filter(function(g){ var once = g.id.indexOf('dx-') === 0 || g.id.indexOf('rev-') === 0; return g.date && !(once ? g.done : g.study); });
+      greItems.sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+      renderWeek();
+    }, function(){ greItems = []; renderWeek(); });
+  } catch(e){}
+
   function render(){
+    renderWeek();
     var y = calMonth.getFullYear(), m = calMonth.getMonth();
     els.calmonth.textContent = MONTH_NAMES[m] + ' ' + y;
     renderLegend();
@@ -168,23 +292,7 @@
       var visibleEvents = expanded ? dayEvents : dayEvents.slice(0,3);
       var extra = dayEvents.length - visibleEvents.length;
 
-      var chipsHTML = visibleEvents.map(function(t){
-        if(t._store === 'calls'){
-          var cs = t.mine === 'skip' ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : L.catClassStyle(t.category);
-          var clabel = '<span class="evt-mark">◆</span>' + L.escapeHTML(t.description||'Untitled');
-          var ctip = 'Call — ' + (t.description||'');
-          return '<button class="evt is-call" data-goto="'+t.id+'" data-goto-store="calls" style="background:'+cs.bg+';color:'+cs.fg+'" title="'+L.escapeHTML(ctip)+'">'+clabel+'</button>';
-        }
-        var store = storeFor(t);
-        var isEvent = t._store === 'events';
-        var s = t.struck ? {bg:'var(--archived-tint)', fg:'var(--faint)'} : store.sectionColor(t.no);
-        var depth = L.depthOf(t.no);
-        var prefix = depth>0 ? (store.ancestorTitle(t.no)||'').toUpperCase() : '';
-        var mark = isEvent ? '<span class="evt-mark">✦</span>' : '';
-        var label = mark + (prefix?'<b>'+L.escapeHTML(prefix)+':</b> ':'') + (t.no?('<span class="no">'+L.escapeHTML(t.no)+'</span>'):'') + L.escapeHTML(t.description||'Untitled');
-        var tip = (isEvent?'Event — ':'') + (prefix?prefix+' — ':'') + (t.description||'');
-        return '<button class="evt'+(t.struck?' struck':'')+(isEvent?' is-event':'')+'" data-goto="'+t.id+'" data-goto-store="'+t._store+'" style="background:'+s.bg+';color:'+s.fg+'" title="'+L.escapeHTML(tip)+'">'+label+'</button>';
-      }).join('');
+      var chipsHTML = visibleEvents.map(chipFor).join('');
       var moreHTML = extra>0 ? '<button class="more" data-expand="'+iso+'">+'+extra+' more</button>' : (expanded && dayEvents.length>3 ? '<button class="more" data-collapse="'+iso+'">Show less</button>' : '');
 
       html += '<div class="day'+(outside?' outside':'')+(isToday?' today':'')+'">' +
@@ -195,14 +303,7 @@
 
     els.calgrid.innerHTML = html;
 
-    els.calgrid.querySelectorAll('[data-goto]').forEach(function(el){
-      el.addEventListener('click', function(){
-        var store = el.dataset.gotoStore;
-        var page = store === 'events' ? 'events.html' : (store === 'calls' ? 'calls.html' : 'tasks.html');
-        var prefix = store === 'calls' ? 'call-' : 'task-';
-        window.location.href = page + '#' + prefix + el.dataset.goto;
-      });
-    });
+    bindGoto(els.calgrid);
     els.calgrid.querySelectorAll('[data-expand]').forEach(function(el){
       el.addEventListener('click', function(){ expandedDays[el.dataset.expand]=true; render(); });
     });
