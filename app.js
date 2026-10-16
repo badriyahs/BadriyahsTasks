@@ -916,6 +916,27 @@ window.Ledger = (function(){
     }
   }
 
+  /* ---- time of day: shared by the Calendar week view and the home schedule ---- */
+  var DAY_SLOTS = [['m', 'Morning'], ['a', 'Afternoon'], ['e', 'Evening'], ['n', 'Night']];
+  var HEALTH_WORDS = {p: 'pilates', s: 'supplements', w: 'walk', b: 'bedtime'};
+  function slotOfHour(h){ return h < 5 ? 'n' : h < 12 ? 'm' : h < 17 ? 'a' : h < 21 ? 'e' : 'n'; }
+  // An event's time of day, read from its details ("5:00 PM Kuwait time"). A time written right before "Kuwait" wins.
+  // A time in another zone (EST, CET, ...) with no Kuwait time beside it is left alone, so the event stays under All day.
+  function slotFromText(txt){
+    var re = /\b(\d{1,2})(?::(\d{2}))?\s*(?:[-–—]\s*(\d{1,2})(?::\d{2})?\s*)?([AaPp])\.?[Mm]\b/g, m, pick = null, first = null, firstRest = '';
+    txt = String(txt || '');
+    while((m = re.exec(txt))){
+      var rest = txt.slice(m.index + m[0].length);
+      if(!first){ first = m; firstRest = rest; }
+      if(!pick && /^[\s(,\/—–-]*(?:kuwait|kwt)\b/i.test(rest)) pick = m;
+    }
+    if(!pick && first && /^[\s(,\/—–-]*(?:[ECMP][SD]?T|GMT|UTC|BST|CE?S?T|IST|JST|GST|AE[SD]T|SGT|HKT)\b/.test(firstRest)) return null;
+    m = pick || first; if(!m) return null;
+    var s0 = (+m[1]) % 12, pm = /p/i.test(m[4]);
+    if(pm && m[3] && s0 > (+m[3]) % 12) pm = false;   // "10-12 PM" and "11-1 PM" start in the morning
+    return slotOfHour(s0 + (pm ? 12 : 0));
+  }
+
   return {
     // Tasks store, exposed flat for backward compatibility with existing pages
     state: Tasks.state,
@@ -949,6 +970,10 @@ window.Ledger = (function(){
     isURL: isURL,
     fmtISO: fmtISO,
     todayISO: todayISO,
+    DAY_SLOTS: DAY_SLOTS,
+    HEALTH_WORDS: HEALTH_WORDS,
+    slotOfHour: slotOfHour,
+    slotFromText: slotFromText,
     activityCol: activityCol,
     wireTopbar: wireTopbar,
     wireEditing: wireEditing,

@@ -1,0 +1,80 @@
+{
+  "_about": "Prepared kits for tasks. The Today column on the home page turns a kit into a doable, time-boxed plan. Keyed by task id.",
+  "tasks": {
+    "vq6I6UO1xVEqwXZ2NS18": {
+      "name": "Laura Kurgan talk: your ideas",
+      "why": "The hard part isn't the reading, it's deciding what to say. One bridge sentence between her work and yours is enough. Each step below is a place you could stop with something useful in hand.",
+      "steps": [
+        {
+          "t": "Skim her essay, GPS for the Brain",
+          "min": 10,
+          "how": "The opening and the section headings are enough. If something catches, jot one sentence on why she thinks a GPS dot is the wrong picture of how the brain maps space.",
+          "links": [
+            {
+              "label": "e-flux essay",
+              "url": "https://www.e-flux.com/architecture/spatial-computing/6782991/gps-for-the-brain-cognitive-maps-revisited"
+            }
+          ]
+        },
+        {
+          "t": "Look at You Are Here",
+          "min": 10,
+          "how": "Two pages, mostly images. The detail worth knowing: in Barcelona she walked a museum roof with a GPS receiver and drew the word MUSEU. It's interesting to set that against naming a star on the horizon.",
+          "links": [
+            {
+              "label": "MACBA: Museu",
+              "url": "https://www.macba.cat/en/exhibitions/laura-kurgan-you-are-here/"
+            },
+            {
+              "label": "Storefront: Information Drift",
+              "url": "https://storefront.nyc/program/you-are-here-information-drift/"
+            }
+          ]
+        },
+        {
+          "t": "Write the bridge",
+          "min": 15,
+          "how": "Three pairs, one line each: she locates by ___, the sky tradition locates by ___. Who holds the map? How is a place remembered? Rough is plenty. This is the heart of the hour."
+        },
+        {
+          "t": "Pick two questions and one star",
+          "min": 15,
+          "how": "Two questions from the list below, and one star name to bring, ideally one that can be shown on the actual sky that night."
+        },
+        {
+          "t": "Send your ideas",
+          "min": 10,
+          "how": "The outline below can be pasted into the message, with the two questions and the star added. It can be rough, and it can be adjusted on the night."
+        }
+      ],
+      "lists": [
+        {
+          "title": "A shape for the conversation",
+          "items": [
+            "Where are you? You Are Here: Museu versus naming a star at the horizon. Drawing with satellites versus drawing with names.",
+            "Who holds the map? GPS began as a military system, while sky knowledge belonged to a community. Add Million Dollar Blocks: who decides which data becomes visible?",
+            "How do we remember a place? The brain's \"GPS\" versus poems and star names as memory tools.",
+            "Back to this sky. The triennial is about civic infrastructure. Is the sky one? Who looks after it, and who is allowed to read it?"
+          ]
+        },
+        {
+          "title": "Questions you could ask her",
+          "items": [
+            "When you first used GPS as a drawing tool, what did the satellite not know about the building?",
+            "If GPS is the wrong metaphor for a cognitive map, what would you choose?",
+            "What do you think is lost when a place becomes a coordinate?",
+            "Is a poem a data format?"
+          ]
+        },
+        {
+          "title": "Questions she may ask you",
+          "items": [
+            "Why does a star name hold more than its position?",
+            "What did computation fail to hold when you translated the poems?"
+          ]
+        }
+      ],
+      "note": "Check her essay before you quote it. I'm not certain about the details of her GPS for the Brain talk."
+    }
+  }
+}

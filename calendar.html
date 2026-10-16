@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Calendar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=53">
+<link rel="stylesheet" href="styles.css?v=60">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -58,7 +58,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 <script>
 (function(){
   "use strict";
@@ -168,30 +168,14 @@
   // ---------- week schedule: all-day things, then Morning / Afternoon / Evening / Night ----------
   var weekOffset = 0, healthPlan = {}, greItems = [], wkExpanded = {};
   var SLOT_ROWS = [['m', 'Morning'], ['a', 'Afternoon'], ['e', 'Evening'], ['n', 'Night']];
-  var HEALTH_LABEL = {p: 'Pilates', s: 'Supplements', w: 'Walk', b: 'Bedtime'};
+  var HEALTH_LABEL = L.HEALTH_WORDS;
   // The week starts on Monday, to match the month grid below it.
   function weekIsos(offset){
     var now = new Date(), start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7) + offset * 7), out = [];
     for(var i = 0; i < 7; i++){ out.push(L.fmtISO(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))); }
     return out;
   }
-  // An event's time of day, read from its details ("5:00 PM Kuwait time"). A time written right before "Kuwait" wins.
-  // A time in another zone (EST, CET, ...) with no Kuwait time beside it is left alone, so the event stays under All day.
-  function slotFromText(txt){
-    var re = /\b(\d{1,2})(?::(\d{2}))?\s*(?:[-–—]\s*(\d{1,2})(?::\d{2})?\s*)?([AaPp])\.?[Mm]\b/g, m, pick = null, first = null, firstRest = '';
-    txt = String(txt || '');
-    while((m = re.exec(txt))){
-      var rest = txt.slice(m.index + m[0].length);
-      if(!first){ first = m; firstRest = rest; }
-      if(!pick && /^[\s(,\/—–-]*(?:kuwait|kwt)\b/i.test(rest)) pick = m;
-    }
-    if(!pick && first && /^[\s(,\/—–-]*(?:[ECMP][SD]?T|GMT|UTC|BST|CE?S?T|IST|JST|GST|AE[SD]T|SGT|HKT)\b/.test(firstRest)) return null;
-    m = pick || first; if(!m) return null;
-    var s0 = (+m[1]) % 12, pm = /p/i.test(m[4]);
-    if(pm && m[3] && s0 > (+m[3]) % 12) pm = false;   // "10-12 PM" and "11-1 PM" start in the morning
-    var h = s0 + (pm ? 12 : 0);
-    return h < 5 ? 'n' : h < 12 ? 'm' : h < 17 ? 'a' : h < 21 ? 'e' : 'n';
-  }
+  var slotFromText = L.slotFromText;
   function renderWeek(){
     var el = document.getElementById('wkview'); if(!el) return;
     var days = weekIsos(weekOffset), todayStr = L.todayISO(), evMap = eventsByDate();
@@ -223,11 +207,11 @@
       days.forEach(function(iso){
         var d = parseISODate(iso), codes = (((healthPlan[d.getDay()] || {})[sr[0]]) || ''), chips = '';
         (evMap[iso] || []).forEach(function(t){ if(t._store === 'events' && slotFromText(t.details) === sr[0]) chips += chipFor(t); });
-        var dots = codes.split('').filter(Boolean).map(function(c){ return '<a class="wk-h ' + c + '" href="health.html" title="' + HEALTH_LABEL[c] + '">' + c.toUpperCase() + '</a>'; }).join('');
+        var dots = codes.split('').filter(Boolean).map(function(c){ return HEALTH_LABEL[c] ? '<a class="wk-h ' + c + '" href="health.html">' + HEALTH_LABEL[c] + '</a>' : ''; }).join('');
         html += '<div class="wk-cell' + (iso === todayStr ? ' now' : '') + '">' + chips + (dots ? '<div class="wk-hs">' + dots + '</div>' : '') + '</div>';
       });
     });
-    html += '</div></div><div class="wk-legend"><span class="wk-h p">P</span> pilates <span class="wk-h s">S</span> supplements <span class="wk-h w">W</span> walk <span class="wk-h b">B</span> bedtime <em>planned on the Health tab</em></div>';
+    html += '</div></div><div class="wk-legend">Pilates, supplements, walks and bedtime come from your plan on the <a href="health.html">Health tab</a>.</div>';
     var prevScroll = el.querySelector('.wk-scroll'), keepLeft = prevScroll ? prevScroll.scrollLeft : null;
     el.innerHTML = html;
     var sc = el.querySelector('.wk-scroll'), nowCol = el.querySelector('.wk-dh.now');

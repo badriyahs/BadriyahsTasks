@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=53">
+<link rel="stylesheet" href="styles.css?v=60">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -50,13 +50,13 @@
       <div class="focus" id="focus"></div>
 
       <nav class="board-tabs" id="boardtabs" aria-label="Sections">
-        <button type="button" data-p="todos" class="on">To-dos</button>
-        <button type="button" data-p="cal">Calendar</button>
+        <button type="button" data-p="todos">To-dos</button>
+        <button type="button" data-p="today" class="on">Today</button>
         <button type="button" data-p="scout">Scouts</button>
       </nav>
 
       <div class="board">
-        <section class="panel p-todos on" data-panel="todos">
+        <section class="panel p-todos" data-panel="todos">
           <div class="panel-photo" style="background-image:url('img/sun-setting.jpg')"></div>
           <header class="panel-head"><h2>To-dos</h2><span class="panel-count" id="todocount"></span></header>
           <div class="today-sum" id="todaysum"></div>
@@ -80,10 +80,10 @@
           </details>
         </section>
 
-        <section class="panel p-cal" data-panel="cal">
+        <section class="panel p-cal p-today on" data-panel="today">
           <div class="panel-photo" style="background-image:url('img/astrolabes.jpg')"></div>
-          <header class="panel-head"><h2>Calendar</h2><span class="panel-count" id="calcount"></span></header>
-          <div class="home-days" id="homedays"></div>
+          <header class="panel-head"><h2>Today</h2><span class="panel-sub" id="todaysub"></span></header>
+          <div id="todaybody"></div>
         </section>
 
         <section class="panel p-scout" id="scout" data-panel="scout">
@@ -101,7 +101,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 <script>
 (function(){
   "use strict";
@@ -111,8 +111,7 @@
     date: document.getElementById('digestdate'),
     syncdot: document.getElementById('syncdot'),
     syncstate: document.getElementById('syncstate'),
-    dua: document.getElementById('duabox'),
-    days: document.getElementById('homedays')
+    dua: document.getElementById('duabox')
   };
 
   els.date.textContent = new Date().toLocaleDateString(undefined, {weekday:'long', month:'long', day:'numeric'});
@@ -188,7 +187,7 @@
     renderDashboard();
     renderScout();
     renderTodos();
-    renderCalendar();
+    renderToday();
     renderLibPicks();
   }
 
@@ -258,34 +257,35 @@
     if(wasDone){ toast('Back on your list', true); } else { recordTick(); toast('Nicely done', true); }
   });
 
-  /* ---- Calendar: events and call deadlines for the next week, grouped by day ---- */
-  function renderCalendar(){
-    var T = L.todayISO(), horizonStr = addDaysISO(T, 13), buckets = {};
+  /* ---- Coming up: events and call deadlines for the next week, grouped by day (shown under Today) ---- */
+  function comingUpHTML(){
+    var T = L.todayISO(), from = addDaysISO(T, 1), horizonStr = addDaysISO(T, 7), buckets = {};
     function push(iso, item){
       var info = dayInfo(iso, T);
       if(!buckets[info.label]) buckets[info.label] = {order: iso, items: []};
       buckets[info.label].items.push(item);
     }
-    L.Events.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due && t.due >= T && t.due <= horizonStr; }).forEach(function(t){
+    L.Events.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due && t.due >= from && t.due <= horizonStr; }).forEach(function(t){
       push(t.due, {href: 'events.html#task-' + t.id, text: t.description || 'Untitled', meta: t.details || '', cls: 'is-event'});
     });
     // Every call deadline belongs on the calendar, even one you're planning (it also has its own task in To-dos).
     L.callsState.items.filter(function(c){
       if(c.status === 'watch' || c.mine === 'skip' || c.mine === 'submitted') return false;
       var d = L.daysUntil(c.deadline);
-      return d !== null && d >= 0 && d <= 13;
+      return d !== null && d >= 1 && d <= 7;
     }).forEach(function(c){
       var d = L.daysUntil(c.deadline);
-      push(c.deadline, {href: 'calls.html#call-' + c.id, text: c.name, meta: 'Deadline · ' + (d === 0 ? 'today' : d + 'd left'), cls: 'is-call'});
+      push(c.deadline, {href: 'calls.html#call-' + c.id, text: c.name, meta: 'Deadline · ' + d + 'd left', cls: 'is-call'});
     });
     var labels = Object.keys(buckets).sort(function(a, b){ return buckets[a].order < buckets[b].order ? -1 : 1; });
-    els.days.innerHTML = labels.length ? labels.map(function(label){
+    return '<div class="td-sec">Coming up</div><div class="home-days">' + (labels.length ? labels.map(function(label){
       return '<div class="day-group"><div class="day-group-label"><span class="day-node"></span>' + L.escapeHTML(label) + '</div>' +
         buckets[label].items.map(function(it){
           return '<a class="day-item ' + it.cls + '" href="' + it.href + '"><span class="day-item-dot"></span><span class="day-item-text">' + L.escapeHTML(it.text) +
             (it.meta ? '<span class="day-item-meta">' + L.escapeHTML(it.meta) + '</span>' : '') + '</span></a>';
         }).join('') + '</div>';
-    }).join('') : '<div class="panel-empty">Nothing on the calendar this week.</div>';
+    }).join('') : '<div class="panel-empty">Nothing on the calendar this week.</div>') + '</div>' +
+      '<a class="td-more" href="calendar.html">Open the full calendar</a>';
   }
 
   /* ---- Library picks sit under the scouts ---- */
@@ -308,7 +308,7 @@
   document.getElementById('boardtabs').addEventListener('click', function(e){
     var b = e.target.closest('button[data-p]'); if(b) setTab(b.dataset.p);
   });
-  (function(){ var saved = null; try { saved = localStorage.getItem(TAB_KEY); } catch(e){} if(saved) setTab(saved); })();
+  (function(){ var saved = null; try { saved = localStorage.getItem(TAB_KEY); } catch(e){} if(saved === 'cal') saved = 'today'; if(saved) setTab(saved); })();
 
   // ---------- small helpers ----------
   function addDaysISO(iso, n){
@@ -797,6 +797,7 @@
   function greStudied(c){ return greOnce(c) ? !!c.done : !!c.study; }
 
   function renderDashboard(){
+    renderToday();
     var T = L.todayISO();
     var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck; });
     var leaf = function(t){ return !L.hasChildren(t.no); };
@@ -846,6 +847,405 @@
     else el.classList.add('hidden');
   }
 
+
+  // ---------- Today: a plan for the rest of the day ----------
+  /* Built from what's already in the site. A task with a prepared kit (prep.json, keyed by task id)
+     is laid out as small, time-boxed steps with the links already gathered. Other things due today
+     (and GRE chapters) are fitted in around it, up to 9 PM. Ticks and "not tonight" are per day, on this device. */
+  var healthPlan = {}, planReady = false;     // planReady: the real plan has arrived from the server, so it is safe to edit
+  try {
+    firebase.firestore().collection('health').doc('_settings').onSnapshot(function(doc){
+      var pj = doc.exists ? doc.data().planJson : ''; try { healthPlan = pj ? JSON.parse(pj) : {}; } catch(e){ healthPlan = {}; }
+      planReady = doc.exists || !(doc.metadata && doc.metadata.fromCache);
+      renderToday();
+    }, function(){
+      healthPlan = {}; planReady = false;
+      try { var sv = JSON.parse(localStorage.getItem('badriyah-health-v1') || 'null'); healthPlan = sv && sv.goals && sv.goals.planJson ? JSON.parse(sv.goals.planJson) : {}; } catch(e){}
+      renderToday();
+    });
+  } catch(e){}
+  var prep = {tasks: {}};
+  try { fetch('prep.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.tasks){ prep = j; renderToday(); } }).catch(function(){}); } catch(e){}
+
+  var WIND_DOWN = 21 * 60;
+  var PREP_KEY = 'badriyah-prep-v1';
+  var timer = null;                                  // {key, end} for the step being timed
+  function dayKey(){ var d = new Date(); if(d.getHours() < 5) d.setDate(d.getDate() - 1); return L.fmtISO(d); }
+  function prepState(){
+    var D = dayKey(), st = null;
+    try { st = JSON.parse(localStorage.getItem(PREP_KEY) || 'null'); } catch(e){}
+    if(!st || !st.done || typeof st.done !== 'object') st = {day: D, done: {}, skip: {}};
+    if(!st.skip || typeof st.skip !== 'object') st.skip = {};
+    if(st.day !== D){ st.day = D; st.skip = {}; }          // "skip for tonight" resets each day; ticked steps carry on
+    var cutoff = addDaysISO(L.todayISO(), -45);
+    Object.keys(st.done).forEach(function(k){ var v = st.done[k]; if(typeof v === 'string' && v < cutoff) delete st.done[k]; });
+    return st;
+  }
+  function savePrep(st){ try { localStorage.setItem(PREP_KEY, JSON.stringify(st)); } catch(e){} }
+  function span(mins){ mins = Math.max(0, Math.round(mins)); var h = Math.floor(mins / 60), m = mins % 60; return h ? h + ' h' + (m ? ' ' + m + ' m' : '') : m + ' m'; }
+  function mmss(secs){ return Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2); }
+  function clockText(d){ return d.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}); }
+  function safeURL(u){ return /^(https?:\/\/|[a-z0-9-]+\.html(#[\w-]*)?$)/i.test(String(u || '')) ? u : '#'; }
+  function linkAttr(u){ return /^https?:\/\//i.test(String(u || '')) ? ' target="_blank" rel="noopener"' : ''; }
+  // The time shown under an event: the one written right before "Kuwait" if there is one (same rule as L.slotFromText), else the first.
+  function timeText(txt){
+    var s = String(txt || ''), re = /\b\d{1,2}(?::\d{2})?\s*(?:[-–—]\s*\d{1,2}(?::\d{2})?\s*)?[AaPp]\.?[Mm]\b/g, m, first = '', firstRest = '';
+    while((m = re.exec(s))){
+      var rest = s.slice(m.index + m[0].length);
+      if(!first){ first = m[0]; firstRest = rest; }
+      if(/^[\s(,\/—–-]*(?:kuwait|kwt)\b/i.test(rest)) return m[0] + ' Kuwait time';
+    }
+    var z = /^[\s(,\/—–-]*((?:[ECMP][SD]?T|GMT|UTC|BST|CE?S?T|IST|JST|GST|AE[SD]T|SGT|HKT))\b/.exec(firstRest);
+    return z ? first + ' ' + z[1] : first;
+  }
+
+  function kitTotal(kit){ return kit.steps.reduce(function(n, x){ return n + (+x.min || 0); }, 0); }
+  function kitLeft(kit, key, st){ return kit.steps.reduce(function(n, x, i){ return st.done[key + '|' + i] ? n : n + (+x.min || 0); }, 0); }
+  // Full practice tests (about two hours) and heavier chapters take longer than a plain chapter.
+  function greMin(g){ return /^(dx-2|rev-1|rev-5)$/.test(g.id) ? 150 : greOnce(g) ? 50 : /vocab/i.test(g.title) ? 20 : 35; }
+  // What to do with the time that's left. Returns the things lined up, plus what didn't fit.
+  function buildPlan(budget){
+    var T = L.todayISO(), st = prepState(), tomorrow = addDaysISO(T, 1);
+    var tasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && (t.description || '').trim() && !L.hasChildren(t.no) && !isPending(t); });
+    var c = [], linked = {};
+    // a call you're planning that closes within two days comes first, with small, doable steps like any other item
+    L.callsState.items.forEach(function(cl){ if(cl.linkedTaskId && (cl.mine === 'submitted' || cl.mine === 'accepted' || cl.mine === 'skip')) linked[cl.linkedTaskId] = 1; });
+    L.callsState.items.filter(function(cl){ return cl.mine === 'planning' && cl.status !== 'watch' && cl.confidence !== 'estimated' && cl.deadline && cl.deadline >= T && cl.deadline <= addDaysISO(T, 2); }).forEach(function(cl){
+      var kit = (prep.calls && prep.calls[cl.id]) || callKit(cl);
+      if(cl.linkedTaskId) linked[cl.linkedTaskId] = 1;
+      c.push({pri: 0, due: cl.deadline, ord: -1, kind: 'call', key: 'call:' + cl.id, id: cl.id, title: cl.name, kit: kit, total: kitTotal(kit), min: kitLeft(kit, 'call:' + cl.id, st), href: 'calls.html#call-' + cl.id, call: cl});
+    });
+    tasks.forEach(function(t){
+      if(linked[t.id]) return;
+      var kit = prep.tasks && prep.tasks[t.id];
+      if(kit && kit.steps && kit.steps.length && t.due && t.due <= tomorrow){
+        c.push({pri: 1, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: kit.name || t.description, kit: kit, total: kitTotal(kit), min: kitLeft(kit, 'task:' + t.id, st), href: 'tasks.html#task-' + t.id, task: t});
+      } else if(t.due === T){
+        c.push({pri: 2, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: t.description, total: 25, min: st.done['task:' + t.id + '|0'] ? 0 : 25, href: 'tasks.html#task-' + t.id, task: t});
+      } else if(t.due && t.due < T){
+        c.push({pri: 4, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: t.description, total: 25, min: st.done['task:' + t.id + '|0'] ? 0 : 25, href: 'tasks.html#task-' + t.id, task: t});
+      }
+    });
+    if(gre.ok){
+      var greRow = function(g, pri){ var m = greMin(g); return {pri: pri, due: g.date || T, ord: g.order || 0, kind: 'gre', key: 'gre:' + g.id, id: g.id, title: 'GRE: ' + g.title, total: m, min: st.done['gre:' + g.id + '|0'] ? 0 : m, href: 'gre.html'}; };
+      gre.items.filter(function(g){ return !greStudied(g) && g.date === T; }).forEach(function(g){ c.push(greRow(g, 3)); });
+      // the single oldest chapter you're behind on, so catching up is always one click away without flooding the day
+      var behind = gre.items.filter(function(g){ return !greStudied(g) && g.date && g.date < T; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); })[0];
+      if(behind) c.push(greRow(behind, 3.5));
+    }
+    c.sort(function(a, b){ return a.pri - b.pri || (a.due < b.due ? -1 : a.due > b.due ? 1 : 0) || a.ord - b.ord; });
+    var plan = [], used = 0, later = [], skipped = [];
+    c.forEach(function(x){
+      if(st.skip[x.key]){ skipped.push(x); return; }
+      if(plan.length < 3 && (plan.length === 0 || used + x.min <= budget)){ plan.push(x); used += x.min; }
+      else if(x.pri < 4) later.push(x);
+    });
+    return {plan: plan, used: used, later: later, skipped: skipped};
+  }
+
+  // a deadline that is only a guess from last year's cycle is called what it is
+  function closesWord(cl){ return cl.confidence === 'estimated' ? 'expected around' : 'closes'; }
+  function callKit(cl){
+    return {name: cl.name, why: 'A rough version is a real submission. Each step is a place you could stop.', steps: [
+      {t: 'Open the call page', min: 3, how: 'Just to see what it asks for and the word limit.', links: cl.link ? [{label: 'Open the call', url: L.callLinkHref ? L.callLinkHref(cl.link) : cl.link}] : []},
+      {t: 'A rough version from what you already have', min: 20, how: 'An earlier abstract or description is a fine base. It only needs to be roughly right.'},
+      {t: 'Fit it to the limit', min: 10, how: 'Whatever the page lists. Trimming is easier than writing.'},
+      {t: 'Send it', min: 5, how: 'Done counts for more than polished. Many portals let you edit until the deadline, so it’s worth checking on this one.'}
+    ]};
+  }
+  // Pilates windows live in the same weekly plan as the Health tab (health/_settings.planJson: weekday -> slot -> letters).
+  function togglePilates(plan, wd, slot){
+    var pl = JSON.parse(JSON.stringify(plan || {}));
+    pl[wd] = pl[wd] || {};
+    var cur = pl[wd][slot] || '', has = cur.indexOf('p') !== -1;
+    var next = 'pswb'.split('').filter(function(ch){ return ch === 'p' ? !has : cur.indexOf(ch) !== -1; }).join('');
+    if(next) pl[wd][slot] = next; else delete pl[wd][slot];
+    if(!Object.keys(pl[wd]).length) delete pl[wd];
+    return pl;
+  }
+  function setPilates(wd, slot){
+    if(!planReady){ toast('Your plan is still loading. It may be worth trying again in a moment.'); return; }
+    var prior = healthPlan;
+    healthPlan = togglePilates(healthPlan, wd, slot); renderToday();
+    var failed = function(e){ console.error(e); healthPlan = prior; renderToday(); toast('That one didn’t save. It may be worth trying again in a moment.'); };
+    try {
+      var db = firebase.firestore(), ref = db.collection('health').doc('_settings');
+      // read-modify-write, so an edit made on the Health tab a moment ago isn't overwritten by a stale copy
+      db.runTransaction(function(tx){
+        return tx.get(ref).then(function(snap){
+          var cur = {}; try { cur = JSON.parse((snap.exists && snap.data().planJson) || '{}') || {}; } catch(e){}
+          var next = togglePilates(cur, wd, slot);
+          tx.set(ref, {planJson: JSON.stringify(next)}, {merge: true});
+          return next;
+        });
+      }).then(function(next){ healthPlan = next; renderToday(); }).catch(failed);
+    } catch(e){ failed(e); }
+  }
+  /* The week ahead: each of the next seven days by what's already fixed, with the morning, afternoon and
+     evening windows tappable for penciling in pilates. Optional, quiet, and nothing is booked. */
+  function weekAheadHTML(sat){
+    var T = L.todayISO(), DN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], WINS = [['m', 'Morning'], ['a', 'Afternoon'], ['e', 'Evening']];
+    var callsAll = L.callsState.items.filter(function(cl){ return cl.status !== 'watch' && cl.mine !== 'skip' && cl.mine !== 'submitted' && cl.deadline; });
+    var linkedIds = {}; L.callsState.items.forEach(function(cl){ if(cl.linkedTaskId) linkedIds[cl.linkedTaskId] = 1; });
+    var openTasks = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && (t.description || '').trim() && !L.hasChildren(t.no) && !isPending(t) && !linkedIds[t.id]; });
+    var evAll = L.Events.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due && (t.description || '').trim(); });
+    var pen = [], rows = '';
+    for(var i = 1; i <= 7; i++){
+      var iso = addDaysISO(T, i), d = new Date(iso + 'T00:00:00'), wd = d.getDay();
+      var evs = evAll.filter(function(t){ return t.due === iso; });
+      var busy = {}, parts = [];
+      evs.forEach(function(t){
+        var sl = L.slotFromText(t.details), tm = timeText(t.details);
+        if(sl) busy[sl] = (busy[sl] ? busy[sl] + ', ' : '') + clip(t.description, 30);
+        parts.push(clip(t.description, 34) + (tm ? ' (' + tm + ')' : ''));
+      });
+      var nT = openTasks.filter(function(t){ return t.due === iso; }).length;
+      if(nT) parts.push(nT + (nT === 1 ? ' to-do' : ' to-dos') + ' due');
+      var cs = callsAll.filter(function(cl){ return cl.deadline === iso; });
+      cs.forEach(function(cl){ parts.push(clip(cl.name, 30) + (cl.confidence === 'estimated' ? ' expected' : ' closes')); });
+      var nG = gre.ok ? gre.items.filter(function(g){ return !greStudied(g) && g.date === iso; }).length : 0;
+      if(nG) parts.push(nG === 1 ? 'a GRE chapter' : nG + ' GRE chapters');
+      var count = evs.length + nT + cs.length + nG;
+      var shape = count === 0 ? 'open' : count <= 2 ? 'light' : count <= 4 ? 'some on' : 'fuller';
+      var pw = healthPlan[wd] || {};
+      if(String(pw.n || '').indexOf('p') !== -1) pen.push((i === 7 ? 'Next ' : '') + DN[wd] + ' night');
+      var dayName = (i === 7 ? 'Next ' : '') + DN[wd] + ' ' + d.getDate();
+      var wins = WINS.map(function(w){
+        var on = String(pw[w[0]] || '').indexOf('p') !== -1;
+        if(on) pen.push((i === 7 ? 'Next ' : '') + DN[wd] + ' ' + w[1].toLowerCase());
+        var label = dayName + ' ' + w[1].toLowerCase() + (on ? ', pilates pencilled in' : busy[w[0]] ? ', something is on: ' + busy[w[0]] : ', free');
+        return '<button type="button" class="td-win' + (on ? ' on' : '') + (busy[w[0]] ? ' busy' : '') + '" data-act="pil" data-wd="' + wd + '" data-slot="' + w[0] + '" aria-pressed="' + on + '" aria-label="' + L.escapeHTML(label) + '"' +
+          (planReady ? '' : ' disabled') + (busy[w[0]] ? ' title="Something is on then: ' + L.escapeHTML(busy[w[0]]) + '"' : '') + '>' + w[1] + (on ? ' · pilates' : busy[w[0]] ? ' · busy' : '') + '</button>';
+      }).join('');
+      rows += '<div class="td-wk-day"><div class="td-wk-d"><b>' + dayName + '</b> <span class="td-shape">' + shape + '</span>' +
+        (parts.length ? '<small>' + L.escapeHTML(parts.slice(0, 3).join(' · ') + (parts.length > 3 ? ' · +' + (parts.length - 3) + ' more' : '')) + '</small>' : '') + '</div><div class="td-wins" role="group" aria-label="' + L.escapeHTML(dayName) + '">' + wins + '</div></div>';
+    }
+    var radar = callsAll.filter(function(cl){ var dd = L.daysUntil(cl.deadline); return dd !== null && dd >= 0 && dd <= 14; })
+      .sort(function(a, b){ return a.deadline < b.deadline ? -1 : 1; }).slice(0, 4);
+    var radarHTML = radar.length ? '<div class="td-sec">Calls on the radar</div>' + radar.map(function(cl){
+      var dd = L.daysUntil(cl.deadline);
+      return '<a class="td-row" href="calls.html#call-' + cl.id + '">' + L.escapeHTML(clip(cl.name, 70)) + '<small>' + closesWord(cl) + ' ' + (dd === 0 ? 'today' : dd === 1 ? 'tomorrow' : prettyDate(cl.deadline) + ' (' + dd + ' days)') + ' · a rough version is a real submission</small></a>';
+    }).join('') + '<a class="td-more" href="calls.html">All the calls</a>' : '';
+    return '<details class="td-week' + (sat ? ' td-sat' : '') + '" data-d="week"><summary>' + (sat ? 'Saturday morning: a look at the week, if you’d like one' : 'The week ahead, if you’d like a look') + '</summary>' +
+      '<p class="td-wk-intro">Each day is shown by what’s already fixed. Tapping a window sets pilates for that weekday in your Health plan, which repeats every week. Tap again to take it off. Nothing is booked, and skipping this is fine too.</p>' +
+      '<div class="td-wk-pen">' + (pen.length ? 'Pencilled in: ' + L.escapeHTML(pen.join(', ')) : 'Nothing pencilled in yet.') + '</div>' + rows + radarHTML +
+      (sat ? '<div class="td-foot"><button type="button" class="td-ghost" data-act="weekno">Not this week</button></div>' : '') + '</details>';
+  }
+
+  function skipWord(button){ var late = new Date().getHours() >= 17 || new Date().getHours() < 5; return button ? (late ? 'Skip for tonight' : 'Skip for today') : (late ? 'tonight' : 'today'); }
+  function stepsOf(it){
+    if(it.kit) return it.kit.steps;
+    var d = it.task && (it.task.details || '').trim();
+    return [{t: it.kind === 'gre' ? 'Study it' : 'Do it', min: it.total || it.min,
+      how: d ? clip(d, 170) : (it.kind === 'gre' ? 'Open the chapter and work through it at whatever pace suits.' : 'Open it and do the smallest first piece. Ten minutes counts.'),
+      links: [{label: it.kind === 'gre' ? 'Open the chapter' : 'Open the task', url: it.href}]}];
+  }
+  function itemHTML(it, st, first){
+    var steps = stepsOf(it), cur = -1, i;
+    for(i = 0; i < steps.length; i++){ if(!st.done[it.key + '|' + i]){ cur = i; break; } }
+    var finished = cur === -1;
+    var dueNote = '';
+    if(it.kind === 'call' && it.call){
+      var cd = diffDays(L.todayISO(), it.call.deadline);
+      dueNote = ' · ' + closesWord(it.call) + (cd <= 0 ? ' today' : cd === 1 ? ' tomorrow' : ' in ' + cd + ' days');
+    } else if(it.kind === 'task' && it.task && it.task.due){
+      var dd = diffDays(L.todayISO(), it.task.due);
+      dueNote = dd < 0 ? ' · from ' + prettyDate(it.task.due) : dd === 0 ? ' · due today' : ' · due tomorrow';
+    }
+    var h = '<div class="td-item' + (first ? ' td-now' : ' td-then') + '" data-key="' + L.escapeHTML(it.key) + '">' +
+      '<div class="td-k"><span>' + (first ? 'If you feel like it' : 'Then, maybe') + '</span>' + (finished ? '' : '<button type="button" class="td-ghost td-skip" data-act="skip" data-key="' + L.escapeHTML(it.key) + '">' + skipWord(true) + '</button>') + '</div>' +
+      '<div class="td-title">' + L.escapeHTML(clip(it.title, 90)) + '</div>' +
+      '<div class="td-meta">' + (it.min <= 0 ? 'every step ticked' : 'about ' + span(it.min) + (it.total && it.min < it.total ? ' left' : '')) + dueNote + '</div>';
+    if(it.kit && it.kit.why && first) h += '<div class="td-why">' + L.escapeHTML(it.kit.why) + '</div>';
+    if(first || it.kit){
+      h += '<ol class="td-steps">' + steps.map(function(s, k){
+        var done = !!st.done[it.key + '|' + k], isCur = k === cur, tkey = it.key + '|' + k;
+        var running = timer && timer.key === tkey;
+        return '<li class="td-step' + (done ? ' is-done' : '') + (isCur ? ' is-cur' : '') + '">' +
+          '<button type="button" class="td-box" data-act="step" data-key="' + L.escapeHTML(it.key) + '" data-i="' + k + '" aria-label="' + (done ? 'Mark not done: ' : 'Mark done: ') + L.escapeHTML(s.t) + '"></button>' +
+          '<div class="td-sb"><div class="td-st">' + L.escapeHTML(s.t) + ' <i>' + (+s.min || 0) + ' min</i></div>' +
+          (s.how && (isCur || !done) ? '<div class="td-how">' + L.escapeHTML(s.how) + '</div>' : '') +
+          ((s.links && s.links.length && !done) ? '<div class="td-links">' + s.links.map(function(l){ return '<a href="' + L.escapeHTML(safeURL(l.url)) + '"' + linkAttr(l.url) + '>' + L.escapeHTML(l.label) + (linkAttr(l.url) ? ' ↗' : '') + '</a>'; }).join('') + '</div>' : '') +
+          (isCur && first ? '<div class="td-act">' + (running
+            ? (timer.over ? '<span class="td-timer over">that’s the time you set</span><button type="button" class="td-ghost" data-act="tstop">Okay</button>'
+              : '<span class="td-timer" data-key="' + L.escapeHTML(tkey) + '">' + mmss(Math.max(0, Math.ceil((timer.end - Date.now()) / 1000))) + '</span><button type="button" class="td-ghost" data-act="tstop">Stop</button>')
+            : '<button type="button" class="td-go" data-act="tstart" data-key="' + L.escapeHTML(tkey) + '" data-min="' + (+s.min || 10) + '">Try ' + (+s.min || 10) + ' minutes</button>') + '</div>' : '') +
+          '</div></li>';
+      }).join('') + '</ol>';
+    } else {
+      h += '<div class="td-how">' + L.escapeHTML(steps[0].how) + '</div><div class="td-links">' + steps[0].links.map(function(l){ return '<a href="' + L.escapeHTML(safeURL(l.url)) + '"' + linkAttr(l.url) + '>' + L.escapeHTML(l.label) + '</a>'; }).join('') + '</div>';
+    }
+    if(finished) h += '<div class="td-fin">All done here. ' + (it.kind === 'task' ? '<button type="button" class="td-go" data-act="taskdone" data-id="' + L.escapeHTML(it.id) + '">Mark the task done</button>' : it.kind === 'call' ? '<button type="button" class="td-go" data-act="callsubmit" data-id="' + L.escapeHTML(it.id) + '">Mark it submitted</button> <a class="td-link" href="' + L.escapeHTML(it.href) + '">or open it on the Calls page</a>' : '<a class="td-go" href="gre.html">Tick it in the GRE tracker</a>') + '</div>';
+    if(it.kit && it.kit.lists && first){
+      h += '<details class="td-lists" data-d="lists"><summary>The outline, questions and what she may ask</summary>' + it.kit.lists.map(function(l, li){
+        return '<div class="td-list"><h4>' + L.escapeHTML(l.title) + '<button type="button" class="td-ghost" data-act="copy" data-key="' + L.escapeHTML(it.key) + '" data-li="' + li + '">Copy</button></h4><ol>' +
+          l.items.map(function(x){ return '<li>' + L.escapeHTML(x) + '</li>'; }).join('') + '</ol></div>';
+      }).join('') + (it.kit.note ? '<p class="td-note">' + L.escapeHTML(it.kit.note) + '</p>' : '') + '</details>';
+    }
+    return h + '</div>';
+  }
+
+  function renderToday(){
+    var el = document.getElementById('todaybody'); if(!el) return;
+    if(!L.state.tasks.length){ el.innerHTML = '<p class="td-hello">Getting your day ready…</p>'; return; }   // don't claim "nothing is pressing" before your tasks have arrived
+    var now = new Date(), T = L.todayISO(), hr = now.getHours(), nowMin = hr * 60 + now.getMinutes();
+    var left = WIND_DOWN - nowMin, st = prepState();
+    var openState = {}; el.querySelectorAll('details[data-d]').forEach(function(dt){ openState[dt.dataset.d] = dt.open; });
+    var curKey = L.slotOfHour(hr);
+    document.getElementById('todaysub').textContent = clockText(now) + ' · ' + now.toLocaleDateString(undefined, {weekday: 'long'});
+
+    var late = left <= 0 || hr < 5;
+    var budget = late ? 120 : Math.min(left, 180);
+    var P = buildPlan(budget);
+    // a timer only belongs to the step currently showing at the top
+    if(timer){
+      var top = P.plan[0], topKey = null;
+      if(top){ var tsteps = stepsOf(top); for(var q = 0; q < tsteps.length; q++){ if(!st.done[top.key + '|' + q]){ topKey = top.key + '|' + q; break; } } }
+      if(timer.key !== topKey) timer = null;
+    }
+    var focusRef = null, ae = document.activeElement;
+    if(ae && ae.dataset && ae.dataset.act && el.contains(ae)) focusRef = {act: ae.dataset.act, key: ae.dataset.key || '', i: ae.dataset.i || '', wd: ae.dataset.wd || '', slot: ae.dataset.slot || ''};
+    var hello = hr < 5 ? 'It’s late, Badriyah.' : hr < 12 ? 'Good morning, Badriyah.' : hr < 17 ? 'Good afternoon, Badriyah.' : 'Good evening, Badriyah.';
+    var line;
+    if(left <= 0) line = 'The day’s done. Here’s what’s waiting tomorrow, so you don’t have to hold it in your head tonight.';
+    else if(hr < 5) line = 'Rest is a fine plan right now. This is what’s waiting when you’re up.';
+    else if(!P.plan.length) line = 'Nothing is pressing. Rest is a fine plan, and your to-dos are there if something small appeals.';
+    else {
+      line = 'Here’s what could fit ' + (left > 240 ? 'into today' : 'into the evening') + ': <b>' + P.plan.length + (P.plan.length === 1 ? ' thing' : ' things') +
+        '</b>, about ' + span(P.used) + '.' + (P.used > left && left <= 240 ? ' That’s a little more than an evening usually holds, so stopping after any step is fine. Each one is useful.' : '');
+    }
+    var h = '<p class="td-hello"><b>' + hello + '</b> ' + line + '</p>';
+    // Saturday morning: the week-ahead card sits first (closed, easy to ignore). Other times it waits near the bottom.
+    var satMorning = now.getDay() === 6 && hr >= 5 && hr < 14, weekDismissed = false;
+    try { weekDismissed = localStorage.getItem('badriyah-week-dismiss') === T; } catch(e){}
+    var weekOnTop = satMorning && !weekDismissed;
+    if(weekOnTop) h += weekAheadHTML(true);
+
+    var nxtIds = {};
+    if(left <= 0 || hr < 5){
+      var tomorrow = addDaysISO(T, left <= 0 ? 1 : 0);
+      var nxt = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due === tomorrow && (t.description || '').trim() && !L.hasChildren(t.no) && !isPending(t); }).slice(0, 4);
+      if(P.plan.length && hr < 5) h += P.plan.map(function(it, k){ return itemHTML(it, st, k === 0); }).join('');
+      else {
+        // after 9 PM: whatever is still open, as plain rows to look at tomorrow (nothing to do tonight)
+        var rows = [], seenRow = {};
+        P.plan.concat(P.later).forEach(function(x){
+          seenRow[x.key] = 1;
+          rows.push({call: x.kind === 'call', href: x.href, title: x.title, note: x.kind === 'call' ? closesWord(x.call) + (x.due === T ? ' today, still open' : x.due === addDaysISO(T, 1) ? ' tomorrow' : ' ' + prettyDate(x.due)) : x.min <= 0 ? 'every step ticked' : 'about ' + span(x.min)});
+        });
+        nxt.forEach(function(t){ nxtIds['task:' + t.id] = 1; if(!seenRow['task:' + t.id]) rows.push({href: 'tasks.html#task-' + t.id, title: t.description, note: 'due tomorrow'}); });
+        h += rows.length ? '<div class="td-sec">' + (rows.some(function(r){ return r.call; }) ? 'Still open' : 'Waiting tomorrow') + '</div>' + rows.slice(0, 5).map(function(r){
+          return '<a class="td-row" href="' + L.escapeHTML(r.href) + '">' + L.escapeHTML(clip(r.title, 90)) + '<small>' + L.escapeHTML(r.note) + '</small></a>';
+        }).join('') : '<p class="td-later">Nothing is waiting. A clear start.</p>';
+      }
+    } else {
+      h += P.plan.map(function(it, k){ return itemHTML(it, st, k === 0); }).join('');
+    }
+    if(P.later.length && left > 0 && hr >= 5){
+      var laterNames = P.later.map(function(x){ return L.escapeHTML(clip(x.title, 60)); }).join('; ');
+      h += left > 240 ? '<p class="td-later">Could come next: ' + laterNames + '.</p>' : '<p class="td-later">Didn’t fit tonight: ' + laterNames + '. Tomorrow could suit those better.</p>';
+    }
+    if(P.skipped.length) h += '<p class="td-later">Skipped for ' + skipWord(false) + ': ' + P.skipped.map(function(x){ return L.escapeHTML(clip(x.title, 50)) + ' <button type="button" class="td-link" data-act="unskip" data-key="' + L.escapeHTML(x.key) + '">bring back</button>'; }).join('; ') + '.</p>';
+
+    // also today: what's still ahead from the Health plan, timed events, deadlines
+    var also = [], slots = L.DAY_SLOTS, idx = 0; slots.forEach(function(sr, i){ if(sr[0] === curKey) idx = i; });
+    var plan = healthPlan[now.getDay()] || {};
+    slots.forEach(function(sr, i){
+      if(i < idx && !(hr < 5)) return;
+      var codes = ((sr[0] === 'n' && hr < 5 ? healthPlan[(now.getDay() + 6) % 7] || {} : plan)[sr[0]]) || '';
+      String(codes).split('').forEach(function(ch){
+        if(L.HEALTH_WORDS[ch]) also.push('<a class="td-pill ' + ch + '" href="health.html">' + L.HEALTH_WORDS[ch] + '<small>' + sr[1].toLowerCase() + '</small></a>');
+      });
+    });
+    L.Events.state.tasks.filter(function(t){
+      if(t.archived || t.struck || t.due !== T || !(t.description || '').trim()) return false;
+      var es = L.slotFromText(t.details), ei = -1; slots.forEach(function(sr, i){ if(sr[0] === es) ei = i; });
+      return !(hr >= 5 && ei !== -1 && ei < idx);          // events already past aren't listed as "also today"
+    }).forEach(function(t){
+      var tm = timeText(t.details);
+      also.push('<a class="td-pill ev" href="events.html#task-' + t.id + '">' + L.escapeHTML(clip(t.description, 44)) + (tm ? '<small>' + L.escapeHTML(tm) + '</small>' : '') + '</a>');
+    });
+    L.callsState.items.filter(function(c){ return c.status !== 'watch' && c.mine !== 'skip' && c.mine !== 'submitted' && L.daysUntil(c.deadline) === 0 && !st.skip['call:' + c.id]; }).forEach(function(c){
+      also.push('<a class="td-pill dl" href="calls.html#call-' + c.id + '">Deadline: ' + L.escapeHTML(clip(c.name, 40)) + '</a>');
+    });
+    if(also.length) h += '<div class="td-sec">Also today</div><div class="td-also">' + also.join('') + '</div>';
+
+    // calls closing within five days that aren't already in tonight's plan, then other things due in the next three days
+    var inPlan = {}; P.plan.concat(P.later, P.skipped).forEach(function(x){ inPlan[x.key] = 1; }); Object.keys(nxtIds).forEach(function(k){ inPlan[k] = 1; });
+    var closingTaskIds = {};
+    var callsSoon = L.callsState.items.filter(function(cl){
+      var dd = L.daysUntil(cl.deadline);
+      return cl.status !== 'watch' && cl.mine !== 'skip' && cl.mine !== 'submitted' && dd !== null && dd >= 0 && dd <= 5 && !inPlan['call:' + cl.id];
+    }).sort(function(a, b){ return a.deadline < b.deadline ? -1 : 1; }).slice(0, 3);
+    L.callsState.items.forEach(function(cl){ if(cl.linkedTaskId) closingTaskIds[cl.linkedTaskId] = 1; });
+    if(callsSoon.length) h += '<div class="td-sec">Closing soon</div>' + callsSoon.map(function(cl){
+      var dd = L.daysUntil(cl.deadline);
+      return '<a class="td-row" href="calls.html#call-' + cl.id + '">' + L.escapeHTML(clip(cl.name, 80)) + '<small>' + closesWord(cl) + ' ' + (dd === 0 ? 'today' : dd === 1 ? 'tomorrow' : prettyDate(cl.deadline)) + ' · a rough version is a real submission</small></a>';
+    }).join('');
+    var soon = L.state.tasks.filter(function(t){
+      return !t.archived && !t.struck && (t.description || '').trim() && !L.hasChildren(t.no) && !isPending(t) && t.due && t.due > T && t.due <= addDaysISO(T, 3) && !inPlan['task:' + t.id] && !closingTaskIds[t.id];
+    }).sort(function(a, b){ return a.due < b.due ? -1 : 1; }).slice(0, 3);
+    if(soon.length) h += '<div class="td-sec">On the horizon</div>' + soon.map(function(t){
+      var dd = diffDays(T, t.due);
+      return '<a class="td-row" href="tasks.html#task-' + t.id + '">' + L.escapeHTML(clip(t.description, 80)) + '<small>' + (dd === 1 ? 'tomorrow' : prettyDate(t.due)) + (t.details ? ' · ' + L.escapeHTML(clip(t.details, 60)) : '') + '</small></a>';
+    }).join('');
+    if(!weekOnTop) h += weekAheadHTML(false);
+    h += comingUpHTML();
+    el.innerHTML = h;
+    el.querySelectorAll('details[data-d]').forEach(function(dt){ if(openState[dt.dataset.d]) dt.open = true; });
+    if(focusRef){   // keep keyboard focus where it was after a redraw
+      var again = [].slice.call(el.querySelectorAll('[data-act="' + focusRef.act + '"]')).filter(function(x){
+        return (x.dataset.key || '') === focusRef.key && (x.dataset.i || '') === focusRef.i && (x.dataset.wd || '') === focusRef.wd && (x.dataset.slot || '') === focusRef.slot; })[0];
+      if(again) try { again.focus({preventScroll: true}); } catch(e){}
+    }
+  }
+  document.getElementById('todaybody').addEventListener('click', function(e){
+    var b = e.target.closest('[data-act]'); if(!b) return;
+    var act = b.dataset.act, st = prepState();
+    if(act === 'step'){
+      var k = b.dataset.key + '|' + b.dataset.i;
+      if(st.done[k]) delete st.done[k]; else { st.done[k] = L.todayISO(); if(timer && timer.key === k) timer = null; }
+      savePrep(st); renderToday();
+    } else if(act === 'skip'){
+      st.skip[b.dataset.key] = 1; if(timer && timer.key.indexOf(b.dataset.key + '|') === 0) timer = null; savePrep(st); toast('Okay, skipped for ' + skipWord(false)); renderToday();
+    } else if(act === 'unskip'){
+      delete st.skip[b.dataset.key]; savePrep(st); renderToday();
+    } else if(act === 'tstart'){
+      timer = {key: b.dataset.key, end: Date.now() + (+b.dataset.min || 10) * 60000}; renderToday();
+    } else if(act === 'tstop'){
+      timer = null; renderToday();
+    } else if(act === 'taskdone'){
+      L.toggleStrike(b.dataset.id); recordTick(); toast('Nicely done', true);
+    } else if(act === 'callsubmit'){
+      var cid = b.dataset.id, call = L.callsState.items.filter(function(x){ return x.id === cid; })[0];
+      L.setCallMine(cid, 'submitted');
+      if(call && call.linkedTaskId){ var lt = L.state.tasks.filter(function(x){ return x.id === call.linkedTaskId; })[0]; if(lt && !lt.struck) L.toggleStrike(lt.id); }
+      recordTick(); toast('Submitted. Well done.');
+    } else if(act === 'pil'){
+      setPilates(+b.dataset.wd, b.dataset.slot);
+    } else if(act === 'weekno'){
+      try { localStorage.setItem('badriyah-week-dismiss', L.todayISO()); } catch(e){}
+      var wkEl = document.querySelector('.td-week'); if(wkEl) wkEl.open = false;
+      toast('Okay, no planning this week. The week view stays near the bottom if you change your mind.'); renderToday();
+      var hd = document.querySelector('.p-today .panel-head h2'); if(hd){ hd.setAttribute('tabindex', '-1'); try { hd.focus({preventScroll: true}); } catch(e){} }
+    } else if(act === 'copy'){
+      var itKey = b.dataset.key, id = itKey.replace(/^task:/, ''), kit = prep.tasks && prep.tasks[id], l = kit && kit.lists && kit.lists[+b.dataset.li];
+      if(!l) return;
+      var text = l.title + '\n' + l.items.map(function(x, n){ return (n + 1) + '. ' + x; }).join('\n');
+      var ok = function(){ toast('Copied'); };
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok, function(){ toast('Couldn’t copy. Select the text instead.'); }); }
+      else toast('Couldn’t copy. Select the text instead.');
+    }
+  });
+  setInterval(function(){
+    if(timer && !timer.over){
+      var secs = Math.ceil((timer.end - Date.now()) / 1000);
+      if(secs <= 0){ timer.over = true; toast('That’s the time you set. Stop, keep going, or switch, whatever suits.'); renderToday(); return; }
+      var t = document.querySelector('.td-timer');
+      if(t) t.textContent = mmss(secs);
+    }
+  }, 1000);
+  setInterval(function(){ var body = document.getElementById('todaybody'); if((!timer || timer.over) && !(body && body.contains(document.activeElement) && document.activeElement !== body)) renderToday(); }, 60000);
 
   // ---------- scout: daily art and architecture finds from the Gulf ----------
   /* A scheduled task files a few verified finds a day into the "scout" collection.
