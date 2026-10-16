@@ -922,8 +922,11 @@ window.Ledger = (function(){
   function slotOfHour(h){ return h < 5 ? 'n' : h < 12 ? 'm' : h < 17 ? 'a' : h < 21 ? 'e' : 'n'; }
   // An event's time of day, read from its details ("5:00 PM Kuwait time"). A time written right before "Kuwait" wins.
   // A time in another zone (EST, CET, ...) with no Kuwait time beside it is left alone, so the event stays under All day.
-  function slotFromText(txt){
-    var re = /\b(\d{1,2})(?::(\d{2}))?\s*(?:[-–—]\s*(\d{1,2})(?::\d{2})?\s*)?([AaPp])\.?[Mm]\b/g, m, pick = null, first = null, firstRest = '';
+  // The time in an event's details that counts (regex match), or null. A time written right before "Kuwait" wins.
+  // A time in another zone (EST, CET, ...) with no Kuwait time beside it is not used.
+  // Groups: 1 hour, 2 minutes, 3 start AM/PM (when both ends have their own), 4 end hour, 5 end minutes, 6 the closing AM/PM.
+  function pickTime(txt){
+    var re = /\b(\d{1,2})(?::(\d{2}))?\s*(?:([AaPp])\.?[Mm]\.?\s*)?(?:[-–—]\s*(\d{1,2})(?::(\d{2}))?\s*)?([AaPp])\.?[Mm]\b/g, m, pick = null, first = null, firstRest = '';
     txt = String(txt || '');
     while((m = re.exec(txt))){
       var rest = txt.slice(m.index + m[0].length);
@@ -931,11 +934,18 @@ window.Ledger = (function(){
       if(!pick && /^[\s(,\/—–-]*(?:kuwait|kwt)\b/i.test(rest)) pick = m;
     }
     if(!pick && first && /^[\s(,\/—–-]*(?:[ECMP][SD]?T|GMT|UTC|BST|CE?S?T|IST|JST|GST|AE[SD]T|SGT|HKT)\b/.test(firstRest)) return null;
-    m = pick || first; if(!m) return null;
-    var s0 = (+m[1]) % 12, pm = /p/i.test(m[4]);
-    if(pm && m[3] && s0 > (+m[3]) % 12) pm = false;   // "10-12 PM" and "11-1 PM" start in the morning
-    return slotOfHour(s0 + (pm ? 12 : 0));
+    return pick || first;
   }
+  function parseTime(m){
+    var s0 = (+m[1]) % 12, pm = /p/i.test(m[3] || m[6]);
+    if(!m[3] && pm && m[4] && s0 > (+m[4]) % 12) pm = false;   // "10-12 PM" and "11-1 PM" start in the morning
+    var start = (s0 + (pm ? 12 : 0)) * 60 + (m[2] ? +m[2] : 0), end = start + 60, explicit = false;
+    if(m[4]){ var e = ((+m[4]) % 12 + (/p/i.test(m[6]) ? 12 : 0)) * 60 + (m[5] ? +m[5] : 0); if(e > start){ end = e; explicit = true; } }
+    return {start: start, end: end, explicit: explicit};
+  }
+  function slotFromText(txt){ var m = pickTime(txt); return m ? slotOfHour(Math.floor(parseTime(m).start / 60)) : null; }
+  // Start and end of the event's time, in minutes since midnight, or null. `explicit` is false when no end was given (an hour is assumed).
+  function timeRange(txt){ var m = pickTime(txt); return m ? parseTime(m) : null; }
 
   return {
     // Tasks store, exposed flat for backward compatibility with existing pages
@@ -974,6 +984,7 @@ window.Ledger = (function(){
     HEALTH_WORDS: HEALTH_WORDS,
     slotOfHour: slotOfHour,
     slotFromText: slotFromText,
+    timeRange: timeRange,
     activityCol: activityCol,
     wireTopbar: wireTopbar,
     wireEditing: wireEditing,
