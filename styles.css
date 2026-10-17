@@ -30,6 +30,7 @@
 
 *{box-sizing:border-box;}
 html,body{height:100%;}
+html{overscroll-behavior:none;}
 body{
   margin:0;
   background:var(--paper);
@@ -39,8 +40,10 @@ body{
   -webkit-font-smoothing:antialiased;
   display:flex;
   flex-direction:column;
-  height:100vh;
+  /* Pinned to the visible screen. On iPhone Safari, 100vh is taller than what you can see, which let the header scroll up under the toolbar. */
+  position:fixed;inset:0;
   overflow:hidden;
+  overscroll-behavior:none;
 }
 
 /* ---- top bar ---- */

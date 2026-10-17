@@ -27,7 +27,7 @@
   }
   function build(){
     var box = document.createElement('div'); box.id = 'lock';
-    box.innerHTML = '<form autocomplete="off"><h1>Badriyah\u2019s Tasks</h1><input type="password" id="lockpw" placeholder="Password" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Password"><br><button type="submit">Open</button><p id="lockmsg" role="status"></p></form>';
+    box.innerHTML = '<form autocomplete="off"><h1>Enter Badriyah\u2019s world</h1><input type="password" id="lockpw" placeholder="Password" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Password"><br><button type="submit">Open</button><p id="lockmsg" role="status"></p></form>';
     document.body.appendChild(box);
     var form = box.querySelector('form'), input = box.querySelector('input'), msg = box.querySelector('#lockmsg'), btn = box.querySelector('button');
     setTimeout(function(){ try { input.focus(); } catch(e){} }, 50);
