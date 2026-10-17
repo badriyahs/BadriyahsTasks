@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=68">
+<link rel="stylesheet" href="styles.css?v=69">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1026,6 +1026,11 @@
       var behind = gre.items.filter(function(g){ return !greStudied(g) && g.date && g.date < T; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); })[0];
       if(behind) c.push(greRow(behind, 3.5));
     }
+    var nd = new Date(), ndh = nd.getHours(), ndw = nd.getDay();
+    if(ndh >= 5 && ndh < 9 && (ndw === 1 || ndw === 3 || ndw === 5)){
+      var mkey = 'move:' + T, mmin = kitLeft(MOVE_KIT, mkey, st);
+      c.push({pri: 0.5, due: T, ord: 0, kind: 'move', key: mkey, id: T, title: MOVE_KIT.name, kit: MOVE_KIT, total: kitTotal(MOVE_KIT), min: mmin, href: ''});
+    }
     if(st.pin){
       var pc = c.filter(function(x){ return x.key === st.pin; })[0];
       if(pc) pc.pri = -1;
@@ -1051,6 +1056,13 @@
 
   // a deadline that is only a guess from last year's cycle is called what it is
   function closesWord(cl){ return cl.confidence === 'estimated' ? 'expected around' : 'closes'; }
+  // Optional, Mon/Wed/Fri before 9 AM. Keys carry the date so each day starts fresh.
+  var MOVE_KIT = {name: 'Morning strength', steps: [
+    {t: 'Warm up', min: 2, tiny: 'just stand and roll your shoulders', how: 'Arm circles, shoulder rolls, marching on the spot.'},
+    {t: 'Round one', min: 4, how: '8 wall or knee push-ups, 10 squats, 10 rows with water bottles, 20 second plank.'},
+    {t: 'Round two', min: 4, how: 'The same again, at your own pace.'},
+    {t: 'Round three', min: 4, how: 'Once more, then a slow stretch.'}
+  ]};
   function callKit(cl){
     return {name: cl.name, why: 'A rough version is a real submission. Each step is a place you could stop.', steps: [
       {t: 'Open the call page', min: 3, how: 'Just to see what it asks for and the word limit.', links: cl.link ? [{label: 'Open the call', url: L.callLinkHref ? L.callLinkHref(cl.link) : cl.link}] : []},
@@ -1225,11 +1237,12 @@
         (isCur && s.how ? '<div class="td-how">' + L.escapeHTML(clip(s.how, 170)) + '</div>' : '') +
         (isCur && s.links && s.links.length ? '<div class="td-links">' + s.links.map(function(l){ return '<a href="' + L.escapeHTML(safeURL(l.url)) + '"' + linkAttr(l.url) + '>' + L.escapeHTML(l.label) + (linkAttr(l.url) ? ' ↗' : '') + '</a>'; }).join('') + '</div>' : '') +
         (isCur && (!timer || timer.over) ? (k === 0 && !(timer && timer.over && timer.key === tkey) && !steps.some(function(x, xi){ return st.done[it.key + '|' + xi]; })
-          ? '<div class="td-act"><button type="button" class="td-go" data-act="tiny" data-key="' + L.escapeHTML(tkey) + '" data-url="' + L.escapeHTML(s.links && s.links[0] ? s.links[0].url : '') + '">Start 2 min</button><span class="td-tinyhint">' + L.escapeHTML(s.links && s.links[0] ? (/^open/i.test(s.links[0].label) ? s.links[0].label.toLowerCase() : 'open ' + s.links[0].label) : 'just begin') + '</span></div>'
+          ? '<div class="td-act"><button type="button" class="td-go" data-act="tiny" data-key="' + L.escapeHTML(tkey) + '" data-url="' + L.escapeHTML(s.links && s.links[0] ? s.links[0].url : '') + '">Start 2 min</button><span class="td-tinyhint">' + L.escapeHTML(s.tiny ? s.tiny : s.links && s.links[0] ? (/^open/i.test(s.links[0].label) ? s.links[0].label.toLowerCase() : 'open ' + s.links[0].label) : 'just begin') + '</span></div>'
           : '<div class="td-act"><button type="button" class="td-go" data-act="tstart" data-key="' + L.escapeHTML(tkey) + '" data-min="' + (+s.min || 10) + '">Try ' + (+s.min || 10) + ' min</button></div>') : '') +
         '</div></li>';
     }).join('') + '</ol>';
-    if(finished) h += '<div class="td-fin">' + (it.kind === 'task' ? '<button type="button" class="td-go" data-act="taskdone" data-id="' + L.escapeHTML(it.id) + '">Mark done</button>' : it.kind === 'call' ? '<button type="button" class="td-go" data-act="callsubmit" data-id="' + L.escapeHTML(it.id) + '">Mark submitted</button>' : '<a class="td-go" href="gre.html">Open GRE</a>') + '</div>';
+    if(finished && it.kind === 'move') h += '<div class="td-fin">Done</div>';
+    else if(finished) h += '<div class="td-fin">' + (it.kind === 'task' ? '<button type="button" class="td-go" data-act="taskdone" data-id="' + L.escapeHTML(it.id) + '">Mark done</button>' : it.kind === 'call' ? '<button type="button" class="td-go" data-act="callsubmit" data-id="' + L.escapeHTML(it.id) + '">Mark submitted</button>' : '<a class="td-go" href="gre.html">Open GRE</a>') + '</div>';
     if(it.kit && it.kit.lists){
       h += '<details class="td-lists" data-d="lists"><summary>Outline & questions</summary>' + it.kit.lists.map(function(l, li){
         return '<div class="td-list"><h4>' + L.escapeHTML(l.title) + '<button type="button" class="td-ghost" data-act="copy" data-key="' + L.escapeHTML(it.key) + '" data-li="' + li + '">Copy</button></h4><ol>' +
@@ -1390,9 +1403,14 @@
       var k = b.dataset.key + '|' + b.dataset.i;
       var stepName = '', cardEl = b.closest('.td-item'), single = !!cardEl && cardEl.querySelectorAll('.td-step').length === 1;
       try { stepName = single ? cardEl.querySelector('.td-title').textContent : b.closest('.td-step').querySelector('.td-st').childNodes[0].nodeValue; } catch(e){}
-      var winKey = single ? b.dataset.key : 'step:' + k;
-      if(st.done[k]){ delete st.done[k]; removeWin(winKey); }
-      else { st.done[k] = L.todayISO(); addWin(winKey, stepName); if(timer && timer.key === k){ savePrep(st); stopTimer(true); return; } }
+      var winKey = single ? b.dataset.key : 'step:' + k, isMove = b.dataset.key.indexOf('move:') === 0;
+      if(st.done[k]){ delete st.done[k]; removeWin(isMove ? b.dataset.key : winKey); }
+      else {
+        st.done[k] = L.todayISO();
+        if(isMove){ if(MOVE_KIT.steps.every(function(x, xi){ return st.done[b.dataset.key + '|' + xi]; })) addWin(b.dataset.key, 'Morning strength'); }
+        else addWin(winKey, stepName);
+        if(timer && timer.key === k){ savePrep(st); stopTimer(true); return; }
+      }
       savePrep(st); renderToday();
     } else if(act === 'est'){
       var etask = L.state.tasks.filter(function(x){ return x.id === b.dataset.id; })[0];
