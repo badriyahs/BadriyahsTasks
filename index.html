@@ -6,18 +6,17 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=74">
+<link rel="stylesheet" href="styles.css?v=77">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#15181D" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="themecolor" content="#1a1342">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
-<body>
+<body class="calm-page">
 <div class="tabbar">
   <a class="tab active" href="index.html">Today</a>
   <a class="tab" href="tasks.html">Tasks</a>
@@ -44,13 +43,19 @@
         <h1 class="home-date" id="digestdate"></h1>
         <div class="home-sync"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
       </div>
+      </div>
+
+      <section id="calm" class="calm" aria-label="What you get to do next"></section>
 
       <div class="home-banner">
         <div class="dua-box" id="duabox"></div>
         <div class="wird" dir="rtl" lang="ar"><a class="wird-btn" id="wirdbtn" href="https://quran.com/page/1" target="_blank" rel="noopener">ورد<small id="wirdpages"></small></a><button type="button" class="wird-done" id="wirddone" aria-label="Done. Next two pages" title="تم">✓</button></div>
       </div>
-      </div>
 
+      <div class="calm-foot" id="calmfoot"><button type="button" class="cm-link" data-act="everything">Everything</button></div>
+
+      <div id="all" hidden>
+      <div class="cm-backrow"><button type="button" class="cm-link" data-act="back">&larr; Back to the sky</button></div>
       <div class="focus" id="focus"></div>
 
       <nav class="board-tabs" id="boardtabs" aria-label="Sections">
@@ -98,6 +103,7 @@
           <div id="libpicks"></div>
         </section>
       </div>
+      </div>
     </div>
   </div>
 </div>
@@ -124,6 +130,8 @@
   L.onStatus(function(kind, text){
     els.syncdot.classList.remove('off','err');
     if(kind !== 'ok') els.syncdot.classList.add(kind);
+    els.syncstate.title = '';
+    if(kind === 'err'){ els.syncstate.title = text; text = 'Can’t reach your data right now. It keeps trying.'; }
     els.syncstate.textContent = text;
   });
 
@@ -1026,7 +1034,7 @@
       var greRow = function(g, pri){ var m = greMin(g); return {pri: pri, due: g.date || T, ord: g.order || 0, kind: 'gre', key: 'gre:' + g.id, id: g.id, title: 'GRE: ' + g.title, total: m, min: st.done['gre:' + g.id + '|0'] ? 0 : m, href: 'gre.html'}; };
       gre.items.filter(function(g){ return !greStudied(g) && g.date === T; }).forEach(function(g){ c.push(greRow(g, 3)); });
       // the single oldest chapter you're behind on, so catching up is always one click away without flooding the day
-      var behind = gre.items.filter(function(g){ return !greStudied(g) && g.date && g.date < T; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); })[0];
+      var behind = gre.items.filter(function(g){ return !greStudied(g) && g.date && g.date < T && !st.done['gre:' + g.id + '|0']; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); })[0];
       if(behind) c.push(greRow(behind, 3.5));
     }
     ((dayplan[T] && dayplan[T].todos) || []).forEach(function(td, ti){
@@ -1056,13 +1064,13 @@
       else if(x.pri < 4) later.push(x);
     });
     var poolMap = {};
-    c.forEach(function(x){ if(!st.skip[x.key]) poolMap[x.key] = 1; });
+    c.forEach(function(x){ if(!st.skip[x.key] && !(x.min <= 0 && (x.kind === 'gre' || x.kind === 'move'))) poolMap[x.key] = 1; });
     tasks.forEach(function(t){ if(linked[t.id]) return; var k = 'task:' + t.id; if(!st.skip[k]) poolMap[k] = 1; });
     return {plan: plan, used: used, later: later, skipped: skipped, pool: Object.keys(poolMap)};
   }
 
   // a deadline that is only a guess from last year's cycle is called what it is
-  function closesWord(cl){ return cl.confidence === 'estimated' ? 'expected around' : 'closes'; }
+  function closesWord(cl){ return cl.confidence === 'estimated' ? 'may close' : 'closes'; }
   // Optional, Mon/Wed/Fri before 9 AM. Keys carry the date so each day starts fresh.
   var MOVE_KIT = {name: 'Morning strength', steps: [
     {t: 'Warm up', min: 2, tiny: 'just stand and roll your shoulders', how: 'Arm circles, shoulder rolls, marching on the spot.'},
@@ -1167,7 +1175,7 @@
     var winsN = winsToday().length, totBits = [];
     if(today.min) totBits.push(span(today.min) + ' focus');
     if(winsN) totBits.push(winsN + ' done');
-    var tot = (totBits.length ? '<div class="td-focus-tot">' + totBits.join(' · ') + '</div>' : '') + (canPick && !timer ? '<button type="button" class="td-ghost td-pick" data-act="pick">Pick for me</button>' : '');
+    var tot = (totBits.length ? '<div class="td-focus-tot">' + totBits.join(' · ') + '</div>' : '') + (canPick && !timer ? '<button type="button" class="td-ghost td-pick" data-act="pick">Pick one for me</button>' : '');
     var barsLabel = 'Focus minutes, last seven days. ' + days.map(function(d){ return prettyDate(d.iso) + ': ' + (d.f.min ? d.f.min + ' minutes' : 'none'); }).join('; ');
     var bars = any ? '<div class="td-bars" role="img" aria-label="' + L.escapeHTML(barsLabel) + '">' + days.map(function(d){
       return '<span class="td-barcol" aria-hidden="true" title="' + L.escapeHTML(prettyDate(d.iso) + ': ' + (d.f.min ? span(d.f.min) : 'none')) + '"><i style="height:' + Math.max(d.f.min ? 4 : 1, Math.round(d.f.min / mx * 26)) + 'px"></i><b>' + DI[d.wd] + '</b></span>';
@@ -1221,6 +1229,136 @@
     rows.sort(function(a, b){ return a.k - b.k || a.o - b.o; });
     return '<details class="td-day" data-d="day"' + (window.innerWidth >= 900 ? ' open' : '') + '><summary class="td-day-h"><b>' + (hr < 12 ? 'Your day' : 'Rest of today') + '</b></summary>' + rows.map(function(r){ return r.h; }).join('') + '</details>';
   }
+  /* ---------- the calm home: one star at a time ---------- */
+  var calmCele = 0, GENTLE_KEY = 'badriyah-gentle-day';
+  function isGentle(){ try { return localStorage.getItem(GENTLE_KEY) === L.todayISO(); } catch(e){ return false; } }
+  function celebrate(){ calmCele = Date.now() + 4500; setTimeout(function(){ renderToday(); }, 4600); }
+  function showEverything(on){
+    var parts = [document.getElementById('calm'), document.querySelector('.home-banner'), document.getElementById('calmfoot')];
+    var all = document.getElementById('all'); if(all) all.hidden = !on;
+    parts.forEach(function(x){ if(x) x.hidden = on; });
+    document.body.classList.toggle('calm-page', !on);
+    var tcm = document.getElementById('themecolor');
+    if(tcm) tcm.setAttribute('content', on ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? '#15181D' : '#FAF9F6') : '#1a1342');
+    var sc = document.querySelector('.home-scroll'); if(sc) sc.scrollTop = 0;
+  }
+  // today's real moon, drawn in its phase
+  function moonSVG(){
+    var days = (Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 86400000, ph = ((days / 29.530588853) % 1 + 1) % 1;
+    var r = 38, cx = 50, cy = 50, k = Math.cos(2 * Math.PI * ph), rx = Math.abs(k) * r, waxing = ph < 0.5, lit = '';
+    if(ph > 0.02 && ph < 0.98){
+      var outer = waxing ? 1 : 0, term = waxing ? (k > 0 ? 0 : 1) : (k > 0 ? 1 : 0);
+      lit = '<path d="M ' + cx + ' ' + (cy - r) + ' A ' + r + ' ' + r + ' 0 0 ' + outer + ' ' + cx + ' ' + (cy + r) + ' A ' + rx.toFixed(1) + ' ' + r + ' 0 0 ' + term + ' ' + cx + ' ' + (cy - r) + ' Z" fill="url(#cmmoon)"/>';
+    }
+    return '<svg viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="cmmoon" cx="40%" cy="35%"><stop offset="0" stop-color="#FFF8E7"/><stop offset="1" stop-color="#E9DDFF"/></radialGradient><radialGradient id="cmglow"><stop offset="0" stop-color="#C9B8FF" stop-opacity=".5"/><stop offset="1" stop-color="#C9B8FF" stop-opacity="0"/></radialGradient></defs><circle cx="50" cy="50" r="49" fill="url(#cmglow)"/><circle cx="50" cy="50" r="38" fill="#2b2166" stroke="rgba(201,184,255,.35)" stroke-width="1"/>' + lit + '</svg>';
+  }
+  // the day's stars: lit for what is done, hollow for what is still to come
+  function constellation(done, ahead, fresh){
+    var shownAhead = Math.min(ahead, 3), shownDone = Math.min(done, 8 - shownAhead), total = shownDone + shownAhead; if(total < 1) return '';
+    var pts = [], i;
+    for(i = 0; i < total; i++){ pts.push([total === 1 ? 150 : 18 + i * (264 / (total - 1)), 34 + Math.sin(i * 1.1 + 0.6) * 12]); }
+    var line = pts.map(function(q){ return q[0].toFixed(0) + ',' + q[1].toFixed(0); }).join(' ');
+    var stars = pts.map(function(q, qi){
+      var lit = qi < shownDone;
+      return '<g class="cm-star ' + (lit ? 'lit' : 'dim') + (fresh && lit && qi === shownDone - 1 ? ' newest' : '') + '" transform="translate(' + q[0].toFixed(0) + ' ' + q[1].toFixed(0) + ')"><path d="M0 -9 L2.4 -2.4 L9 0 L2.4 2.4 L0 9 L-2.4 2.4 L-9 0 L-2.4 -2.4 Z"/></g>';
+    }).join('');
+    return '<div class="cm-const" role="img" aria-label="' + done + ' done today' + (ahead ? ', more to come' : '') + '"><svg viewBox="0 0 300 70"><polyline class="cm-line" points="' + line + '"/>' + stars + '</svg></div>';
+  }
+  function stepInfo(it, st){
+    var steps = stepsOf(it), cur = -1, i;
+    for(i = 0; i < steps.length; i++){ if(!st.done[it.key + '|' + i]){ cur = i; break; } }
+    return {steps: steps, cur: cur};
+  }
+  function doneButton(it, si, title){
+    var e = L.escapeHTML, tick = 'Done<span aria-hidden="true"> ✓</span>';
+    if(it.kind === 'task' && !it.kit) return '<button type="button" class="cm-done" data-act="taskdone" data-id="' + e(it.id) + '" data-key="' + e(it.key) + '" data-title="' + e(it.title) + '" data-cele="1">' + tick + '</button>';
+    return '<button type="button" class="cm-done" data-act="step" data-key="' + e(it.key) + '" data-i="' + si.cur + '" data-title="' + e(title) + '" data-itemtitle="' + e(it.title) + '" data-single="' + (si.steps.length === 1 ? '1' : '0') + '" data-nsteps="' + si.steps.length + '" data-cele="1">' + tick + '</button>';
+  }
+  // redraws the card only when it really changed, and keeps keyboard focus on the same button
+  var calmHTML = null, calmLast = '';
+  function renderCalm(P, D, left, hr, nowMin, st, T){
+    var el = document.getElementById('calm'); if(!el) return;
+    calmHTML = null; renderCalmInner(P, D, left, hr, nowMin, st, T);
+    if(calmHTML === null || calmHTML === calmLast) return;
+    var ae = document.activeElement, ref = ae && el.contains(ae) && ae.dataset && ae.dataset.act ? {act: ae.dataset.act, key: ae.dataset.key || ''} : null;
+    calmLast = calmHTML; el.innerHTML = calmHTML;
+    if(ref){
+      var again = [].slice.call(el.querySelectorAll('[data-act]')).filter(function(x){ return x.dataset.act === ref.act && (x.dataset.key || '') === ref.key; })[0] || el.querySelector('.cm-begin, .cm-done');
+      if(again) try { again.focus({preventScroll: true}); } catch(err){}
+    }
+  }
+  function renderCalmInner(P, D, left, hr, nowMin, st, T){
+    var e = L.escapeHTML, gentle = isGentle(), wins = winsToday().length;
+    // finished checklists and today-only things don't take the card; the next real thing does
+    var cand = P.plan.filter(function(x){ return !(x.min <= 0 && (x.kind === 'gre' || x.kind === 'move')); });
+    if(gentle) cand = cand.slice().sort(function(a, b){ return ((b.key === st.pin) - (a.key === st.pin)) || ((a.min || 99) - (b.min || 99)); });
+    var it = cand[0], nextIt = cand[1], ahead = Math.min(3, cand.length), body = '', extra = '';
+    var moon = '<div class="cm-moon">' + moonSVG() + '</div>';
+    var nb = D && D.fixed.filter(function(f){ return f.s > nowMin; })[0];
+    // a call that closes soon stays in view, quietly
+    var cs = L.callsState.items.filter(function(cl){ var dd = L.daysUntil(cl.deadline); return cl.status !== 'watch' && cl.mine !== 'skip' && cl.mine !== 'submitted' && dd !== null && dd >= 0 && dd <= 3 && !(it && it.key === 'call:' + cl.id); })
+      .sort(function(a, b){ return a.deadline < b.deadline ? -1 : 1; })[0];
+    if(cs){ var cd = L.daysUntil(cs.deadline); extra = '<a class="cm-alert" href="calls.html#call-' + e(cs.id) + '"><span aria-hidden="true">✦</span> ' + e(clip(cs.name, 44)) + ' ' + closesWord(cs) + ' ' + (cd === 0 ? 'today' : cd === 1 ? 'tomorrow' : 'in ' + cd + ' days') + '</a>'; }
+    // Saturday morning: the week-planning invitation stays reachable from the sky
+    var weekGone = false; try { weekGone = localStorage.getItem('badriyah-week-dismiss') === T; } catch(err){}
+    if(new Date().getDay() === 6 && hr >= 5 && hr < 14 && !weekGone) extra += '<button type="button" class="cm-link" data-act="everything" data-tab="today">Plan the week</button>';
+    var quiet = '<div class="cm-quiet"><button type="button" data-act="fstart">25 quiet minutes</button><button type="button" data-act="gentle">' + (gentle ? 'Back to normal' : 'Low energy') + '</button></div>';
+
+    if(Date.now() < calmCele){
+      body = '<div class="cm-card cm-cele"><div class="cm-label">Well done, Badriyah</div><h2 class="cm-title">That’s a star <span aria-hidden="true">✦</span></h2></div>';
+      calmHTML = moon + body + constellation(wins, ahead, true); return;
+    }
+    if(timer){
+      var tk = timer.key, title = '', sub = '', actions = '';
+      if(tk === 'focus'){ title = 'Quiet focus'; actions = '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>'; }
+      else if(tk === 'break'){ title = 'Rest a little'; actions = '<button type="button" class="cm-ghost" data-act="tstop">Skip</button>'; }
+      else {
+        var base = tk.split('|')[0], idx = +tk.split('|')[1], item = P.plan.filter(function(x){ return x.key === base; })[0];
+        if(item){
+          var inf = stepInfo(item, st), step = inf.steps[idx] || inf.steps[0], multi = item.kit && inf.steps.length > 1;
+          title = multi ? step.t : item.title; sub = multi ? item.title : '';
+          actions = doneButton(item, {steps: inf.steps, cur: idx}, title) + (timer.over ? '<button type="button" class="cm-ghost" data-act="tstart" data-key="' + e(tk) + '" data-min="5">5 more</button>' : '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>');
+        } else { title = 'Your star'; actions = '<button type="button" class="cm-ghost" data-act="tstop">' + (timer.over ? 'Okay' : 'Stop') + '</button>'; }
+      }
+      var rtotal = timer.mins * 60, rleft = Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)), roff = timer.over ? 0 : RING_C * (1 - rleft / rtotal);
+      var ring = '<div class="td-ring run' + (tk === 'break' ? ' brk' : '') + (timer.over ? ' over' : '') + '"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="cmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B8FF"/><stop offset="1" stop-color="#FFB6D2"/></linearGradient></defs><circle class="td-ring-track" cx="60" cy="60" r="52"/><circle class="td-arc" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke="url(#cmg)" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="' + roff.toFixed(1) + '"/></svg><div class="td-ring-btn" style="pointer-events:none">' + (timer.over ? '<b aria-hidden="true">✓</b><small>time</small>' : '<b class="td-timer">' + mmss(rleft) + '</b>') + '</div></div>';
+      body = '<div class="cm-card cm-run"><div class="cm-label">' + (tk === 'break' ? 'Take a breath' : timer.over ? 'That’s your time' : 'You’re on it') + '</div><h2 class="cm-title">' + e(clip(title, 70)) + '</h2>' + (sub ? '<div class="cm-sub">' + e(clip(sub, 60)) + '</div>' : '') + ring + '<div class="cm-actions">' + actions + '</div></div>';
+      calmHTML = moon + body + constellation(wins, ahead, false); return;
+    }
+    if(left <= 0 || hr < 5){
+      var tom = cand.filter(function(x){ return x.kind !== 'move'; })[0] || P.later.filter(function(x){ return x.kind !== 'move'; })[0];
+      body = '<div class="cm-card"><div class="cm-label">' + (tom ? 'Tomorrow you get to' : 'Rest well') + '</div><h2 class="cm-title">' + (tom ? e(clip(tom.title, 60)) : 'Goodnight, Badriyah <span aria-hidden="true">✦</span>') + '</h2>' + (tom ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(Math.min(25, tom.min || 25)) + '</div>' : '') + '</div>';
+      calmHTML = moon + body + constellation(wins, 0, false) + extra; return;
+    }
+    if(!it){
+      body = '<div class="cm-card"><div class="cm-label">Nothing is waiting</div><h2 class="cm-title">Rest is lovely <span aria-hidden="true">✦</span></h2>' + (P.pool.length > 1 ? '<div class="cm-more"><button type="button" data-act="pick">Pick one for me</button></div>' : '') + '</div>';
+      calmHTML = moon + body + constellation(wins, 0, false) + extra + quiet; return;
+    }
+    var si = stepInfo(it, st);
+    if(si.cur === -1){
+      var fin = it.kind === 'task' ? '<button type="button" class="cm-begin" data-act="taskdone" data-id="' + e(it.id) + '" data-key="' + e(it.key) + '" data-title="' + e(it.title) + '" data-cele="1">Mark it done</button>'
+        : it.kind === 'call' ? '<button type="button" class="cm-begin" data-act="callsubmit" data-id="' + e(it.id) + '" data-cele="1">Mark submitted</button>' : '';
+      body = '<div class="cm-card"><div class="cm-label">All done here</div><h2 class="cm-title">' + e(clip(it.title, 60)) + ' <span aria-hidden="true">✦</span></h2>' + fin + '<div class="cm-more"><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
+      calmHTML = moon + body + constellation(wins, ahead, false) + extra + quiet; return;
+    }
+    var stp = si.steps[si.cur], multi2 = it.kit && si.steps.length > 1;
+    var ttl = multi2 ? stp.t : it.title, sb = multi2 ? it.title : '';
+    var dur = Math.max(5, Math.min(+stp.min || 25, 25)); if(gentle) dur = Math.min(dur, 10);
+    if(nb){ var gap = nb.s - nowMin; if(gap > 0 && gap < dur) dur = Math.max(5, Math.floor(gap / 5) * 5); }
+    if(!multi2 && (+stp.min || 0) > dur) sb = 'the first part of about ' + span(+stp.min);
+    // Begin opens a real link only: a kit's first link, the call or chapter page, or a link saved on the task itself
+    var url = it.kit ? (stp.links && stp.links[0] ? stp.links[0].url : '')
+      : it.kind === 'task' ? (it.task && /^https?:\/\//i.test(it.task.link || '') ? it.task.link : '')
+      : (stp.links && stp.links[0] ? stp.links[0].url : (it.kind === 'gre' ? 'gre.html' : ''));
+    var after = nb && nb.s - nowMin <= 150 ? 'Then · ' + clip(nb.title, 36) + ' · ' + clockMin(nb.s) : nextIt ? 'Next · ' + clip(nextIt.title, 38) + ' · ' + span(Math.min(25, nextIt.min || 25)) : '';
+    body = '<div class="cm-card"><div class="cm-label">' + (gentle ? 'A small one' : 'You get to') + '</div><h2 class="cm-title">' + e(clip(ttl, 80)) + '</h2>' + (sb ? '<div class="cm-sub">' + e(sb) + '</div>' : '') +
+      '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(dur) + '</div>' +
+      '<button type="button" class="cm-begin" data-act="cbegin" data-key="' + e(it.key + '|' + si.cur) + '" data-min="' + dur + '" data-url="' + e(url) + '">Begin</button>' +
+      (after ? '<div class="cm-next">' + e(after) + '</div>' : '') +
+      '<div class="cm-more"><button type="button" data-act="pick">Another</button><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
+    calmHTML = moon + body + constellation(wins, ahead, false) + extra + quiet;
+  }
+
   function skipWord(button){ var late = new Date().getHours() >= 17 || new Date().getHours() < 5; return button ? (late ? 'Skip for tonight' : 'Skip for today') : (late ? 'tonight' : 'today'); }
   function stepsOf(it){
     if(it.kit) return it.kit.steps;
@@ -1237,7 +1375,7 @@
     if(it.kind === 'call' && it.call){ var cd = diffDays(L.todayISO(), it.call.deadline); bits.push(closesWord(it.call) + (cd <= 0 ? ' today' : cd === 1 ? ' tomorrow' : ' in ' + cd + ' days')); }
     if(it.sched) bits.push('done by ' + clockMin(it.sched.e));
     var h = '<div class="td-item td-now" data-key="' + L.escapeHTML(it.key) + '">' +
-      '<div class="td-k"><div class="td-title">' + L.escapeHTML(clip(it.title, 80)) + '</div>' + (finished ? '' : '<button type="button" class="td-ghost td-skip" data-act="skip" data-key="' + L.escapeHTML(it.key) + '">Skip</button>') + '</div>' +
+      '<div class="td-k"><div class="td-title">' + L.escapeHTML(clip(it.title, 80)) + '</div>' + (finished ? '' : '<button type="button" class="td-ghost td-skip" data-act="skip" data-key="' + L.escapeHTML(it.key) + '">Not now</button>') + '</div>' +
       (bits.length ? '<div class="td-meta">' + bits.map(function(b, bi){
         return (bi === 0 && it.kind === 'task' && !it.kit && it.task && it.min > 0) ? '<button type="button" class="td-est" data-act="est" data-id="' + L.escapeHTML(it.id) + '" title="Change the estimate">' + L.escapeHTML('~' + b) + '</button>' : L.escapeHTML(b);
       }).join(' · ') + '</div>' : '');
@@ -1298,7 +1436,11 @@
   function renderToday(){
     renderGreeting();
     var el = document.getElementById('todaybody'); if(!el) return;
-    if(!L.state.tasks.length){ el.innerHTML = '<p class="td-hello">Getting your day ready…</p>'; return; }   // don't claim "nothing is pressing" before your tasks have arrived
+    if(!L.state.tasks.length){
+      el.innerHTML = '<p class="td-hello">Getting your day ready…</p>';
+      var cl = document.getElementById('calm'); calmLast = ''; if(cl) cl.innerHTML = '<div class="cm-moon">' + moonSVG() + '</div><div class="cm-card"><div class="cm-label">One moment</div><h2 class="cm-title">Getting your sky ready <span aria-hidden="true">✦</span></h2>' + '</div>';
+      return;
+    }   // don't claim "nothing is pressing" before your tasks have arrived
     var now = new Date(), T = L.todayISO(), hr = now.getHours(), nowMin = hr * 60 + now.getMinutes();
     var left = WIND_DOWN - nowMin, st = prepState();
     var openState = {}; el.querySelectorAll('details[data-d]').forEach(function(dt){ openState[dt.dataset.d] = dt.open; });
@@ -1306,7 +1448,7 @@
     document.getElementById('todaysub').textContent = clockText(now) + ' · ' + now.toLocaleDateString(undefined, {weekday: 'long'});
 
     var late = left <= 0 || hr < 5;
-    var budget = late ? 120 : Math.min(left, 180);
+    var budget = late ? 120 : Math.min(left, 120);   // two hours of work after the day, every day
     var P = buildPlan(budget);
     var D = late ? null : computeDay(P, nowMin, T);
     var focusRef = null, ae = document.activeElement;
@@ -1315,7 +1457,7 @@
     var sub;
     if(left <= 0) sub = 'Nothing needs you tonight';
     else if(hr < 5) sub = 'Waiting when you’re up';
-    else if(!P.plan.length) sub = 'Nothing pressing';
+    else if(!P.plan.length) sub = 'Nothing is waiting';
     else sub = P.plan.length + (P.plan.length === 1 ? ' thing' : ' things') + (D && D.finish ? ' · done around ' + clockMin(D.finish) : '');
     var h = '<div class="td-hello"><b>' + hello + ', Badriyah</b><span>' + sub + '</span></div>' + focusHTML(P.pool.length > 1 && left > 0 && hr >= 5);
     // Saturday morning: the week card sits first (closed). Other times it's under More.
@@ -1399,6 +1541,7 @@
     more += comingUpHTML();
     h += '<details class="td-fold" data-d="more"><summary>More</summary>' + more + '</details>';
     el.innerHTML = h;
+    renderCalm(P, D, left, hr, nowMin, st, T);
     el.querySelectorAll('details[data-d]').forEach(function(dt){ if(Object.prototype.hasOwnProperty.call(openState, dt.dataset.d)) dt.open = !!openState[dt.dataset.d]; });
     if(focusRef){   // keep keyboard focus where it was after a redraw
       var again = [].slice.call(el.querySelectorAll('[data-act="' + focusRef.act + '"]')).filter(function(x){
@@ -1408,24 +1551,39 @@
       if(again) try { again.focus({preventScroll: true}); } catch(e){}
     }
   }
-  document.getElementById('todaybody').addEventListener('click', function(e){
+  function todayClick(e){
     var b = e.target.closest('[data-act]'); if(!b) return;
     var act = b.dataset.act, st = prepState();
     if(act === 'step'){
       var k = b.dataset.key + '|' + b.dataset.i;
-      var stepName = '', cardEl = b.closest('.td-item'), single = !!cardEl && cardEl.querySelectorAll('.td-step').length === 1;
-      try { stepName = single ? cardEl.querySelector('.td-title').textContent : b.closest('.td-step').querySelector('.td-st').childNodes[0].nodeValue; } catch(e){}
+      var stepName = '', cardEl = b.closest('.td-item'), single = cardEl ? cardEl.querySelectorAll('.td-step').length === 1 : b.dataset.single === '1';
+      var celeFlag = !!b.dataset.cele && !st.done[k];
+      try { stepName = single ? (cardEl ? cardEl.querySelector('.td-title').textContent : b.dataset.itemtitle) : (b.dataset.title || b.closest('.td-step').querySelector('.td-st').childNodes[0].nodeValue); } catch(e){}
       var winKey = single ? b.dataset.key : 'step:' + k, isMove = b.dataset.key.indexOf('move:') === 0;
       if(st.done[k]){ delete st.done[k]; removeWin(isMove ? b.dataset.key : winKey); }
       else {
         st.done[k] = L.todayISO();
-        if(isMove){ var nSteps = cardEl ? cardEl.querySelectorAll('.td-step').length : 0, allDone = nSteps > 0;
+        if(isMove){ var nSteps = cardEl ? cardEl.querySelectorAll('.td-step').length : (+b.dataset.nsteps || 0), allDone = nSteps > 0;
           for(var di = 0; di < nSteps; di++){ if(!st.done[b.dataset.key + '|' + di]) allDone = false; }
-          if(allDone) addWin(b.dataset.key, (cardEl.querySelector('.td-title') || {}).textContent); }
+          if(allDone) addWin(b.dataset.key, cardEl ? (cardEl.querySelector('.td-title') || {}).textContent : b.dataset.itemtitle); }
         else addWin(winKey, stepName);
+        if(celeFlag){
+          celebrate();
+          var undoK = k, undoWin = isMove ? b.dataset.key : winKey, isGre = b.dataset.key.indexOf('gre:') === 0;
+          toast(isGre ? 'Star added. Tick it in the GRE tracker too.' : 'Nicely done', function(){ var s3 = prepState(); delete s3.done[undoK]; savePrep(s3); removeWin(undoWin); calmCele = 0; renderToday(); });
+        }
         if(timer && timer.key === k){ savePrep(st); stopTimer(true); return; }
       }
       savePrep(st); renderToday();
+    } else if(act === 'cbegin'){
+      var cu = b.dataset.url;
+      if(cu && /^(https?:\/\/|[a-z0-9-]+\.html(#[\w-]*)?$)/i.test(cu)){ try { window.open(cu, '_blank', 'noopener'); } catch(e){} }
+      startTimer(b.dataset.key, +b.dataset.min || 10);
+    } else if(act === 'gentle'){
+      try { if(isGentle()) localStorage.removeItem(GENTLE_KEY); else localStorage.setItem(GENTLE_KEY, L.todayISO()); } catch(e){}
+      renderToday();
+    } else if(act === 'everything'){ if(b.dataset.tab) setTab(b.dataset.tab); showEverything(true);
+    } else if(act === 'back'){ showEverything(false);
     } else if(act === 'est'){
       var etask = L.state.tasks.filter(function(x){ return x.id === b.dataset.id; })[0];
       if(!etask) return;
@@ -1454,14 +1612,18 @@
     } else if(act === 'tstop'){
       stopTimer(false);
     } else if(act === 'taskdone'){
-      addWin('task:' + b.dataset.id, (b.closest('.td-item').querySelector('.td-title') || {}).textContent);
-      var wonId = b.dataset.id; L.toggleStrike(wonId); recordTick(); toast('Nicely done', function(){ L.undo(); removeWin('task:' + wonId); });
+      var wonCard = b.closest('.td-item');
+      addWin('task:' + b.dataset.id, b.dataset.title || (wonCard && (wonCard.querySelector('.td-title') || {}).textContent));
+      if(timer && b.dataset.key && timer.key.indexOf(b.dataset.key + '|') === 0) stopTimer(true);
+      var wonId = b.dataset.id; L.toggleStrike(wonId); recordTick();
+      if(b.dataset.cele) celebrate();
+      toast('Nicely done', function(){ L.undo(); removeWin('task:' + wonId); calmCele = 0; renderToday(); });
     } else if(act === 'callsubmit'){
       var cid = b.dataset.id, call = L.callsState.items.filter(function(x){ return x.id === cid; })[0];
       addWin('call:' + cid, call && call.name);
       L.setCallMine(cid, 'submitted');
       if(call && call.linkedTaskId){ var lt = L.state.tasks.filter(function(x){ return x.id === call.linkedTaskId; })[0]; if(lt && !lt.struck) L.toggleStrike(lt.id); }
-      recordTick(); toast('Submitted. Well done.');
+      recordTick(); if(b.dataset.cele) celebrate(); toast('Submitted. Well done.');
     } else if(act === 'pil'){
       setPilates(+b.dataset.wd, b.dataset.slot);
     } else if(act === 'weekno'){
@@ -1477,7 +1639,9 @@
       if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok, function(){ toast('Couldn’t copy. Select the text instead.'); }); }
       else toast('Couldn’t copy. Select the text instead.');
     }
-  });
+  }
+  document.getElementById('todaybody').addEventListener('click', todayClick);
+  (function(){ var ce = document.getElementById('calm'); if(ce) ce.addEventListener('click', todayClick); var ca = document.getElementById('calmfoot'); if(ca) ca.addEventListener('click', todayClick); var al = document.getElementById('all'); if(al) al.addEventListener('click', function(e){ if(e.target.closest('[data-act="back"]')) todayClick(e); }); })();
   setInterval(function(){
     if(timer && !timer.over){
       var secs = Math.ceil((timer.end - Date.now()) / 1000);
