@@ -115,6 +115,7 @@ window.Ledger = (function(){
           dependency: data.dependency || '',
           owner: data.owner || '',
           details: data.details || '',
+          mins: +data.mins > 0 ? +data.mins : 0,
           order: typeof data.order === 'number' ? data.order : 0,
           archived: !!data.archived,
           struck: !!data.struck
@@ -303,7 +304,7 @@ window.Ledger = (function(){
       if(!t) return;
       var data = {
         no:t.no, category:t.category, description:t.description, due:t.due, link:t.link,
-        dependency:t.dependency, owner:t.owner, details:t.details, order:t.order,
+        dependency:t.dependency, owner:t.owner, details:t.details, mins:t.mins || 0, order:t.order,
         archived:t.archived, struck:t.struck
       };
       colRef.doc(id).delete().catch(function(e){ console.error(e); });
@@ -396,6 +397,8 @@ window.Ledger = (function(){
       onChange: onChange,
       onStatus: onStatus,
       updateField: updateField,
+      // a quiet write for the time estimate: no activity entry, no undo step
+      setMins: function(id, v){ colRef.doc(id).update({mins: v}).catch(function(e){ console.error(e); }); },
       addTopLevel: addTopLevel,
       addSiblingAfter: addSiblingAfter,
       addTaskWith: addTaskWith,
@@ -947,12 +950,29 @@ window.Ledger = (function(){
   // Start and end of the event's time, in minutes since midnight, or null. `explicit` is false when no end was given (an hour is assumed).
   function timeRange(txt){ var m = pickTime(txt); return m ? parseTime(m) : null; }
 
+  /* ---- how long a task takes: the number she set (task.mins), or a gentle guess from the wording ---- */
+  var EST_PRESETS = [5, 15, 25, 45, 60, 90];
+  function estimateMinutes(t){
+    var m = +(t && t.mins); if(m > 0) return Math.round(m);
+    var s = String((t && t.description) || '').toLowerCase();
+    // a quick action leads the sentence ("Send 8 maps...", "Reply about the benches...")
+    if(/^\s*(reply|respond|email|e-mail|text|message|dm|forward|send|book|pay|renew|upload|submit|register|sign|add|join|confirm|cancel|ask|tell|check)\b/.test(s)){
+      return /\b(emails|messages|few|several)\b/.test(s) ? 25 : /\b(benches|poster|posters|presentation|design|plan|think)\b/.test(s) ? 45 : 15;
+    }
+    if(/\b(meeting|coffee|lunch|dinner|interview|workshop)\b/.test(s)) return 45;
+    if(/\b(thesis|paper|abstract|proposal|essay|article|chapter|outline|literature|research|study|revise|revision|feedback|write|writing|draft|read|reading)\b/.test(s)) return 60;
+    if(/\b(design|poster|posters|presentation|slides|portfolio|cv|resume|application|apply|plan|prepare|organi[sz]e|arrange|arrangement|benches|think)\b/.test(s)) return 45;
+    if(/\b(buy|pick up|print|call|phone|whatsapp)\b/.test(s)) return 20;
+    return 25;
+  }
+
   return {
     // Tasks store, exposed flat for backward compatibility with existing pages
     state: Tasks.state,
     onChange: Tasks.onChange,
     onStatus: Tasks.onStatus,
     updateField: Tasks.updateField,
+    setMins: Tasks.setMins,
     addTopLevel: Tasks.addTopLevel,
     addSiblingAfter: Tasks.addSiblingAfter,
     addTask: Tasks.addTaskWith,
@@ -985,6 +1005,8 @@ window.Ledger = (function(){
     slotOfHour: slotOfHour,
     slotFromText: slotFromText,
     timeRange: timeRange,
+    estMin: estimateMinutes,
+    EST_PRESETS: EST_PRESETS,
     activityCol: activityCol,
     wireTopbar: wireTopbar,
     wireEditing: wireEditing,

@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Badriyah's Tasks — Manifest</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="styles.css?v=68">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#17113a">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
+<style>
+:root{color-scheme:light dark;}
+.mf{flex:1;min-height:0;display:flex;flex-direction:column;background:#17113a;color:#F2EEFF;}
+.mf-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(201,184,255,.18);background:#1d1546;flex:none;}
+.mf-bar .sp{flex:1;}
+.mf-bar button{font:inherit;font-size:14px;font-weight:600;color:#F2EEFF;background:rgba(255,255,255,.07);border:1px solid rgba(201,184,255,.35);border-radius:20px;padding:7px 16px;cursor:pointer;}
+.mf-bar button:hover{border-color:#C9B8FF;background:rgba(201,184,255,.16);}
+.mf-bar .round{width:38px;padding:7px 0;font-size:18px;line-height:1;}
+.mf-banner{background:#2a2250;color:#C9B8FF;font-size:13px;padding:7px 14px;flex:none;}
+.hidden{display:none !important;}
+.mf-view{position:relative;flex:1;min-height:0;overflow:hidden;touch-action:none;cursor:grab;
+  background:
+    radial-gradient(1.4px 1.4px at 14% 9%,rgba(255,255,255,.8) 50%,transparent 52%),
+    radial-gradient(1px 1px at 82% 14%,rgba(255,255,255,.6) 50%,transparent 52%),
+    radial-gradient(1.2px 1.2px at 63% 38%,rgba(255,255,255,.5) 50%,transparent 52%),
+    radial-gradient(1px 1px at 9% 56%,rgba(255,255,255,.5) 50%,transparent 52%),
+    radial-gradient(1.4px 1.4px at 91% 66%,rgba(255,214,235,.6) 50%,transparent 52%),
+    radial-gradient(1px 1px at 37% 83%,rgba(255,255,255,.5) 50%,transparent 52%),
+    radial-gradient(120% 50% at 50% 0%,rgba(150,110,255,.25),transparent 70%),
+    linear-gradient(170deg,#17113a 0%,#241a58 55%,#33205f 100%);}
+.mf-view.panning{cursor:grabbing;}
+.mf-world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;--inv:1;}
+.mf-item{position:absolute;border-radius:14px;box-shadow:0 8px 26px rgba(0,0,0,.35);user-select:none;-webkit-user-select:none;touch-action:none;cursor:move;}
+.mf-item img{width:100%;height:100%;object-fit:cover;border-radius:14px;display:block;pointer-events:none;-webkit-user-drag:none;}
+.mf-item:focus-visible{outline:2px solid #FFB6D2;outline-offset:3px;}
+.mf-item.sel{outline:2px solid #C9B8FF;box-shadow:0 0 0 5px rgba(201,184,255,.18),0 0 32px rgba(180,140,255,.5);}
+.mf-text{box-sizing:border-box;padding:14px 16px;background:linear-gradient(135deg,rgba(201,184,255,.24),rgba(255,182,210,.16));border:1px solid rgba(201,184,255,.4);font-family:"IBM Plex Serif",Georgia,serif;font-size:20px;line-height:1.4;overflow:auto;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;color:#F2EEFF;}
+.mf-text[contenteditable="true"],.mf-text[contenteditable="plaintext-only"]{cursor:text;user-select:text;-webkit-user-select:text;}
+.mf-del,.mf-rz{display:none;position:absolute;align-items:center;justify-content:center;background:#C9B8FF;color:#17113a;border:0;padding:0;cursor:pointer;font:inherit;}
+.mf-del{top:-18px;right:-18px;width:38px;height:38px;border-radius:50%;font-size:22px;font-weight:700;line-height:1;transform:scale(var(--inv));transform-origin:center;}
+.mf-rz{right:-16px;bottom:-16px;width:34px;height:34px;border-radius:10px;cursor:nwse-resize;transform:scale(var(--inv));transform-origin:bottom right;}
+.mf-rz::after{content:'';width:10px;height:10px;border-right:2px solid #17113a;border-bottom:2px solid #17113a;}
+.mf-item.sel .mf-del,.mf-item.sel .mf-rz{display:flex;}
+.mf-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none;font-family:"IBM Plex Serif",serif;font-size:20px;color:rgba(242,238,255,.6);padding:0 30px;}
+.mf-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#F2EEFF;color:#17113a;padding:10px 18px;border-radius:20px;font-size:14px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.35);display:none;align-items:center;gap:12px;}
+.mf-toast button{font:inherit;font-weight:700;color:#5b3fd0;background:none;border:0;cursor:pointer;padding:4px 6px;}
+</style>
+</head>
+<body>
+<div class="tabbar">
+  <a class="tab" href="index.html">Today</a>
+  <a class="tab" href="tasks.html">Tasks</a>
+  <a class="tab" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab" href="activity.html">Activity</a>
+  <a class="tab" href="reading.html">Library</a>
+  <a class="tab" href="notes.html">Notes</a>
+  <a class="tab" href="events.html">Events</a>
+  <a class="tab" href="calls.html">Calls</a>
+  <a class="tab" href="jobs.html">Jobs</a>
+  <a class="tab" href="health.html">Health</a>
+  <a class="tab" href="gre.html">GRE</a>
+  <a class="tab active" href="manifest.html">Manifest</a>
+</div>
+
+<div class="view mf">
+  <div class="mf-bar">
+    <button type="button" id="mf-img">Image</button>
+    <button type="button" id="mf-note">Note</button>
+    <input type="file" id="mf-file" accept="image/*" multiple hidden>
+    <span class="sp"></span>
+    <button type="button" class="round" id="mf-out" aria-label="Zoom out">−</button>
+    <button type="button" class="round" id="mf-in" aria-label="Zoom in">+</button>
+    <button type="button" id="mf-fit">Fit</button>
+  </div>
+  <div class="mf-banner hidden" id="mf-banner">Saved on this device for now.</div>
+  <div class="mf-view" id="mf-view" aria-label="Manifestation board">
+    <div class="mf-world" id="mf-world"></div>
+    <div class="mf-empty" id="mf-empty">Paste, drop or add images</div>
+  </div>
+</div>
+<div class="mf-toast" id="mf-toast" role="status" aria-live="polite"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
+(function(){
+  "use strict";
+  /* Items live in the Firestore collection "manifest" (one document each). If that collection isn't readable yet,
+     the board saves on this device instead. To sync across devices, the Firebase rules need:
+       match /manifest/{id} { allow read, write: if true; }                                                        */
+  var FIREBASE_CONFIG = {
+    apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M",
+    authDomain: "badriyahstasks.firebaseapp.com",
+    projectId: "badriyahstasks",
+    storageBucket: "badriyahstasks.firebasestorage.app",
+    messagingSenderId: "97057321631",
+    appId: "1:97057321631:web:fa339e1352631ecb9d68aa"
+  };
+  var LOCAL_KEY = 'badriyah-manifest-v1', VIEW_KEY = 'badriyah-manifest-view-v1';
+  var $ = function(id){ return document.getElementById(id); };
+  var viewEl = $('mf-view'), world = $('mf-world'), emptyEl = $('mf-empty'), banner = $('mf-banner');
+
+  var items = {};                 // id -> {id, kind, x, y, w, h, z, src, text}
+  var els = {};                   // id -> element
+  var selected = null, view = {x: 40, y: 40, k: 1};
+  var mode = 'connecting', col = null, pending = [], fitted = false;
+  var drag = null;                // {id, mode, ...} while an item is being moved or resized
+  var pointers = {}, pinch = null, panning = null, nextOffset = 0, lastTap = null, textTimers = {};
+
+  try { var sv = JSON.parse(localStorage.getItem(VIEW_KEY) || 'null'); if(sv && isFinite(sv.k) && isFinite(sv.x) && isFinite(sv.y)) view = sv; } catch(e){}
+
+  /* ---------- toast (with an optional Undo) ---------- */
+  var toastEl = $('mf-toast'), toastTimer = null;
+  function toast(msg, undo){
+    toastEl.innerHTML = '';
+    var span = document.createElement('span'); span.textContent = msg; toastEl.appendChild(span);
+    if(undo){ var b = document.createElement('button'); b.type = 'button'; b.textContent = 'Undo'; b.addEventListener('click', function(){ toastEl.style.display = 'none'; undo(); }); toastEl.appendChild(b); }
+    toastEl.style.display = 'flex';
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ toastEl.style.display = 'none'; }, undo ? 6000 : 3500);
+  }
+
+  /* ---------- storage: Firestore, or this device ---------- */
+  function localLoad(){ try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || '{}') || {}; } catch(e){ return {}; } }
+  function localSave(){
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(items)); }
+    catch(e){ toast('This device is full. Remove something first.'); }
+  }
+  function cleanItem(it){
+    var o = {kind: it.kind, x: +it.x || 0, y: +it.y || 0, w: +it.w || 200, h: +it.h || 150, z: +it.z || 1};
+    if(it.kind === 'image') o.src = it.src; else o.text = String(it.text || '').slice(0, 4000);
+    return o;
+  }
+  // partial: only these fields changed (a move, a resize, a note's text); a full write creates the document
+  function persist(id, partial){
+    var it = items[id]; if(!it) return;
+    if(mode === 'connecting'){ pending.push({id: id, partial: partial}); return; }
+    if(mode === 'cloud'){
+      var ref = col.doc(id);
+      (partial ? ref.update(partial) : ref.set(cleanItem(it))).catch(function(e){ if(!partial) toast('Couldn’t save that. Try again.'); console.error(e); });
+    } else { localSave(); }
+  }
+  function remove(id, undoable){
+    var it = items[id], copy = it ? cleanItem(it) : null;
+    delete items[id];
+    if(els[id]){ els[id].remove(); delete els[id]; }
+    if(selected === id) selected = null;
+    if(mode === 'cloud') col.doc(id).delete().catch(function(e){ console.error(e); });
+    else if(mode === 'local') localSave();
+    refreshEmpty();
+    if(undoable && copy) toast('Removed', function(){ items[id] = Object.assign({id: id}, copy); draw(id); refreshEmpty(); persist(id); });
+  }
+  function newId(){ return col ? col.doc().id : 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function flushPending(){
+    var list = pending; pending = [];
+    list.forEach(function(p){ persist(p.id, p.partial); });
+  }
+  function startCloud(){
+    try { firebase.initializeApp(FIREBASE_CONFIG); col = firebase.firestore().collection('manifest'); }
+    catch(e){ startLocal(); return; }
+    setTimeout(function(){ if(mode === 'connecting') startLocal(); }, 8000);     // never leave the board waiting
+    col.onSnapshot(function(snap){
+      if(mode === 'connecting'){
+        if(snap.metadata && snap.metadata.fromCache && snap.empty) return;        // not the real answer yet
+        mode = 'cloud'; banner.classList.add('hidden');
+        // anything saved on this device earlier moves up under its own id (safe to repeat), and the copy is cleared only once it's saved
+        var loc = localLoad(), ids = Object.keys(loc);
+        if(ids.length){
+          Promise.all(ids.map(function(k){ items[k] = Object.assign({id: k}, loc[k]); draw(k); return col.doc(k).set(cleanItem(loc[k])); }))
+            .then(function(){ try { localStorage.removeItem(LOCAL_KEY); } catch(e){} }).catch(console.error);
+        }
+      }
+      snap.docChanges().forEach(function(ch){
+        var id = ch.doc.id;
+        if(ch.type === 'removed'){ delete items[id]; if(els[id]){ els[id].remove(); delete els[id]; } if(selected === id) selected = null; return; }
+        var data = ch.doc.data(); if(!data || !data.kind) return;                  // a half-written leftover, not an item
+        if(drag && drag.id === id) return;
+        items[id] = Object.assign({id: id}, data);
+        draw(id);
+      });
+      flushPending(); refreshEmpty();
+      if(!fitted){ fitted = true; if(Object.keys(items).length && !anyVisible()) fitAll(); }
+    }, function(err){ console.error(err); startLocal(); });
+  }
+  function startLocal(){
+    if(mode === 'local') return;
+    mode = 'local'; banner.classList.remove('hidden');
+    var loc = localLoad();
+    Object.keys(loc).forEach(function(id){ items[id] = Object.assign({id: id}, loc[id]); draw(id); });
+    flushPending(); refreshEmpty();
+    if(Object.keys(items).length && !anyVisible()) fitAll();
+  }
+
+  /* ---------- drawing ---------- */
+  function applyView(){
+    world.style.transform = 'translate(' + view.x + 'px,' + view.y + 'px) scale(' + view.k + ')';
+    world.style.setProperty('--inv', String(Math.min(2.2, Math.max(0.8, 1 / view.k))));   // keeps the handles a tappable size at any zoom
+    try { localStorage.setItem(VIEW_KEY, JSON.stringify(view)); } catch(e){}
+  }
+  function refreshEmpty(){ emptyEl.classList.toggle('hidden', Object.keys(items).length > 0); }
+  function anyVisible(){
+    var r = viewEl.getBoundingClientRect();
+    return Object.keys(items).some(function(k){
+      var it = items[k], x0 = it.x * view.k + view.x, y0 = it.y * view.k + view.y, x1 = x0 + it.w * view.k, y1 = y0 + it.h * view.k;
+      return x1 > 0 && y1 > 0 && x0 < r.width && y0 < r.height;
+    });
+  }
+  function draw(id){
+    var it = items[id]; if(!it) return;
+    var el = els[id];
+    if(!el){
+      el = document.createElement('div'); el.className = 'mf-item'; el.dataset.id = id; el.tabIndex = 0; el.setAttribute('role', 'group');
+      if(it.kind === 'image'){
+        var img = document.createElement('img'); img.alt = 'Picture on the board'; img.draggable = false;
+        if(typeof it.src === 'string' && it.src.indexOf('data:image/') === 0) img.src = it.src;
+        el.appendChild(img); el.setAttribute('aria-label', 'Picture');
+      } else {
+        var t = document.createElement('div'); t.className = 'mf-text'; t.style.cssText = 'width:100%;height:100%;border-radius:14px;'; el.appendChild(t);
+      }
+      var del = document.createElement('button'); del.type = 'button'; del.className = 'mf-del'; del.textContent = '×'; del.setAttribute('aria-label', 'Remove'); del.dataset.role = 'del';
+      var rz = document.createElement('button'); rz.type = 'button'; rz.className = 'mf-rz'; rz.tabIndex = -1; rz.setAttribute('aria-hidden', 'true'); rz.dataset.role = 'rz';
+      el.appendChild(del); el.appendChild(rz);
+      world.appendChild(el); els[id] = el;
+    }
+    el.style.left = it.x + 'px'; el.style.top = it.y + 'px'; el.style.width = it.w + 'px'; el.style.height = it.h + 'px'; el.style.zIndex = it.z || 1;
+    el.classList.toggle('sel', selected === id);
+    if(it.kind === 'text'){
+      var tx = el.querySelector('.mf-text'); if(tx && document.activeElement !== tx) tx.textContent = it.text || '';
+      el.setAttribute('aria-label', 'Note: ' + String(it.text || '').slice(0, 40));
+    }
+  }
+  function select(id){
+    var old = selected; selected = id;
+    if(old && els[old]) els[old].classList.remove('sel');
+    if(id && els[id]) els[id].classList.add('sel');
+  }
+  function topZ(){ var mx = 0; Object.keys(items).forEach(function(k){ mx = Math.max(mx, items[k].z || 1); }); return mx + 1; }
+  function toFront(id){
+    var others = Object.keys(items).filter(function(k){ return k !== id; });
+    var mx = others.reduce(function(m, k){ return Math.max(m, items[k].z || 1); }, 0);
+    if((items[id].z || 1) <= mx){ items[id].z = mx + 1; draw(id); }
+  }
+
+  /* ---------- adding things ---------- */
+  function worldCentre(){ var r = viewEl.getBoundingClientRect(); return {x: (r.width / 2 - view.x) / view.k, y: (r.height / 2 - view.y) / view.k}; }
+  function place(w, h){
+    var c = worldCentre(); nextOffset = (nextOffset + 28) % 140;
+    return {x: Math.round(c.x - w / 2 + nextOffset), y: Math.round(c.y - h / 2 + nextOffset)};
+  }
+  function addItem(fields){
+    var id = newId(), it = Object.assign({id: id, z: topZ()}, fields);
+    items[id] = it; draw(id); select(id); refreshEmpty(); persist(id);
+    return id;
+  }
+  function loadImage(file){
+    return new Promise(function(res, rej){
+      var u = URL.createObjectURL(file), im = new Image();
+      im.onload = function(){ URL.revokeObjectURL(u); res(im); };
+      im.onerror = function(){ URL.revokeObjectURL(u); rej(new Error('image')); };
+      im.src = u;
+    });
+  }
+  // Shrunk so it fits comfortably in a database record (under about 700 KB).
+  function compress(file){
+    return loadImage(file).then(function(im){
+      var iw = im.naturalWidth || 1024, ih = im.naturalHeight || 1024;
+      var max = 1200, q = 0.8, out = null;
+      for(var i = 0; i < 5; i++){
+        var sc = Math.min(1, max / Math.max(iw, ih));
+        var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(iw * sc)); c.height = Math.max(1, Math.round(ih * sc));
+        var g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+        out = {src: c.toDataURL('image/jpeg', q), w: c.width, h: c.height};
+        if(out.src.length < 700000) break;
+        max = Math.round(max * 0.75); q = Math.max(0.55, q - 0.07);
+      }
+      return out;
+    });
+  }
+  function isImageFile(f){ return /^image\//.test(f.type) || (!f.type && /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(f.name || '')); }
+  function addImageFiles(files){
+    var list = [].slice.call(files || []);
+    var imgs = list.filter(isImageFile);
+    if(!imgs.length){ if(list.length) toast('That isn’t a picture.'); return; }
+    var failed = 0;
+    imgs.reduce(function(chain, f){
+      return chain.then(function(){ return compress(f).then(function(r){
+        var w = 300, h = Math.round(300 * r.h / r.w), pos = place(w, h);
+        addItem({kind: 'image', src: r.src, x: pos.x, y: pos.y, w: w, h: h});
+      }).catch(function(e){ failed++; console.error(e); }); });
+    }, Promise.resolve()).then(function(){ if(failed) toast(failed === imgs.length ? 'That picture didn’t load.' : failed + ' of ' + imgs.length + ' didn’t load.'); });
+  }
+  function addNote(text, at){
+    var w = 240, h = 150, pos = at || place(w, h);
+    var id = addItem({kind: 'text', text: text || '', x: pos.x, y: pos.y, w: w, h: h});
+    if(!text) editText(id);
+  }
+  function editText(id){
+    var el = els[id], tx = el && el.querySelector('.mf-text'); if(!tx) return;
+    tx.setAttribute('contenteditable', 'plaintext-only'); if(!tx.isContentEditable) tx.setAttribute('contenteditable', 'true');
+    tx.focus();
+    var r = document.createRange(); r.selectNodeContents(tx); r.collapse(false);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  function saveText(tx){
+    var id = tx.parentNode && tx.parentNode.dataset.id; if(!id || !items[id]) return;
+    var raw = tx.innerText.replace(/\n+$/, '');
+    items[id].text = raw; persist(id, {text: raw});
+  }
+
+  /* ---------- pointer handling: move, resize, pan, pinch ---------- */
+  function screenToWorld(cx, cy){ var r = viewEl.getBoundingClientRect(); return {x: (cx - r.left - view.x) / view.k, y: (cy - r.top - view.y) / view.k}; }
+  function zoomAt(cx, cy, nk){
+    nk = Math.max(0.15, Math.min(3, nk));
+    var r = viewEl.getBoundingClientRect(), px = cx - r.left, py = cy - r.top;
+    view.x = px - (px - view.x) * (nk / view.k); view.y = py - (py - view.y) * (nk / view.k); view.k = nk; applyView();
+  }
+  function commitDrag(){
+    if(!drag) return;
+    var d = drag; drag = null;
+    if(d.moved && items[d.id]) persist(d.id, {x: items[d.id].x, y: items[d.id].y, w: items[d.id].w, h: items[d.id].h, z: items[d.id].z});
+  }
+  viewEl.addEventListener('pointerdown', function(e){
+    if(e.pointerType === 'mouse' && e.button !== 0) return;               // right-click / ctrl-click is not a drag
+    pointers[e.pointerId] = {x: e.clientX, y: e.clientY};
+    var itemEl = e.target.closest ? e.target.closest('.mf-item') : null;
+    var ids = Object.keys(pointers);
+    if(ids.length === 2){                                                 // two fingers: pinch (keep any move that was under way)
+      commitDrag(); panning = null; viewEl.classList.remove('panning');
+      var a = pointers[ids[0]], b = pointers[ids[1]];
+      pinch = {d: Math.hypot(a.x - b.x, a.y - b.y), k: view.k, vx: view.x, vy: view.y, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2};
+      return;
+    }
+    if(itemEl){
+      var id = itemEl.dataset.id, role = e.target.dataset ? e.target.dataset.role : '';
+      if(role === 'del') return;                                          // removed on click, so it can be undone
+      var tx = itemEl.querySelector('.mf-text');
+      if(tx && tx.isContentEditable) return;                              // editing: let the text take the click
+      select(id); toFront(id); persist(id, {z: items[id].z});
+      var it = items[id];
+      drag = {id: id, mode: role === 'rz' ? 'resize' : 'move', sx: e.clientX, sy: e.clientY, x: it.x, y: it.y, w: it.w, h: it.h, moved: false, t: Date.now()};
+      try { viewEl.setPointerCapture(e.pointerId); } catch(err){}
+      e.preventDefault(); return;
+    }
+    select(null);
+    document.querySelectorAll('.mf-text[contenteditable="true"],.mf-text[contenteditable="plaintext-only"]').forEach(function(t){ t.blur(); });
+    panning = {sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y};
+    viewEl.classList.add('panning');
+    try { viewEl.setPointerCapture(e.pointerId); } catch(err){}
+  });
+  viewEl.addEventListener('pointermove', function(e){
+    if(pointers[e.pointerId]){ pointers[e.pointerId].x = e.clientX; pointers[e.pointerId].y = e.clientY; }
+    if((drag || panning) && e.pointerType === 'mouse' && e.buttons === 0){ endPointer(e); return; }   // a missed release can't leave something stuck to the cursor
+    if(pinch){
+      var ids = Object.keys(pointers); if(ids.length < 2) return;
+      var a = pointers[ids[0]], b = pointers[ids[1]], d = Math.hypot(a.x - b.x, a.y - b.y);
+      view.k = pinch.k; view.x = pinch.vx; view.y = pinch.vy;
+      zoomAt(pinch.cx, pinch.cy, pinch.k * (d / pinch.d)); return;
+    }
+    if(drag){
+      var dx = (e.clientX - drag.sx) / view.k, dy = (e.clientY - drag.sy) / view.k, it = items[drag.id]; if(!it) return;
+      if(Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+      if(drag.mode === 'move'){ it.x = Math.round(drag.x + dx); it.y = Math.round(drag.y + dy); }
+      else {
+        var nw = Math.max(60, drag.w + dx);
+        if(it.kind === 'image'){ it.w = Math.round(nw); it.h = Math.round(nw * drag.h / drag.w); }
+        else { it.w = Math.round(nw); it.h = Math.max(50, Math.round(drag.h + dy)); }
+      }
+      draw(drag.id); return;
+    }
+    if(panning){ view.x = panning.vx + (e.clientX - panning.sx); view.y = panning.vy + (e.clientY - panning.sy); applyView(); }
+  });
+  function endPointer(e){
+    delete pointers[e.pointerId];
+    if(Object.keys(pointers).length < 2) pinch = null;
+    if(drag){
+      var d = drag;
+      // a second quick tap on a note edits it (double-click isn't reliable on touch screens)
+      if(!d.moved && d.mode === 'move' && items[d.id] && items[d.id].kind === 'text'){
+        var now = Date.now();
+        if(lastTap && lastTap.id === d.id && now - lastTap.t < 380){ lastTap = null; commitDrag(); editText(d.id); return; }
+        lastTap = {id: d.id, t: now};
+      }
+      commitDrag();
+    }
+    if(panning){ panning = null; viewEl.classList.remove('panning'); }
+  }
+  viewEl.addEventListener('pointerup', endPointer);
+  viewEl.addEventListener('pointercancel', endPointer);
+  viewEl.addEventListener('lostpointercapture', endPointer);
+  window.addEventListener('pointerup', function(e){ if(pointers[e.pointerId]) endPointer(e); });
+  viewEl.addEventListener('wheel', function(e){
+    e.preventDefault();
+    if(e.ctrlKey || e.metaKey){ zoomAt(e.clientX, e.clientY, view.k * Math.exp(-e.deltaY * 0.01)); }
+    else { view.x -= e.deltaX; view.y -= e.deltaY; applyView(); }
+  }, {passive: false});
+  // delete happens on click so a tap that slides off the button does nothing, and it can be undone
+  world.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.mf-del') : null; if(!b) return;
+    var itemEl = b.closest('.mf-item'); if(itemEl) remove(itemEl.dataset.id, true);
+  });
+  viewEl.addEventListener('dblclick', function(e){
+    var hit = document.elementFromPoint(e.clientX, e.clientY), itemEl = hit && hit.closest ? hit.closest('.mf-item') : null;   // the target is the board itself after a drag capture
+    if(itemEl){ var id = itemEl.dataset.id; if(items[id] && items[id].kind === 'text') editText(id); return; }
+    var p = screenToWorld(e.clientX, e.clientY); addNote('', {x: Math.round(p.x - 120), y: Math.round(p.y - 40)});
+  });
+  // notes save as you type (a moment after you stop), when you leave them, and when the page is hidden
+  world.addEventListener('input', function(e){
+    var tx = e.target; if(!tx.classList || !tx.classList.contains('mf-text')) return;
+    var id = tx.parentNode.dataset.id; clearTimeout(textTimers[id]); textTimers[id] = setTimeout(function(){ saveText(tx); }, 700);
+  });
+  world.addEventListener('focusout', function(e){
+    var tx = e.target; if(!tx.classList || !tx.classList.contains('mf-text')) return;
+    if(!document.hasFocus()) return;                                       // switching apps doesn't end the edit
+    tx.setAttribute('contenteditable', 'false');
+    var id = tx.parentNode.dataset.id; if(!items[id]) return;
+    clearTimeout(textTimers[id]);
+    if(!tx.innerText.trim()){ remove(id, false); return; }
+    saveText(tx);
+  });
+  function flushText(){ document.querySelectorAll('.mf-text[contenteditable="true"],.mf-text[contenteditable="plaintext-only"]').forEach(saveText); }
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) flushText(); });
+  window.addEventListener('pagehide', flushText);
+
+  /* ---------- keyboard, paste, drop, buttons ---------- */
+  document.addEventListener('keydown', function(e){
+    var ae = document.activeElement;
+    if(ae && (ae.isContentEditable || /^(INPUT|TEXTAREA)$/.test(ae.tagName))) return;
+    var id = selected || (ae && ae.classList && ae.classList.contains('mf-item') ? ae.dataset.id : null);
+    if((e.key === 'Delete' || e.key === 'Backspace') && id){ e.preventDefault(); remove(id, true); }
+    else if(e.key === 'Escape'){ select(null); }
+    else if(id && items[id] && e.key === 'Enter'){ e.preventDefault(); if(items[id].kind === 'text') editText(id); else select(id); }
+    else if(id && items[id] && /^Arrow/.test(e.key)){
+      e.preventDefault(); var st = e.shiftKey ? 40 : 10, it = items[id];
+      if(e.key === 'ArrowLeft') it.x -= st; else if(e.key === 'ArrowRight') it.x += st; else if(e.key === 'ArrowUp') it.y -= st; else it.y += st;
+      draw(id); persist(id, {x: it.x, y: it.y});
+    }
+  });
+  document.addEventListener('paste', function(e){
+    var ae = document.activeElement; if(ae && ae.isContentEditable) return;
+    var cd = e.clipboardData; if(!cd) return;
+    var files = [].slice.call(cd.files || []).filter(isImageFile);
+    if(!files.length){ [].slice.call(cd.items || []).forEach(function(it){ if(it.kind === 'file' && /^image\//.test(it.type)){ var f = it.getAsFile(); if(f) files.push(f); } }); }
+    if(files.length){ e.preventDefault(); addImageFiles(files); return; }
+    var text = cd.getData('text'); if(text && text.trim()){ e.preventDefault(); addNote(text.trim().slice(0, 2000)); }
+  });
+  viewEl.addEventListener('dragover', function(e){ e.preventDefault(); });
+  viewEl.addEventListener('drop', function(e){ e.preventDefault(); if(e.dataTransfer && e.dataTransfer.files) addImageFiles(e.dataTransfer.files); });
+  $('mf-img').addEventListener('click', function(){ $('mf-file').click(); });
+  $('mf-file').addEventListener('change', function(e){ addImageFiles(e.target.files); e.target.value = ''; });
+  $('mf-note').addEventListener('click', function(){ addNote(''); });
+  $('mf-in').addEventListener('click', function(){ var r = viewEl.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, view.k * 1.25); });
+  $('mf-out').addEventListener('click', function(){ var r = viewEl.getBoundingClientRect(); zoomAt(r.left + r.width / 2, r.top + r.height / 2, view.k / 1.25); });
+  function fitAll(){
+    var ids = Object.keys(items); if(!ids.length){ view = {x: 40, y: 40, k: 1}; applyView(); return; }
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    ids.forEach(function(k){ var it = items[k]; x0 = Math.min(x0, it.x); y0 = Math.min(y0, it.y); x1 = Math.max(x1, it.x + it.w); y1 = Math.max(y1, it.y + it.h); });
+    var r = viewEl.getBoundingClientRect(), pad = 40, k = Math.min(2, Math.max(0.15, Math.min((r.width - pad * 2) / (x1 - x0), (r.height - pad * 2) / (y1 - y0))));
+    view = {k: k, x: (r.width - (x1 - x0) * k) / 2 - x0 * k, y: (r.height - (y1 - y0) * k) / 2 - y0 * k}; applyView();
+  }
+  $('mf-fit').addEventListener('click', fitAll);
+
+  applyView(); refreshEmpty(); startCloud();
+})();
+</script>
+<script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
+</body>
+</html>

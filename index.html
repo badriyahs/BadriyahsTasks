@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=64">
+<link rel="stylesheet" href="styles.css?v=68">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,6 +30,7 @@
   <a class="tab" href="jobs.html">Jobs</a>
   <a class="tab" href="health.html">Health</a>
   <a class="tab" href="gre.html">GRE</a>
+  <a class="tab" href="manifest.html">Manifest</a>
 </div>
 
 <div class="view" id="view-digest">
@@ -45,6 +46,7 @@
 
       <div class="home-banner">
         <div class="dua-box" id="duabox"></div>
+        <div class="wird" dir="rtl" lang="ar"><a class="wird-btn" id="wirdbtn" href="https://quran.com/page/1" target="_blank" rel="noopener">ورد<small id="wirdpages"></small></a><button type="button" class="wird-done" id="wirddone" aria-label="Done. Next two pages" title="تم">✓</button></div>
       </div>
       </div>
 
@@ -83,7 +85,8 @@
 
         <section class="panel p-cal p-today on" data-panel="today">
           <div class="panel-photo" style="background-image:url('img/astrolabes.jpg')"></div>
-          <header class="panel-head"><h2>Today</h2><span class="panel-sub" id="todaysub"></span></header>
+          <header class="panel-head"><h2>Today</h2><span class="panel-sub" id="todaysub"></span><button type="button" class="jot-btn" id="jotbtn" aria-label="Jot a thought" title="Jot a thought">+</button></header>
+          <form class="jot" id="jotform" hidden autocomplete="off"><input id="jotin" type="text" placeholder="Jot a thought…" aria-label="Jot a thought" enterkeyhint="done"></form>
           <div id="todaybody"></div>
         </section>
 
@@ -102,7 +105,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=23"></script>
+<script src="app.js?v=24"></script>
 <script>
 (function(){
   "use strict";
@@ -197,6 +200,7 @@
     return '<div class="todo ' + (cls || '') + '" data-id="' + t.id + '">' +
       '<button type="button" class="todo-check" data-act="done" aria-label="Mark done"></button>' +
       '<a class="todo-text" href="tasks.html#task-' + t.id + '">' + L.escapeHTML(t.description || 'Untitled') + '</a>' +
+      '<span class="todo-est">~' + L.escapeHTML(span(L.estMin(t))) + '</span>' +
       '<span class="todo-due">' + L.escapeHTML(chip) + '</span></div>';
   }
   function tickDays(){ try { return JSON.parse(localStorage.getItem('badriyah-ticks') || '[]'); } catch(e){ return []; } }
@@ -255,7 +259,9 @@
     var row = b.closest('.todo'), wasDone = row.classList.contains('is-done');
     row.classList.toggle('is-done');
     L.toggleStrike(row.dataset.id);
-    if(wasDone){ toast('Back on your list', true); } else { recordTick(); toast('Nicely done', true); }
+    var todoWin = 'task:' + row.dataset.id;
+    if(wasDone){ removeWin(todoWin); toast('Back on your list', true); }
+    else { addWin(todoWin, (row.querySelector('.todo-text') || {}).textContent); recordTick(); toast('Nicely done', function(){ L.undo(); removeWin(todoWin); }); }
   });
 
   /* ---- Coming up: events and call deadlines for the next week, grouped by day (shown under Today) ---- */
@@ -858,6 +864,8 @@
     firebase.firestore().collection('health').doc('_settings').onSnapshot(function(doc){
       var pj = doc.exists ? doc.data().planJson : ''; try { healthPlan = pj ? JSON.parse(pj) : {}; } catch(e){ healthPlan = {}; }
       planReady = doc.exists || !(doc.metadata && doc.metadata.fromCache);
+      var wp = doc.exists ? parseInt(doc.data().wirdPage, 10) : 0;
+      if(wp >= 1 && wp <= 604){ wirdPage = wp - (wp % 2 === 0 ? 1 : 0); renderWird(); try { localStorage.setItem(WIRD_KEY, String(wirdPage)); } catch(e){} }
       renderToday();
     }, function(){
       healthPlan = {}; planReady = false;
@@ -868,6 +876,9 @@
   var prep = {tasks: {}};
   try { fetch('prep.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.tasks){ prep = j; renderToday(); } }).catch(function(){}); } catch(e){}
 
+  var STUDIO = 'https://studiosweat.co/mansouriya';   // classes can be booked up to 7 days ahead
+  function pilatesHref(ch){ return ch === 'p' ? STUDIO : 'health.html'; }
+  function pilatesAttr(ch){ return ch === 'p' ? ' target="_blank" rel="noopener"' : ''; }
   var WIND_DOWN = 21 * 60;
   var PREP_KEY = 'badriyah-prep-v1';
   var timer = null;                                  // {key, start, end, mins, over}: one timer, either a step or the free 25-minute focus
@@ -916,19 +927,21 @@
   function stopTimer(silent){
     if(!timer) return;
     var t = timer; timer = null; saveTimer(); setTitle();
+    if(t.key === 'break'){ renderToday(); return; }
     if(!t.over){
       var spent = Math.min(t.mins, Math.floor((Date.now() - t.start) / 60000));
-      if(spent >= 1 && claimLog(t)){ logFocus(spent, L.fmtISO(new Date(t.start))); if(!silent) toast('Stopped at ' + spent + ' min. That counts, and it’s logged.'); return; }
-      if(!silent) toast('Okay, stopped. Under a minute isn’t logged, and that’s fine.');
+      if(spent >= 1 && claimLog(t)){ logFocus(spent, L.fmtISO(new Date(t.start))); if(!silent) toast('Stopped at ' + spent + ' min. Logged.'); return; }
+      if(!silent) toast('Stopped. Under a minute isn’t logged.');
     }
     renderToday();
   }
   (function(){   // a timer still running after a page reload carries on
     try {
       var t = JSON.parse(localStorage.getItem(TIMER_KEY) || 'null');
-      if(t && t.start && t.mins && !t.over){
+      if(t && t.key === 'break' && t.end <= Date.now()){ localStorage.removeItem(TIMER_KEY); }
+      else if(t && t.start && t.mins && !t.over){
         if(t.end > Date.now()) timer = t;
-        else { localStorage.removeItem(TIMER_KEY); setTimeout(function(){ if(claimLog(t)){ logFocus(t.mins, L.fmtISO(new Date(t.start))); toast('A ' + t.mins + '-minute timer finished while you were away, and it’s counted.'); } }, 0); }
+        else { localStorage.removeItem(TIMER_KEY); setTimeout(function(){ if(claimLog(t)){ logFocus(t.mins, L.fmtISO(new Date(t.start))); toast('Your ' + t.mins + ' min finished and counted.'); } }, 0); }
       } else localStorage.removeItem(TIMER_KEY);
     } catch(e){}
   })();
@@ -938,13 +951,15 @@
     try { st = JSON.parse(localStorage.getItem(PREP_KEY) || 'null'); } catch(e){}
     if(!st || !st.done || typeof st.done !== 'object') st = {day: D, done: {}, skip: {}};
     if(!st.skip || typeof st.skip !== 'object') st.skip = {};
-    if(st.day !== D){ st.day = D; st.skip = {}; }          // "skip for tonight" resets each day; ticked steps carry on
+    if(typeof st.pin !== 'string') st.pin = '';
+    if(st.day !== D){ st.day = D; st.skip = {}; st.pin = ''; }          // "skip" and "pick for me" reset each day; ticked steps carry on
     var cutoff = addDaysISO(L.todayISO(), -45);
     Object.keys(st.done).forEach(function(k){ var v = st.done[k]; if(typeof v === 'string' && v < cutoff) delete st.done[k]; });
     return st;
   }
   function savePrep(st){ try { localStorage.setItem(PREP_KEY, JSON.stringify(st)); } catch(e){} }
-  function span(mins){ mins = Math.max(0, Math.round(mins)); var h = Math.floor(mins / 60), m = mins % 60; return (h ? h + ' h' + (m ? ' ' + m + ' m' : '') : m + ' m').replace(/ /g, '\u00a0'); }   // no line breaks inside a duration
+  function brief(t){ var m = String(t || '').match(/^.*?[.!?](?=\s+[A-Z"“(]|$)/); return clip(m ? m[0] : t, 100); }
+  function span(mins){ mins = Math.max(0, Math.round(mins)); var h = Math.floor(mins / 60), m = mins % 60; return (h ? h + ' h' + (m ? ' ' + m + ' min' : '') : m + ' min').replace(/ /g, '\u00a0'); }   // no line breaks inside a duration
   function mmss(secs){ return Math.floor(secs / 60) + ':' + ('0' + (secs % 60)).slice(-2); }
   function clockText(d){ return d.toLocaleTimeString(undefined, {hour: 'numeric', minute: '2-digit'}); }
   function safeURL(u){ return /^(https?:\/\/|[a-z0-9-]+\.html(#[\w-]*)?$)/i.test(String(u || '')) ? u : '#'; }
@@ -961,6 +976,22 @@
     return z ? first + ' ' + z[1] : first;
   }
 
+  var WINS_KEY = 'badriyah-wins-v1';
+  function winsAll(){ try { return JSON.parse(localStorage.getItem(WINS_KEY) || '{}') || {}; } catch(e){ return {}; } }
+  function winsToday(){ return winsAll()[L.todayISO()] || []; }
+  function addWin(key, title){
+    title = String(title || '').trim(); if(!title) return;
+    var all = winsAll(), T = L.todayISO(), list = all[T] || [];
+    if(list.some(function(w){ return w.k === key; })) return;
+    list.push({k: key, t: title.slice(0, 90)}); all[T] = list;
+    Object.keys(all).forEach(function(d){ if(d < addDaysISO(T, -7)) delete all[d]; });
+    try { localStorage.setItem(WINS_KEY, JSON.stringify(all)); } catch(e){}
+  }
+  function removeWin(key){
+    var all = winsAll(), T = L.todayISO(); if(!all[T]) return;
+    all[T] = all[T].filter(function(w){ return w.k !== key; });
+    try { localStorage.setItem(WINS_KEY, JSON.stringify(all)); } catch(e){}
+  }
   function kitTotal(kit){ return kit.steps.reduce(function(n, x){ return n + (+x.min || 0); }, 0); }
   function kitLeft(kit, key, st){ return kit.steps.reduce(function(n, x, i){ return st.done[key + '|' + i] ? n : n + (+x.min || 0); }, 0); }
   // Full practice tests (about two hours) and heavier chapters take longer than a plain chapter.
@@ -983,9 +1014,9 @@
       if(kit && kit.steps && kit.steps.length && t.due && t.due <= tomorrow){
         c.push({pri: 1, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: kit.name || t.description, kit: kit, total: kitTotal(kit), min: kitLeft(kit, 'task:' + t.id, st), href: 'tasks.html#task-' + t.id, task: t});
       } else if(t.due === T){
-        c.push({pri: 2, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: t.description, total: 25, min: st.done['task:' + t.id + '|0'] ? 0 : 25, href: 'tasks.html#task-' + t.id, task: t});
+        c.push({pri: 2, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: t.description, total: L.estMin(t), min: st.done['task:' + t.id + '|0'] ? 0 : L.estMin(t), href: 'tasks.html#task-' + t.id, task: t});
       } else if(t.due && t.due < T){
-        c.push({pri: 4, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: t.description, total: 25, min: st.done['task:' + t.id + '|0'] ? 0 : 25, href: 'tasks.html#task-' + t.id, task: t});
+        c.push({pri: 4, due: t.due, ord: t.order || 0, kind: 'task', key: 'task:' + t.id, id: t.id, title: t.description, total: L.estMin(t), min: st.done['task:' + t.id + '|0'] ? 0 : L.estMin(t), href: 'tasks.html#task-' + t.id, task: t});
       }
     });
     if(gre.ok){
@@ -995,6 +1026,16 @@
       var behind = gre.items.filter(function(g){ return !greStudied(g) && g.date && g.date < T; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); })[0];
       if(behind) c.push(greRow(behind, 3.5));
     }
+    if(st.pin){
+      var pc = c.filter(function(x){ return x.key === st.pin; })[0];
+      if(pc) pc.pri = -1;
+      else if(st.pin.indexOf('task:') === 0){
+        var pt = tasks.filter(function(t){ return 'task:' + t.id === st.pin; })[0];
+        var pkit = pt && prep.tasks && prep.tasks[pt.id];
+        if(pt && pkit && pkit.steps && pkit.steps.length) c.push({pri: -1, due: pt.due || T, ord: 0, kind: 'task', key: st.pin, id: pt.id, title: pkit.name || pt.description, kit: pkit, total: kitTotal(pkit), min: kitLeft(pkit, st.pin, st), href: 'tasks.html#task-' + pt.id, task: pt});
+        else if(pt) c.push({pri: -1, due: pt.due || T, ord: 0, kind: 'task', key: st.pin, id: pt.id, title: pt.description, total: L.estMin(pt), min: st.done[st.pin + '|0'] ? 0 : L.estMin(pt), href: 'tasks.html#task-' + pt.id, task: pt});
+      }
+    }
     c.sort(function(a, b){ return a.pri - b.pri || (a.due < b.due ? -1 : a.due > b.due ? 1 : 0) || a.ord - b.ord; });
     var plan = [], used = 0, later = [], skipped = [];
     c.forEach(function(x){
@@ -1002,7 +1043,10 @@
       if(plan.length < 3 && (plan.length === 0 || used + x.min <= budget)){ plan.push(x); used += x.min; }
       else if(x.pri < 4) later.push(x);
     });
-    return {plan: plan, used: used, later: later, skipped: skipped};
+    var poolMap = {};
+    c.forEach(function(x){ if(!st.skip[x.key]) poolMap[x.key] = 1; });
+    tasks.forEach(function(t){ if(linked[t.id]) return; var k = 'task:' + t.id; if(!st.skip[k]) poolMap[k] = 1; });
+    return {plan: plan, used: used, later: later, skipped: skipped, pool: Object.keys(poolMap)};
   }
 
   // a deadline that is only a guess from last year's cycle is called what it is
@@ -1026,10 +1070,10 @@
     return pl;
   }
   function setPilates(wd, slot){
-    if(!planReady){ toast('Your plan is still loading. It may be worth trying again in a moment.'); return; }
+    if(!planReady){ toast('Plan still loading. Try again.'); return; }
     var prior = healthPlan;
     healthPlan = togglePilates(healthPlan, wd, slot); renderToday();
-    var failed = function(e){ console.error(e); healthPlan = prior; renderToday(); toast('That one didn’t save. It may be worth trying again in a moment.'); };
+    var failed = function(e){ console.error(e); healthPlan = prior; renderToday(); toast('Couldn’t save. Try again.'); };
     try {
       var db = firebase.firestore(), ref = db.collection('health').doc('_settings');
       // read-modify-write, so an edit made on the Health tab a moment ago isn't overwritten by a stale copy
@@ -1079,39 +1123,39 @@
         return '<button type="button" class="td-win' + (on ? ' on' : '') + (busy[w[0]] ? ' busy' : '') + '" data-act="pil" data-wd="' + wd + '" data-slot="' + w[0] + '" aria-pressed="' + on + '" aria-label="' + L.escapeHTML(label) + '"' +
           (planReady ? '' : ' disabled') + (busy[w[0]] ? ' title="Something is on then: ' + L.escapeHTML(busy[w[0]]) + '"' : '') + '>' + w[1] + (on ? ' · pilates' : busy[w[0]] ? ' · busy' : '') + '</button>';
       }).join('');
-      rows += '<div class="td-wk-day"><div class="td-wk-d"><b>' + dayName + '</b> <span class="td-shape">' + shape + '</span>' +
+      rows += '<div class="td-wk-day"><div class="td-wk-d"><b>' + dayName + '</b>' +
         (parts.length ? '<small>' + L.escapeHTML(parts.slice(0, 3).join(' · ') + (parts.length > 3 ? ' · +' + (parts.length - 3) + ' more' : '')) + '</small>' : '') + '</div><div class="td-wins" role="group" aria-label="' + L.escapeHTML(dayName) + '">' + wins + '</div></div>';
     }
-    var radar = callsAll.filter(function(cl){ var dd = L.daysUntil(cl.deadline); return dd !== null && dd >= 0 && dd <= 14; })
-      .sort(function(a, b){ return a.deadline < b.deadline ? -1 : 1; }).slice(0, 4);
-    var radarHTML = radar.length ? '<div class="td-sec">Calls</div>' + radar.map(function(cl){
-      var dd = L.daysUntil(cl.deadline);
-      return '<a class="td-row" href="calls.html#call-' + cl.id + '">' + L.escapeHTML(clip(cl.name, 70)) + '<small>' + closesWord(cl) + ' ' + (dd === 0 ? 'today' : dd === 1 ? 'tomorrow' : prettyDate(cl.deadline)) + '</small></a>';
-    }).join('') + '<a class="td-morelink" href="calls.html">All calls</a>' : '';
     return '<details class="td-week' + (sat ? ' td-sat' : '') + '" data-d="week"><summary>' + (sat ? 'Saturday: plan the week' : 'The week ahead') + '</summary>' +
-      '<p class="td-wk-intro">Tap a window for pilates. It repeats weekly.</p>' +
-      (pen.length ? '<div class="td-wk-pen">Pilates: ' + L.escapeHTML(pen.join(', ')) + '</div>' : '') + rows + radarHTML +
+      '<p class="td-wk-intro">Tap a window · repeats weekly · <a href="' + STUDIO + '" target="_blank" rel="noopener" title="Classes open 7 days ahead">Book</a></p>' + rows +
       (sat ? '<div class="td-foot"><button type="button" class="td-ghost" data-act="weekno">Not this week</button></div>' : '') + '</details>';
   }
 
   var RING_C = 2 * Math.PI * 52;
-  function focusHTML(){
-    var T = L.todayISO(), today = focusFor(T), DI = ['S', 'M', 'T', 'W', 'T', 'F', 'S'], days = [], mx = 60, any = false, i;
+  function focusHTML(canPick){
+    var T = L.todayISO(), today = focusFor(T), DI = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'], days = [], mx = 60, any = false, i;
     for(i = 6; i >= 0; i--){ var iso = addDaysISO(T, -i), f = focusFor(iso); if(f.min > mx) mx = f.min; if(f.min) any = true; days.push({iso: iso, f: f, wd: new Date(iso + 'T00:00:00').getDay()}); }
     var cls = 'td-ring', off = 0, centre, act;
     if(timer && timer.over){ cls += ' over'; centre = '<b>✓</b><small>done</small>'; act = 'tstop'; }
+    else if(timer && timer.key === 'break'){
+      var btotal = timer.mins * 60, bleft = Math.max(0, Math.ceil((timer.end - Date.now()) / 1000));
+      cls += ' run brk'; off = RING_C * (1 - bleft / btotal); centre = '<b class="td-timer">' + mmss(bleft) + '</b><small>break</small>'; act = 'tstop';
+    }
     else if(timer){
       var total = timer.mins * 60, left = Math.max(0, Math.ceil((timer.end - Date.now()) / 1000));
       cls += ' run'; off = RING_C * (1 - left / total); centre = '<b class="td-timer">' + mmss(left) + '</b><small>stop</small>'; act = 'tstop';
     } else { cls += ' idle'; centre = '<b>25</b><small>focus</small>'; act = 'fstart'; }
-    var tot = today.min ? '<div class="td-focus-tot">' + span(today.min) + ' today</div>' : '';
+    var winsN = winsToday().length, totBits = [];
+    if(today.min) totBits.push(span(today.min) + ' focus');
+    if(winsN) totBits.push(winsN + ' done');
+    var tot = (totBits.length ? '<div class="td-focus-tot">' + totBits.join(' · ') + '</div>' : '') + (canPick && !timer ? '<button type="button" class="td-ghost td-pick" data-act="pick">Pick for me</button>' : '');
     var barsLabel = 'Focus minutes, last seven days. ' + days.map(function(d){ return prettyDate(d.iso) + ': ' + (d.f.min ? d.f.min + ' minutes' : 'none'); }).join('; ');
     var bars = any ? '<div class="td-bars" role="img" aria-label="' + L.escapeHTML(barsLabel) + '">' + days.map(function(d){
       return '<span class="td-barcol" aria-hidden="true" title="' + L.escapeHTML(prettyDate(d.iso) + ': ' + (d.f.min ? span(d.f.min) : 'none')) + '"><i style="height:' + Math.max(d.f.min ? 4 : 1, Math.round(d.f.min / mx * 26)) + 'px"></i><b>' + DI[d.wd] + '</b></span>';
     }).join('') + '</div>' : '';
     return '<div class="td-focus"><div class="' + cls + '"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="tdg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B8FF"/><stop offset="1" stop-color="#FFB6D2"/></linearGradient></defs>' +
       '<circle class="td-ring-track" cx="60" cy="60" r="52"/><circle class="td-arc" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '"/></svg>' +
-      '<button type="button" class="td-ring-btn" data-act="' + act + '" aria-label="' + (act === 'fstart' ? 'Start a 25-minute focus' : timer && timer.over ? 'Okay' : 'Stop the timer') + '">' + centre + '</button></div>' + tot + bars + '</div>';
+      '<button type="button" class="td-ring-btn" data-act="' + act + '"' + (act === 'fstart' ? ' aria-label="Focus 25 minutes, start"' : timer && timer.over ? ' aria-label="Done"' : timer && timer.key === 'break' ? ' aria-label="Skip the break"' : '') + '>' + centre + '</button></div>' + tot + bars + '</div>';
   }
   function clockMin(m){ var h = Math.floor(m / 60) % 24, mm = m % 60; return (h % 12 || 12) + ':' + ('0' + mm).slice(-2) + ' ' + (h < 12 ? 'AM' : 'PM'); }
   /* Lay the plan out in time: from now (rounded up to five minutes), one thing after another, with a short pause between,
@@ -1135,18 +1179,18 @@
     });
     return {fixed: fixed, blocks: blocks, finish: blocks.length ? blocks[blocks.length - 1].sched.e : null, startsNow: !blocks.length || blocks[0].sched.now};
   }
-  function dayHTML(D, nowMin, hr, now){
+  function dayHTML(D, nowMin, hr, now, cardKey){
     var rows = [], WS = {m: 5 * 60, a: 12 * 60, e: 17 * 60, n: 21 * 60}, WL = {m: 'this morning', a: 'this afternoon', e: 'this evening', n: 'tonight'}, WE = {m: 12 * 60, a: 17 * 60, e: 21 * 60, n: 29 * 60};
     D.fixed.forEach(function(f){
       rows.push({k: f.s, o: 0, h: '<div class="td-trow ev"><span class="td-tt">' + clockMin(f.s) + '</span><div class="td-tb"><a href="events.html#task-' + f.id + '">' + L.escapeHTML(clip(f.title, 70)) + '</a>' + (f.explicit ? '<small>until ' + clockMin(f.e) + '</small>' : '') + '</div></div>'});
     });
     D.blocks.forEach(function(it){
-      rows.push({k: it.sched.s, o: 1, h: '<div class="td-trow"><span class="td-tt">' + clockMin(it.sched.s) + '</span><div class="td-tb"><b>' + L.escapeHTML(clip(it.title, 70)) + '</b><small>' + span(it.min) + '</small></div></div>'});
+      rows.push({k: it.sched.s, o: 1, h: '<div class="td-trow"><span class="td-tt">' + clockMin(it.sched.s) + '</span><div class="td-tb"><b>' + L.escapeHTML(clip(it.title, 70)) + '</b><small>' + span(it.min) + '</small></div>' + (it.key !== cardKey ? '<button type="button" class="td-ghost td-startrow" data-act="pinit" data-key="' + L.escapeHTML(it.key) + '">Pick</button>' : '') + '</div>'});
     });
     var plan = healthPlan[now.getDay()] || {};
     L.DAY_SLOTS.forEach(function(sr){
       if(WE[sr[0]] <= nowMin) return;
-      var pills = String(plan[sr[0]] || '').split('').filter(function(ch){ return L.HEALTH_WORDS[ch]; }).map(function(ch){ return '<a class="td-pill ' + ch + '" href="health.html">' + L.HEALTH_WORDS[ch] + '</a>'; }).join('');
+      var pills = String(plan[sr[0]] || '').split('').filter(function(ch){ return L.HEALTH_WORDS[ch]; }).map(function(ch){ return '<a class="td-pill ' + ch + '" href="' + pilatesHref(ch) + '"' + pilatesAttr(ch) + '>' + L.HEALTH_WORDS[ch] + '</a>'; }).join('');
       if(pills) rows.push({k: Math.max(WS[sr[0]], nowMin), o: 2, h: '<div class="td-trow win"><span class="td-tt">' + WL[sr[0]] + '</span><div class="td-tb">' + pills + '</div></div>'});
     });
     if(!rows.length) return '';
@@ -1158,7 +1202,7 @@
     if(it.kit) return it.kit.steps;
     var d = it.task && (it.task.details || '').trim();
     return [{t: it.kind === 'gre' ? 'Study it' : 'Do it', min: it.total || it.min,
-      how: d ? clip(d, 170) : (it.kind === 'gre' ? 'Open the chapter and work through it at whatever pace suits.' : 'Open it and do the smallest first piece. Ten minutes counts.'),
+      how: d ? brief(d) : (it.kind === 'gre' ? 'Open the chapter and work through it at whatever pace suits.' : 'Open it and do the smallest first piece. Ten minutes counts.'),
       links: [{label: it.kind === 'gre' ? 'Open the chapter' : 'Open the task', url: it.href}]}];
   }
   function itemHTML(it, st, first){
@@ -1170,15 +1214,19 @@
     if(it.sched) bits.push('done by ' + clockMin(it.sched.e));
     var h = '<div class="td-item td-now" data-key="' + L.escapeHTML(it.key) + '">' +
       '<div class="td-k"><div class="td-title">' + L.escapeHTML(clip(it.title, 80)) + '</div>' + (finished ? '' : '<button type="button" class="td-ghost td-skip" data-act="skip" data-key="' + L.escapeHTML(it.key) + '">Skip</button>') + '</div>' +
-      (bits.length ? '<div class="td-meta">' + L.escapeHTML(bits.join(' · ')) + '</div>' : '');
+      (bits.length ? '<div class="td-meta">' + bits.map(function(b, bi){
+        return (bi === 0 && it.kind === 'task' && !it.kit && it.task && it.min > 0) ? '<button type="button" class="td-est" data-act="est" data-id="' + L.escapeHTML(it.id) + '" title="Change the estimate">' + L.escapeHTML('~' + b) + '</button>' : L.escapeHTML(b);
+      }).join(' · ') + '</div>' : '');
     h += '<ol class="td-steps">' + steps.map(function(s, k){
       var done = !!st.done[it.key + '|' + k], isCur = k === cur, tkey = it.key + '|' + k;
       return '<li class="td-step' + (done ? ' is-done' : '') + (isCur ? ' is-cur' : '') + '">' +
         '<button type="button" class="td-box" data-act="step" data-key="' + L.escapeHTML(it.key) + '" data-i="' + k + '" aria-label="' + (done ? 'Mark not done: ' : 'Mark done: ') + L.escapeHTML(s.t) + '"></button>' +
         '<div class="td-sb"><div class="td-st">' + L.escapeHTML(s.t) + ' <i>' + (+s.min || 0) + ' min</i></div>' +
-        (isCur && s.how ? '<div class="td-how">' + L.escapeHTML(s.how) + '</div>' : '') +
+        (isCur && s.how ? '<div class="td-how">' + L.escapeHTML(clip(s.how, 170)) + '</div>' : '') +
         (isCur && s.links && s.links.length ? '<div class="td-links">' + s.links.map(function(l){ return '<a href="' + L.escapeHTML(safeURL(l.url)) + '"' + linkAttr(l.url) + '>' + L.escapeHTML(l.label) + (linkAttr(l.url) ? ' ↗' : '') + '</a>'; }).join('') + '</div>' : '') +
-        (isCur && !timer ? '<div class="td-act"><button type="button" class="td-go" data-act="tstart" data-key="' + L.escapeHTML(tkey) + '" data-min="' + (+s.min || 10) + '">Try ' + (+s.min || 10) + ' min</button></div>' : '') +
+        (isCur && (!timer || timer.over) ? (k === 0 && !(timer && timer.over && timer.key === tkey) && !steps.some(function(x, xi){ return st.done[it.key + '|' + xi]; })
+          ? '<div class="td-act"><button type="button" class="td-go" data-act="tiny" data-key="' + L.escapeHTML(tkey) + '" data-url="' + L.escapeHTML(s.links && s.links[0] ? s.links[0].url : '') + '">Start 2 min</button><span class="td-tinyhint">' + L.escapeHTML(s.links && s.links[0] ? (/^open/i.test(s.links[0].label) ? s.links[0].label.toLowerCase() : 'open ' + s.links[0].label) : 'just begin') + '</span></div>'
+          : '<div class="td-act"><button type="button" class="td-go" data-act="tstart" data-key="' + L.escapeHTML(tkey) + '" data-min="' + (+s.min || 10) + '">Try ' + (+s.min || 10) + ' min</button></div>') : '') +
         '</div></li>';
     }).join('') + '</ol>';
     if(finished) h += '<div class="td-fin">' + (it.kind === 'task' ? '<button type="button" class="td-go" data-act="taskdone" data-id="' + L.escapeHTML(it.id) + '">Mark done</button>' : it.kind === 'call' ? '<button type="button" class="td-go" data-act="callsubmit" data-id="' + L.escapeHTML(it.id) + '">Mark submitted</button>' : '<a class="td-go" href="gre.html">Open GRE</a>') + '</div>';
@@ -1197,6 +1245,31 @@
     g.textContent = h >= 5 && h < 12 ? 'صباح الخير بدرية' : h >= 12 && h < 21 ? 'مساء الخير بدرية' : 'تصبحين على خير يا بدرية';
   }
   renderGreeting(); setInterval(renderGreeting, 60000);
+
+  /* ---- ورد: the Quran in two-page portions (604 pages -> 302 portions), read on quran.com; the place is kept ---- */
+  var wirdPage = 1, WIRD_KEY = 'badriyah-wird-v1';
+  try { var wl = parseInt(localStorage.getItem(WIRD_KEY), 10); if(wl >= 1 && wl <= 604) wirdPage = wl - (wl % 2 === 0 ? 1 : 0); } catch(e){}
+  function arDigits(n){ return String(n).replace(/\d/g, function(d){ return '٠١٢٣٤٥٦٧٨٩'.charAt(+d); }); }
+  function renderWird(){
+    var a = document.getElementById('wirdbtn'), sm = document.getElementById('wirdpages'); if(!a || !sm) return;
+    a.href = 'https://quran.com/page/' + wirdPage;
+    sm.textContent = arDigits(wirdPage) + '–' + arDigits(Math.min(wirdPage + 1, 604));
+  }
+  function saveWird(){
+    try { localStorage.setItem(WIRD_KEY, String(wirdPage)); } catch(e){}
+    try { firebase.firestore().collection('health').doc('_settings').set({wirdPage: wirdPage}, {merge: true}).catch(function(e){ console.error(e); }); } catch(e){}
+  }
+  renderWird();
+  (function(){
+    var done = document.getElementById('wirddone'); if(!done) return;
+    done.addEventListener('click', function(){
+      var prevWird = wirdPage;
+      wirdPage += 2;
+      if(wirdPage > 604){ wirdPage = 1; toast('الحمد لله، ختمة مباركة'); }
+      else toast(arDigits(wirdPage) + '–' + arDigits(Math.min(wirdPage + 1, 604)), function(){ wirdPage = prevWird; renderWird(); saveWird(); });
+      renderWird(); saveWird();
+    });
+  })();
   function renderToday(){
     renderGreeting();
     var el = document.getElementById('todaybody'); if(!el) return;
@@ -1219,23 +1292,26 @@
     else if(hr < 5) sub = 'Waiting when you’re up';
     else if(!P.plan.length) sub = 'Nothing pressing';
     else sub = P.plan.length + (P.plan.length === 1 ? ' thing' : ' things') + (D && D.finish ? ' · done around ' + clockMin(D.finish) : '');
-    var h = '<div class="td-hello"><b>' + hello + ', Badriyah</b><span>' + sub + '</span></div>' + focusHTML();
+    var h = '<div class="td-hello"><b>' + hello + ', Badriyah</b><span>' + sub + '</span></div>' + focusHTML(P.pool.length > 1 && left > 0 && hr >= 5);
     // Saturday morning: the week card sits first (closed). Other times it's under More.
     var satMorning = now.getDay() === 6 && hr >= 5 && hr < 14, weekDismissed = false;
     try { weekDismissed = localStorage.getItem('badriyah-week-dismiss') === T; } catch(e){}
     var weekOnTop = satMorning && !weekDismissed;
     if(weekOnTop) h += weekAheadHTML(true);
 
-    var nxtIds = {}, more = '';
+    var nxtIds = {}, more = '', shown = {};
     if(left <= 0 || hr < 5){
       var tomorrow = addDaysISO(T, left <= 0 ? 1 : 0);
       var nxt = L.state.tasks.filter(function(t){ return !t.archived && !t.struck && t.due === tomorrow && (t.description || '').trim() && !L.hasChildren(t.no) && !isPending(t); }).slice(0, 4);
-      if(P.plan.length && hr < 5) h += itemHTML(P.plan[0], st, true);
+      if(P.plan.length && hr < 5){
+        h += itemHTML(P.plan[0], st, true); shown[P.plan[0].key] = 1;
+        P.plan.slice(1).concat(P.later).forEach(function(x){ shown[x.key] = 1; h += '<a class="td-row" href="' + L.escapeHTML(x.href) + '">' + L.escapeHTML(clip(x.title, 90)) + '<small>' + span(x.min) + '</small></a>'; });
+      }
       else {
         // after 9 PM: whatever is still open, as plain rows (nothing to do tonight)
         var rows = [], seenRow = {};
         P.plan.concat(P.later).forEach(function(x){
-          seenRow[x.key] = 1;
+          seenRow[x.key] = 1; shown[x.key] = 1;
           rows.push({call: x.kind === 'call', href: x.href, title: x.title, note: x.kind === 'call' ? closesWord(x.call) + (x.due === T ? ' today, still open' : x.due === addDaysISO(T, 1) ? ' tomorrow' : ' ' + prettyDate(x.due)) : x.min <= 0 ? 'steps ticked' : span(x.min)});
         });
         nxt.forEach(function(t){ nxtIds['task:' + t.id] = 1; if(!seenRow['task:' + t.id]) rows.push({href: 'tasks.html#task-' + t.id, title: t.description, note: 'due tomorrow'}); });
@@ -1244,11 +1320,13 @@
         }).join('') : '';
       }
     } else {
-      if(P.plan.length) h += itemHTML(P.plan[0], st, true);
-      if(D) h += dayHTML(D, nowMin, hr, now);
+      if(P.plan.length){ h += itemHTML(P.plan[0], st, true); shown[P.plan[0].key] = 1; }
+      if(D) h += dayHTML(D, nowMin, hr, now, P.plan[0] && P.plan[0].key);
     }
+    var wins = winsToday();
+    if(wins.length) more += '<div class="td-sec">Done today</div><div class="td-wins-list">' + wins.slice(-8).reverse().map(function(w){ return '<div class="td-win-row">' + L.escapeHTML(w.t) + '</div>'; }).join('') + '</div>';
     var tail = [];
-    if(P.later.length && left > 0 && hr >= 5) tail.push('Later: ' + P.later.map(function(x){ return L.escapeHTML(clip(x.title, 50)); }).join('; '));
+    if(P.later.length && left > 0 && hr >= 5) tail.push('Later: ' + P.later.slice(0, 3).map(function(x){ return L.escapeHTML(clip(x.title, 40)); }).join('; ') + (P.later.length > 3 ? ' · +' + (P.later.length - 3) + ' more' : ''));
     if(P.skipped.length) tail.push('Skipped: ' + P.skipped.map(function(x){ return L.escapeHTML(clip(x.title, 50)) + ' <button type="button" class="td-link" data-act="unskip" data-key="' + L.escapeHTML(x.key) + '">bring back</button>'; }).join('; '));
 
     // also today: health windows (when there is no day card), timed events not in the day card, deadlines
@@ -1258,7 +1336,7 @@
       if(i < idx && !(hr < 5)) return;
       var codes = ((sr[0] === 'n' && hr < 5 ? healthPlan[(now.getDay() + 6) % 7] || {} : plan)[sr[0]]) || '';
       String(codes).split('').forEach(function(ch){
-        if(L.HEALTH_WORDS[ch]) also.push('<a class="td-pill ' + ch + '" href="health.html">' + L.HEALTH_WORDS[ch] + '<small>' + sr[1].toLowerCase() + '</small></a>');
+        if(L.HEALTH_WORDS[ch]) also.push('<a class="td-pill ' + ch + '" href="' + pilatesHref(ch) + '"' + pilatesAttr(ch) + '>' + L.HEALTH_WORDS[ch] + '<small>' + sr[1].toLowerCase() + '</small></a>');
       });
     });
     L.Events.state.tasks.filter(function(t){
@@ -1270,9 +1348,6 @@
       var tm = timeText(t.details);
       also.push('<a class="td-pill ev" href="events.html#task-' + t.id + '">' + L.escapeHTML(clip(t.description, 44)) + (tm ? '<small>' + L.escapeHTML(tm) + '</small>' : '') + '</a>');
     });
-    L.callsState.items.filter(function(c){ return c.status !== 'watch' && c.mine !== 'skip' && c.mine !== 'submitted' && L.daysUntil(c.deadline) === 0 && !st.skip['call:' + c.id]; }).forEach(function(c){
-      also.push('<a class="td-pill dl" href="calls.html#call-' + c.id + '">' + L.escapeHTML(clip(c.name, 40)) + '<small>closes today</small></a>');
-    });
     if(also.length) more += '<div class="td-sec">Also today</div><div class="td-also">' + also.join('') + '</div>';
 
     // calls closing within five days (always visible: they're the ones that slip), then other things due in three days (under More)
@@ -1280,7 +1355,7 @@
     var closingTaskIds = {};
     var callsSoon = L.callsState.items.filter(function(cl){
       var dd = L.daysUntil(cl.deadline);
-      return cl.status !== 'watch' && cl.mine !== 'skip' && cl.mine !== 'submitted' && dd !== null && dd >= 0 && dd <= 5 && !inPlan['call:' + cl.id];
+      return cl.status !== 'watch' && cl.mine !== 'skip' && cl.mine !== 'submitted' && dd !== null && dd >= 0 && dd <= 5 && !shown['call:' + cl.id] && !st.skip['call:' + cl.id];
     }).sort(function(a, b){ return a.deadline < b.deadline ? -1 : 1; }).slice(0, 3);
     L.callsState.items.forEach(function(cl){ if(cl.linkedTaskId) closingTaskIds[cl.linkedTaskId] = 1; });
     if(callsSoon.length) h += '<div class="td-sec">Closing soon</div>' + callsSoon.map(function(cl){
@@ -1303,7 +1378,8 @@
     if(focusRef){   // keep keyboard focus where it was after a redraw
       var again = [].slice.call(el.querySelectorAll('[data-act="' + focusRef.act + '"]')).filter(function(x){
         return (x.dataset.key || '') === focusRef.key && (x.dataset.i || '') === focusRef.i && (x.dataset.wd || '') === focusRef.wd && (x.dataset.slot || '') === focusRef.slot; })[0];
-      if(!again && /^(fstart|tstop|tstart)$/.test(focusRef.act)) again = el.querySelector(focusRef.card ? '.td-focus [data-act="tstop"], .td-focus [data-act="fstart"]' : '.td-act [data-act="tstop"], .td-act [data-act="tstart"]') || el.querySelector('.td-focus [data-act="tstop"], .td-focus [data-act="fstart"]');
+      if(!again && focusRef.act === 'pinit') again = el.querySelector('.td-step.is-cur [data-act]');
+      if(!again && /^(fstart|tstop|tstart|tiny)$/.test(focusRef.act)) again = el.querySelector(focusRef.card ? '.td-focus [data-act="tstop"], .td-focus [data-act="fstart"]' : '.td-act [data-act="tstop"], .td-act [data-act="tstart"]') || el.querySelector('.td-focus [data-act="tstop"], .td-focus [data-act="fstart"]');
       if(again) try { again.focus({preventScroll: true}); } catch(e){}
     }
   }
@@ -1312,10 +1388,31 @@
     var act = b.dataset.act, st = prepState();
     if(act === 'step'){
       var k = b.dataset.key + '|' + b.dataset.i;
-      if(st.done[k]) delete st.done[k]; else { st.done[k] = L.todayISO(); if(timer && timer.key === k){ savePrep(st); stopTimer(true); return; } }
+      var stepName = '', cardEl = b.closest('.td-item'), single = !!cardEl && cardEl.querySelectorAll('.td-step').length === 1;
+      try { stepName = single ? cardEl.querySelector('.td-title').textContent : b.closest('.td-step').querySelector('.td-st').childNodes[0].nodeValue; } catch(e){}
+      var winKey = single ? b.dataset.key : 'step:' + k;
+      if(st.done[k]){ delete st.done[k]; removeWin(winKey); }
+      else { st.done[k] = L.todayISO(); addWin(winKey, stepName); if(timer && timer.key === k){ savePrep(st); stopTimer(true); return; } }
       savePrep(st); renderToday();
+    } else if(act === 'est'){
+      var etask = L.state.tasks.filter(function(x){ return x.id === b.dataset.id; })[0];
+      if(!etask) return;
+      var ecur = L.estMin(etask), enext = L.EST_PRESETS.filter(function(x){ return x > ecur; })[0] || L.EST_PRESETS[0];
+      L.setMins(etask.id, enext);
+    } else if(act === 'pinit'){
+      st.pin = b.dataset.key; savePrep(st); renderToday();
+    } else if(act === 'pick'){
+      var PP = buildPlan(180), topKey = PP.plan[0] && PP.plan[0].key, opts = PP.pool.filter(function(k){ return k !== topKey; });
+      if(!opts.length){ toast('Nothing else to pick'); return; }
+      st.pin = opts[Math.floor(Math.random() * opts.length)]; savePrep(st); renderToday();
+    } else if(act === 'tiny'){
+      var tu = b.dataset.url;
+      if(tu && /^(https?:\/\/|[a-z0-9-]+\.html(#[\w-]*)?$)/i.test(tu)){ try { window.open(tu, '_blank', 'noopener'); } catch(e){} }
+      startTimer(b.dataset.key, 2);
     } else if(act === 'skip'){
-      st.skip[b.dataset.key] = 1; if(timer && timer.key.indexOf(b.dataset.key + '|') === 0){ savePrep(st); stopTimer(true); } savePrep(st); toast('Okay, skipped for ' + skipWord(false)); renderToday();
+      var skipKey = b.dataset.key;
+      st.skip[skipKey] = 1; if(timer && timer.key.indexOf(skipKey + '|') === 0){ savePrep(st); stopTimer(true); } savePrep(st);
+      toast('Skipped', function(){ var s2 = prepState(); delete s2.skip[skipKey]; savePrep(s2); renderToday(); }); renderToday();
     } else if(act === 'unskip'){
       delete st.skip[b.dataset.key]; savePrep(st); renderToday();
     } else if(act === 'tstart'){
@@ -1325,9 +1422,11 @@
     } else if(act === 'tstop'){
       stopTimer(false);
     } else if(act === 'taskdone'){
-      L.toggleStrike(b.dataset.id); recordTick(); toast('Nicely done', true);
+      addWin('task:' + b.dataset.id, (b.closest('.td-item').querySelector('.td-title') || {}).textContent);
+      var wonId = b.dataset.id; L.toggleStrike(wonId); recordTick(); toast('Nicely done', function(){ L.undo(); removeWin('task:' + wonId); });
     } else if(act === 'callsubmit'){
       var cid = b.dataset.id, call = L.callsState.items.filter(function(x){ return x.id === cid; })[0];
+      addWin('call:' + cid, call && call.name);
       L.setCallMine(cid, 'submitted');
       if(call && call.linkedTaskId){ var lt = L.state.tasks.filter(function(x){ return x.id === call.linkedTaskId; })[0]; if(lt && !lt.struck) L.toggleStrike(lt.id); }
       recordTick(); toast('Submitted. Well done.');
@@ -1336,7 +1435,7 @@
     } else if(act === 'weekno'){
       try { localStorage.setItem('badriyah-week-dismiss', L.todayISO()); } catch(e){}
       var wkEl = document.querySelector('.td-week'); if(wkEl) wkEl.open = false;
-      toast('Okay, no planning this week. The week view stays near the bottom if you change your mind.'); renderToday();
+      toast('Okay, not this week.'); renderToday();
       var hd = document.querySelector('.p-today .panel-head h2'); if(hd){ hd.setAttribute('tabindex', '-1'); try { hd.focus({preventScroll: true}); } catch(e){} }
     } else if(act === 'copy'){
       var itKey = b.dataset.key, id = itKey.replace(/^task:/, ''), kit = prep.tasks && prep.tasks[id], l = kit && kit.lists && kit.lists[+b.dataset.li];
@@ -1350,11 +1449,15 @@
   setInterval(function(){
     if(timer && !timer.over){
       var secs = Math.ceil((timer.end - Date.now()) / 1000);
+      if(secs <= 0 && timer.key === 'break'){
+        timer = null; saveTimer(); setTitle(); toast('Break’s over.'); renderToday(); return;
+      }
       if(secs <= 0){
         var doneT = timer, doneMins = timer.mins;
         timer.over = true; saveTimer(); setTitle();
         if(claimLog(doneT)) logFocus(doneMins, L.fmtISO(new Date(doneT.start))); else renderToday();
-        toast('That’s ' + doneMins + (doneMins === 1 ? ' minute' : ' minutes') + ', logged. A short break could be nice, or keep going, whatever suits.');
+        if(doneT.key === 'focus' && doneMins >= 20){ startTimer('break', 5); toast('Logged. 5-minute break.'); return; }
+        toast('That’s ' + doneMins + ' min, logged.');
         return;
       }
       document.querySelectorAll('.td-timer').forEach(function(t){ t.textContent = mmss(secs); });
@@ -1362,6 +1465,20 @@
       setTitle();
     }
   }, 1000);
+  (function(){
+    var jotBtn = document.getElementById('jotbtn'), jotForm = document.getElementById('jotform'), jotIn = document.getElementById('jotin');
+    if(!jotBtn || !jotForm || !jotIn) return;
+    jotBtn.addEventListener('click', function(){ jotForm.hidden = !jotForm.hidden; if(!jotForm.hidden) jotIn.focus(); });
+    jotIn.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ jotForm.hidden = true; jotBtn.focus(); } });
+    jotForm.addEventListener('submit', function(e){
+      e.preventDefault();
+      var raw = jotIn.value.trim(); if(!raw) return;
+      var pj = parseQuick(raw); jotIn.disabled = true;
+      L.addTask({description: pj.desc, due: pj.due || '', category: pj.category}).then(function(){
+        jotIn.value = ''; jotIn.disabled = false; jotForm.hidden = true; toast('Saved to Tasks' + (pj.due ? ' · due ' + prettyDate(pj.due) : ''), true);
+      }).catch(function(err){ console.error(err); jotIn.disabled = false; toast('Couldn’t save that. Try again.'); });
+    });
+  })();
   setInterval(function(){
     var body = document.getElementById('todaybody'), a = document.activeElement;
     var keep = body && a && body.contains(a) && a !== body && !(a.dataset && a.dataset.act);   // buttons are restored after a redraw; other focus (a link, the summary) is left alone
