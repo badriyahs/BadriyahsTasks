@@ -1,31 +1,33 @@
 :root{
-  --paper:#FAF9F6;
-  --surface:#FFFFFF;
-  --ink:#22262B;
-  --muted:#767E88;
-  --faint:#A8AEB6;
-  --line:#E1E4E9;
-  --line-strong:#CBD0D8;
-  --accent:#2F5FD1;
-  --accent-ink:#FFFFFF;
-  --accent-tint:#E9EEFC;
-  --overdue:#B0442B;
-  --danger:#C0392B;
-  --danger-tint:#FBE9E6;
-  --parent-tint:#EEF0F4;
-  --archived-tint:#F2F1EE;
+  color-scheme:dark;
+  --paper:#17113a;
+  --surface:#211852;
+  --ink:#F2EEFF;
+  --muted:#BDB4E3;
+  --faint:#9A91CB;
+  --line:rgba(201,184,255,.16);
+  --line-strong:rgba(201,184,255,.3);
+  --accent:#C9B8FF;
+  --accent-ink:#17113a;
+  --accent-tint:rgba(201,184,255,.14);
+  --overdue:#FFB4A2;
+  --danger:#FF9FB5;
+  --danger-tint:rgba(255,159,181,.15);
+  --good:#8FE8B5;
+  --parent-tint:rgba(201,184,255,.08);
+  --archived-tint:rgba(201,184,255,.05);
 
-  --cat0-bg:#E3F4F1; --cat0-fg:#0F766E;
-  --cat1-bg:#EFE7FB; --cat1-fg:#6D28D9;
-  --cat2-bg:#FBEEDC; --cat2-fg:#B45309;
-  --cat3-bg:#FBE7EF; --cat3-fg:#BE185D;
-  --cat4-bg:#E6F4E9; --cat4-fg:#15803D;
-  --cat5-bg:#EAECF3; --cat5-fg:#4C5A82;
-  --cat6-bg:#F1E7DC; --cat6-fg:#92400E;
-  --cat7-bg:#F1E3F0; --cat7-fg:#862E9C;
+  --cat0-bg:rgba(94,234,212,.13); --cat0-fg:#8FF0DF;
+  --cat1-bg:rgba(196,181,253,.13); --cat1-fg:#DACFFF;
+  --cat2-bg:rgba(252,211,77,.13); --cat2-fg:#FFE08A;
+  --cat3-bg:rgba(249,168,212,.13); --cat3-fg:#FFC4E1;
+  --cat4-bg:rgba(110,231,168,.13); --cat4-fg:#9CF0C4;
+  --cat5-bg:rgba(174,182,217,.13); --cat5-fg:#C9D0EE;
+  --cat6-bg:rgba(217,168,105,.13); --cat6-fg:#F2C894;
+  --cat7-bg:rgba(224,166,232,.13); --cat7-fg:#EDC4F3;
 
-  --type-event:#2F5FD1;
-  --type-call:#AD1A72;
+  --type-event:#9DB8FF;
+  --type-call:#FF9BCB;
 }
 
 *{box-sizing:border-box;}
@@ -69,7 +71,7 @@ body{
   align-items:center;
   gap:6px;
 }
-.dot{width:6px;height:6px;border-radius:50%;background:#3FA96A;flex:none;}
+.dot{width:6px;height:6px;border-radius:50%;background:#7DE0A8;flex:none;}
 .dot.off{background:var(--faint);}
 .dot.err{background:var(--danger);}
 .topbar .spacer{flex:1;}
@@ -170,7 +172,7 @@ body{
   font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
   border-bottom:1px solid var(--line-strong);
 }
-.row:not(.head):hover .cell{background:#F3F5FC;}
+.row:not(.head):hover .cell{background:rgba(201,184,255,.09);}
 
 /* Main tasks (no dot in "no") get a full colored cell background, bold
    text, and a top border marking where a new section starts. Every
@@ -297,7 +299,7 @@ body{
   padding:8px 10px;border-bottom:1px solid var(--line-strong);border-right:1px solid var(--line);
 }
 .day{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 7px;min-height:104px;display:flex;flex-direction:column;gap:4px;}
-.day.outside{background:#F1F1EE;}
+.day.outside{background:rgba(255,255,255,.025);}
 .day.outside .daynum{color:var(--faint);}
 .day.today{background:var(--accent-tint);}
 .daynum{font-family:"IBM Plex Mono",monospace;font-size:11.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:6px;}
@@ -346,6 +348,7 @@ body{
 ::-webkit-scrollbar{width:10px;height:10px;}
 ::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-corner{background:transparent;}
 
 @media (prefers-reduced-motion: reduce){.flash{animation:none;}}
 
@@ -508,7 +511,7 @@ body{
 .qa-text::placeholder{color:var(--faint);}
 .qa-date{
   flex:none;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);
-  font:inherit;font-size:12.5px;padding:6px 8px;color-scheme:light dark;
+  font:inherit;font-size:12.5px;padding:6px 8px;color-scheme:dark;
 }
 .qa-add{
   flex:none;border:0;border-radius:8px;background:var(--accent);color:var(--accent-ink);
@@ -558,7 +561,7 @@ body{
 .q-chips{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .q-chips input[type="date"]{
   border:1px solid var(--line-strong);border-radius:20px;background:var(--paper);color:var(--ink);
-  font:inherit;font-size:12px;padding:4px 10px;color-scheme:light dark;
+  font:inherit;font-size:12px;padding:4px 10px;color-scheme:dark;
 }
 .q-extra{margin-top:9px;}
 .q-form{display:flex;gap:6px;}
@@ -780,7 +783,7 @@ body{
   padding:11px 6px;cursor:pointer;
 }
 .board-tabs button + button{border-left:1px solid var(--line-strong);}
-.board-tabs button.on{background:var(--ink);color:var(--paper);}
+.board-tabs button.on{background:linear-gradient(135deg,#C9B8FF,#FFB6D2);color:#17113a;}
 .panel{display:none;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:0 20px 16px;min-width:0;}
 .panel.on{display:block;}
 .p-todos{--pc:var(--cat0-fg);}
@@ -878,10 +881,7 @@ body{
 /* === CALENDAR: week schedule above the month === */
 .wkview{
   position:sticky;left:0;padding:14px 20px 18px;border-bottom:1px solid var(--line-strong);
-  --tm:#FBF1CF;--tmf:#7A5A12;--ta:#E1EEF9;--taf:#24527F;--te:#FADFCB;--tef:#8A3E14;--tn:#2B3150;--tnf:#D8DCF0;
-}
-@media (prefers-color-scheme: dark){
-  .wkview{--tm:#3A3016;--tmf:#F0D78A;--ta:#1E3042;--taf:#A9CBEA;--te:#3E2418;--tef:#F2B58F;--tn:#1A1D30;--tnf:#B9BEDB;}
+  --tm:#3A3016;--tmf:#F0D78A;--ta:#1E3042;--taf:#A9CBEA;--te:#3E2418;--tef:#F2B58F;--tn:#1A1D30;--tnf:#B9BEDB;
 }
 .calnav{position:sticky;left:0;flex-wrap:wrap;}
 .wk-head{display:flex;align-items:center;gap:10px;margin:0 0 10px;}
@@ -1310,7 +1310,7 @@ body{
 .lib-switch{display:inline-flex;flex:none;border:1px solid var(--line-strong);border-radius:8px;overflow:hidden;}
 .lib-switch button{border:0;background:var(--surface);color:var(--muted);cursor:pointer;font-family:inherit;padding:6px 14px;font-size:12.5px;font-weight:600;}
 .lib-switch button+button{border-left:1px solid var(--line-strong);}
-.lib-switch button.on{background:var(--ink);color:var(--paper);}
+.lib-switch button.on{background:linear-gradient(135deg,#C9B8FF,#FFB6D2);color:#17113a;}
 .lib-n{font-weight:500;opacity:.7;margin-left:2px;}
 .lib-n:empty{display:none;}
 .paste{flex:none;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--surface);}
@@ -1355,45 +1355,39 @@ body{
   .podsheet .addrow{margin:0 12px;border:0;}
 }
 
-/* === DARK MODE === */
-/* Follows the device's own light/dark setting automatically — no toggle,
-   no manual switch, just whatever the phone/laptop is already set to.
-   Kept at the end of the file on purpose: the handful of selectors below
-   that use literal hex colors instead of var() (.dot, row hover, outside
-   calendar days) need to come AFTER their light-mode base rules to win
-   the cascade — same specificity, so source order decides, regardless
-   of which media query matches. */
-@media (prefers-color-scheme: dark){
-  :root{
-    --paper:#15181D;
-    --surface:#1C2026;
-    --ink:#E7E9EC;
-    --muted:#9AA0AC;
-    --faint:#696F79;
-    --line:#2A2E35;
-    --line-strong:#3A3F48;
-    --accent:#7098FF;
-    --accent-ink:#0B0E14;
-    --accent-tint:#1E2A47;
-    --overdue:#FF8A65;
-    --danger:#FF6B6B;
-    --danger-tint:#3A1F1D;
-    --parent-tint:#23262D;
-    --archived-tint:#212429;
-
-    --cat0-bg:#15302B; --cat0-fg:#5EEAD4;
-    --cat1-bg:#28204A; --cat1-fg:#C4B5FD;
-    --cat2-bg:#392A14; --cat2-fg:#FCD34D;
-    --cat3-bg:#39182F; --cat3-fg:#F9A8D4;
-    --cat4-bg:#15301E; --cat4-fg:#6EE7A8;
-    --cat5-bg:#22262F; --cat5-fg:#AEB6D9;
-    --cat6-bg:#332212; --cat6-fg:#D9A869;
-    --cat7-bg:#32183A; --cat7-fg:#E0A6E8;
-
-    --type-event:#7098FF;
-    --type-call:#E8529E;
-  }
-  .dot{background:#4ADE80;}
-  .row:not(.head):hover .cell{background:#262B33;}
-  .day.outside{background:#1A1D22;}
-}
+/* === The night sky, on every page === */
+/* One theme everywhere: the same violet sky, faint stars behind the content, gentle glass.
+   The stars sit behind everything (z-index -1) so they never touch what you read. */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:
+    radial-gradient(1.4px 1.4px at 12% 14%,rgba(255,255,255,.55) 50%,transparent 52%),
+    radial-gradient(1px 1px at 84% 9%,rgba(255,255,255,.45) 50%,transparent 52%),
+    radial-gradient(1.2px 1.2px at 63% 27%,rgba(255,255,255,.4) 50%,transparent 52%),
+    radial-gradient(1px 1px at 7% 43%,rgba(255,255,255,.35) 50%,transparent 52%),
+    radial-gradient(1.4px 1.4px at 92% 48%,rgba(255,214,235,.5) 50%,transparent 52%),
+    radial-gradient(1px 1px at 38% 62%,rgba(255,255,255,.3) 50%,transparent 52%),
+    radial-gradient(1.2px 1.2px at 77% 76%,rgba(255,255,255,.4) 50%,transparent 52%),
+    radial-gradient(1px 1px at 21% 90%,rgba(255,255,255,.3) 50%,transparent 52%),
+    radial-gradient(130% 45% at 50% -8%,rgba(150,110,255,.26),transparent 70%),
+    linear-gradient(170deg,#17113a 0%,#1c1447 60%,#231a55 100%);}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:
+    radial-gradient(1.5px 1.5px at 25% 8%,rgba(255,255,255,.8) 50%,transparent 52%),
+    radial-gradient(1.3px 1.3px at 70% 18%,rgba(255,233,168,.75) 50%,transparent 52%),
+    radial-gradient(1.5px 1.5px at 48% 38%,rgba(255,255,255,.75) 50%,transparent 52%),
+    radial-gradient(1.3px 1.3px at 16% 70%,rgba(255,214,235,.75) 50%,transparent 52%),
+    radial-gradient(1.5px 1.5px at 86% 86%,rgba(255,255,255,.75) 50%,transparent 52%);
+  animation:cmtwinkle 7s ease-in-out infinite alternate;}
+::selection{background:rgba(201,184,255,.35);color:#fff;}
+.tabbar,.navbar-m{background:#1a1342;border-color:rgba(201,184,255,.18);}
+.tab{background:transparent;color:var(--muted);border-color:rgba(201,184,255,.2);}
+.tab:hover{color:var(--ink);background:rgba(201,184,255,.08);}
+.tab.active{background:rgba(201,184,255,.16);color:var(--ink);border-color:rgba(201,184,255,.3);box-shadow:none;}
+.topbar{background:transparent;}
+.topbar h1{font-family:"IBM Plex Serif",Georgia,serif;font-weight:500;font-size:18px;letter-spacing:0;}
+.mini-moon{display:inline-block;width:18px;height:18px;margin-right:9px;vertical-align:-3px;flex:none;filter:drop-shadow(0 0 6px rgba(201,184,255,.5));}
+.nav-title .mini-moon{width:20px;height:20px;vertical-align:-4px;}
+.toast{background:#2b2166;color:var(--ink);border:1px solid rgba(201,184,255,.3);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+.toast button{background:transparent;border-color:rgba(201,184,255,.5);color:#C9B8FF;}
+@media (max-width:700px){.topbar h1 .mini-moon{display:none;}}
+@media (prefers-reduced-motion: reduce){body::after{animation:none;}}

@@ -6,23 +6,18 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Jobs</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=77">
+<link rel="stylesheet" href="styles.css?v=78">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#15181D" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#1a1342">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 <style>
-:root{color-scheme:light dark;}
 /* Scoped to .jobs so it can't touch the other pages. Colors come from the site's own variables. */
-.jobs{--good:#2E7D4F;--good-tint:#E3F2E8;--warn:#A8591A;--warn-tint:#FBEEDF;}
-@media (prefers-color-scheme: dark){
-  .jobs{--good:#6FD39A;--good-tint:#16301F;--warn:#F0B270;--warn-tint:#33240F;}
-}
+.jobs{--good:#8FE8B5;--good-tint:rgba(143,232,181,.13);--warn:#F5C48A;--warn-tint:rgba(245,196,138,.13);}
 .jobs-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .jobs .jwrap{max-width:1200px;margin:0 auto;padding:26px 20px calc(80px + env(safe-area-inset-bottom));}
 .jobs h1{font-family:"IBM Plex Serif",Georgia,serif;font-weight:500;font-size:28px;margin:0 0 16px;letter-spacing:-.01em;}
@@ -49,8 +44,9 @@
 .jobs .jt td.st{width:130px;}
 .jobs .jt td.st select{font-weight:600;font-size:12.5px;}
 .jobs .jt tr.s-applied td.st select,.jobs .jt tr.s-interview td.st select,.jobs .jt tr.s-offer td.st select{background:var(--good-tint);color:var(--good);}
-.jobs .jt tr.s-closed td{opacity:.55;}
-.jobs .jt tr:hover td,.jobs .jt tr:hover td.sn{background:var(--parent-tint);}
+.jobs .jt tr.s-closed td > *{opacity:.55;}
+.jobs .jt tr.s-closed td.x button.confirm{opacity:1;}
+.jobs .jt tr:hover td{background:linear-gradient(var(--parent-tint),var(--parent-tint)),var(--surface);}
 .jobs .viacell{display:flex;align-items:center;}
 .jobs .viacell input{flex:1;width:100%;border:0;background:transparent;font:inherit;color:var(--ink);padding:10px;outline:0;min-width:0;}
 .jobs .viacell input:focus{background:var(--accent-tint);box-shadow:inset 0 0 0 2px var(--accent);}
@@ -58,7 +54,7 @@
 .jobs .jt td.x{width:64px;text-align:center;}
 .jobs .jt td.x button{border:0;background:none;color:var(--faint);cursor:pointer;font:inherit;font-size:16px;padding:8px 10px;}
 .jobs .jt td.x button:hover{color:var(--muted);}
-.jobs .jt td.x button.confirm{font-size:11.5px;font-weight:600;color:#fff;background:#C0392B;border-radius:6px;padding:4px 8px;}
+.jobs .jt td.x button.confirm{font-size:11.5px;font-weight:600;color:var(--danger);background:var(--danger-tint);box-shadow:inset 0 0 0 1px var(--danger);border-radius:6px;padding:4px 8px;}
 .jobs .addrow-btn{margin:12px 2px 0;border:1px solid var(--line-strong);background:transparent;color:var(--accent);font:inherit;font-weight:600;font-size:13px;border-radius:8px;padding:8px 14px;cursor:pointer;}
 .jobs .addrow-btn:hover{background:var(--accent-tint);}
 @media (max-width:700px){
@@ -252,6 +248,6 @@
 })();
 </script>
 <script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
-<script src="nav.js?v=1"></script>
+<script src="nav.js?v=2"></script>
 </body>
 </html>

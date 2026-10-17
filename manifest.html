@@ -6,17 +6,16 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Manifest</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=77">
+<link rel="stylesheet" href="styles.css?v=78">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#17113a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 <style>
-:root{color-scheme:light dark;}
 .mf{flex:1;min-height:0;display:flex;flex-direction:column;background:#17113a;color:#F2EEFF;}
 .mf-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid rgba(201,184,255,.18);background:#1d1546;flex:none;}
 .mf-bar .sp{flex:1;}
@@ -49,8 +48,8 @@
 .mf-rz::after{content:'';width:10px;height:10px;border-right:2px solid #17113a;border-bottom:2px solid #17113a;}
 .mf-item.sel .mf-del,.mf-item.sel .mf-rz{display:flex;}
 .mf-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none;font-family:"IBM Plex Serif",serif;font-size:20px;color:rgba(242,238,255,.6);padding:0 30px;}
-.mf-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#F2EEFF;color:#17113a;padding:10px 18px;border-radius:20px;font-size:14px;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.35);display:none;align-items:center;gap:12px;}
-.mf-toast button{font:inherit;font-weight:700;color:#5b3fd0;background:none;border:0;cursor:pointer;padding:4px 6px;}
+.mf-toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2b2166;color:#F2EEFF;border:1px solid rgba(201,184,255,.3);padding:10px 18px;border-radius:20px;font-size:14px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.35);display:none;align-items:center;gap:12px;}
+.mf-toast button{font:inherit;font-weight:700;color:#C9B8FF;background:none;border:0;cursor:pointer;padding:4px 6px;}
 </style>
 </head>
 <body>
@@ -470,6 +469,6 @@
 })();
 </script>
 <script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
-<script src="nav.js?v=1"></script>
+<script src="nav.js?v=2"></script>
 </body>
 </html>

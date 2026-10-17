@@ -6,14 +6,14 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=77">
+<link rel="stylesheet" href="styles.css?v=78">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" id="themecolor" content="#1a1342">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#1a1342">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body class="calm-page">
@@ -1238,8 +1238,6 @@
     var all = document.getElementById('all'); if(all) all.hidden = !on;
     parts.forEach(function(x){ if(x) x.hidden = on; });
     document.body.classList.toggle('calm-page', !on);
-    var tcm = document.getElementById('themecolor');
-    if(tcm) tcm.setAttribute('content', on ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? '#15181D' : '#FAF9F6') : '#1a1342');
     var sc = document.querySelector('.home-scroll'); if(sc) sc.scrollTop = 0;
   }
   // today's real moon, drawn in its phase
@@ -1799,6 +1797,6 @@
 })();
 </script>
 <script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
-<script src="nav.js?v=1"></script>
+<script src="nav.js?v=2"></script>
 </body>
 </html>
