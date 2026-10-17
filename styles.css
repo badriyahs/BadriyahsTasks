@@ -1145,6 +1145,26 @@ body{
 .wird-btn:hover small{color:inherit;}
 .wird-done{width:40px;height:40px;margin-inline-start:6px;border-radius:50%;border:1px solid var(--accent);background:transparent;color:var(--ink);font:inherit;font-size:16px;cursor:pointer;padding:0;}
 .wird-done:hover{border-color:var(--accent);color:var(--accent);}
+/* === Phone menu (hamburger) === */
+.navbar-m,.nav-scrim{display:none;}
+@media (max-width:700px){
+  .navbar-m{flex:none;display:flex;align-items:center;gap:14px;padding:calc(6px + env(safe-area-inset-top)) 14px 6px;background:var(--paper);border-bottom:1px solid var(--line);position:relative;z-index:60;}
+  .nav-burger{width:46px;height:46px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0;cursor:pointer;}
+  .nav-burger i{display:block;width:20px;height:2px;background:currentColor;border-radius:2px;transition:transform .2s ease,opacity .2s ease;}
+  .nav-burger.on i:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  .nav-burger.on i:nth-child(2){opacity:0;}
+  .nav-burger.on i:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+  .nav-burger:focus-visible,.tabbar.open .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .nav-title{font-family:"IBM Plex Serif",Georgia,serif;font-size:20px;font-weight:500;}
+  .tabbar{display:none;}
+  .tabbar.open{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:4px 0 10px;position:fixed;left:0;right:0;top:var(--navh,58px);z-index:55;overflow-y:auto;max-height:calc(100vh - var(--navh,58px));max-height:calc(100dvh - var(--navh,58px));background:var(--paper);box-shadow:0 14px 30px rgba(0,0,0,.28);border-bottom:1px solid var(--line-strong);}
+  .tabbar.open .tab{display:block;border:0;border-top:1px solid var(--line);border-radius:0;transform:none;font-size:17px;font-weight:500;padding:15px 22px;background:transparent;color:var(--ink);}
+  .tabbar.open .tab:first-child{border-top:0;}
+  .tabbar.open .tab.active{background:var(--accent-tint);color:var(--accent);box-shadow:none;font-weight:600;}
+  .nav-scrim.on{display:block;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.35);}
+}
+@media (prefers-reduced-motion: reduce){.nav-burger i{transition:none;}}
+
 /* === NOTES (brain dump) === */
 .notes-scroll{flex:1;min-height:0;overflow:auto;}
 .notes-grid{

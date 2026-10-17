@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="lock.js?v=1"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=69">
+<link rel="stylesheet" href="styles.css?v=73">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -873,7 +874,9 @@
       renderToday();
     });
   } catch(e){}
-  var prep = {tasks: {}};
+  var prep = {tasks: {}}, dayplan = {};
+  try { fetch('dayplan.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j){ dayplan = j; renderToday(); } }).catch(function(){}); } catch(e){}
+  function hmMin(t){ var m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? (+m[1]) * 60 + (+m[2]) : null; }
   try { fetch('prep.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.tasks){ prep = j; renderToday(); } }).catch(function(){}); } catch(e){}
 
   var STUDIO = 'https://studiosweat.co/mansouriya';   // classes can be booked up to 7 days ahead
@@ -1026,6 +1029,10 @@
       var behind = gre.items.filter(function(g){ return !greStudied(g) && g.date && g.date < T; }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.order || 0) - (b.order || 0); })[0];
       if(behind) c.push(greRow(behind, 3.5));
     }
+    ((dayplan[T] && dayplan[T].todos) || []).forEach(function(td, ti){
+      var dkey = 'move:dp-' + T + '-' + ti, dkit = {name: td.title, steps: [{t: td.title, min: +td.min || 15, how: td.how || '', tiny: td.tiny || ''}]};
+      c.push({pri: 0.4, due: T, ord: ti, kind: 'move', key: dkey, id: dkey, title: td.title, kit: dkit, total: kitTotal(dkit), min: kitLeft(dkit, dkey, st), href: ''});
+    });
     var nd = new Date(), ndh = nd.getHours(), ndw = nd.getDay();
     if(ndh >= 5 && ndh < 9 && (ndw === 1 || ndw === 3 || ndw === 5)){
       var mkey = 'move:' + T, mmin = kitLeft(MOVE_KIT, mkey, st);
@@ -1179,6 +1186,11 @@
       var r = L.timeRange(t.details); if(!r || r.end <= nowMin) return;
       fixed.push({s: r.start, e: r.end, explicit: r.explicit, id: t.id, title: t.description});
     });
+    ((dayplan[T] && dayplan[T].blocks) || []).forEach(function(b){
+      var bs = hmMin(b.at), be = hmMin(b.until); if(bs === null) return; if(be === null || be <= bs) be = bs + 30;
+      if(be <= nowMin) return;
+      fixed.push({s: bs, e: be, explicit: hmMin(b.until) !== null, title: b.title, approx: !!b.approx});
+    });
     fixed.sort(function(a, b){ return a.s - b.s; });
     var cur = Math.ceil(nowMin / 5) * 5, start0 = cur, blocks = [];
     P.plan.forEach(function(it){
@@ -1194,7 +1206,7 @@
   function dayHTML(D, nowMin, hr, now, cardKey){
     var rows = [], WS = {m: 5 * 60, a: 12 * 60, e: 17 * 60, n: 21 * 60}, WL = {m: 'this morning', a: 'this afternoon', e: 'this evening', n: 'tonight'}, WE = {m: 12 * 60, a: 17 * 60, e: 21 * 60, n: 29 * 60};
     D.fixed.forEach(function(f){
-      rows.push({k: f.s, o: 0, h: '<div class="td-trow ev"><span class="td-tt">' + clockMin(f.s) + '</span><div class="td-tb"><a href="events.html#task-' + f.id + '">' + L.escapeHTML(clip(f.title, 70)) + '</a>' + (f.explicit ? '<small>until ' + clockMin(f.e) + '</small>' : '') + '</div></div>'});
+      rows.push({k: f.s, o: 0, h: '<div class="td-trow ev"><span class="td-tt">' + (f.approx ? '~' : '') + clockMin(f.s) + '</span><div class="td-tb">' + (f.id ? '<a href="events.html#task-' + f.id + '">' + L.escapeHTML(clip(f.title, 70)) + '</a>' : '<b>' + L.escapeHTML(clip(f.title, 70)) + '</b>') + (f.explicit ? '<small>until ' + clockMin(f.e) + '</small>' : '') + '</div></div>'});
     });
     D.blocks.forEach(function(it){
       rows.push({k: it.sched.s, o: 1, h: '<div class="td-trow"><span class="td-tt">' + clockMin(it.sched.s) + '</span><div class="td-tb"><b>' + L.escapeHTML(clip(it.title, 70)) + '</b><small>' + span(it.min) + '</small></div>' + (it.key !== cardKey ? '<button type="button" class="td-ghost td-startrow" data-act="pinit" data-key="' + L.escapeHTML(it.key) + '">Pick</button>' : '') + '</div>'});
@@ -1407,7 +1419,9 @@
       if(st.done[k]){ delete st.done[k]; removeWin(isMove ? b.dataset.key : winKey); }
       else {
         st.done[k] = L.todayISO();
-        if(isMove){ if(MOVE_KIT.steps.every(function(x, xi){ return st.done[b.dataset.key + '|' + xi]; })) addWin(b.dataset.key, 'Morning strength'); }
+        if(isMove){ var nSteps = cardEl ? cardEl.querySelectorAll('.td-step').length : 0, allDone = nSteps > 0;
+          for(var di = 0; di < nSteps; di++){ if(!st.done[b.dataset.key + '|' + di]) allDone = false; }
+          if(allDone) addWin(b.dataset.key, (cardEl.querySelector('.td-title') || {}).textContent); }
         else addWin(winKey, stepName);
         if(timer && timer.key === k){ savePrep(st); stopTimer(true); return; }
       }
@@ -1621,5 +1635,6 @@
 })();
 </script>
 <script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
+<script src="nav.js?v=1"></script>
 </body>
 </html>
