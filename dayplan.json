@@ -1,14 +1,56 @@
 {
-  "_about": "Hand-made plans for specific days. blocks: things with real times. todos: flexible things with a length in minutes. Keyed by date.",
+  "_about": "Hand-made plans for specific days. blocks: things with real times. todos: flexible things with a length in minutes. after: a quiet After work reminder shown above the main card (tick it to earn a star). skipMove: true hides the morning strength kit (e.g. on gym days). Keyed by date.",
   "2026-10-17": {
     "blocks": [
-      {"at": "10:40", "until": "11:00", "title": "Leave for pilates (15 min drive)"},
-      {"at": "11:00", "until": "12:00", "title": "Pilates"},
-      {"at": "12:15", "until": "12:45", "title": "Home: get dressed", "approx": true},
-      {"at": "12:45", "until": "14:00", "title": "360: the booths", "approx": true}
+      {
+        "at": "10:40",
+        "until": "11:00",
+        "title": "Leave for pilates (15 min drive)"
+      },
+      {
+        "at": "11:00",
+        "until": "12:00",
+        "title": "Pilates"
+      },
+      {
+        "at": "12:15",
+        "until": "12:45",
+        "title": "Home: get dressed",
+        "approx": true
+      },
+      {
+        "at": "12:45",
+        "until": "14:00",
+        "title": "360: the booths",
+        "approx": true
+      }
     ],
     "todos": [
-      {"title": "Pick tonight's outfit", "min": 20, "how": "Lay out two options and choose one.", "tiny": "open the wardrobe"}
+      {
+        "title": "Pick tonight's outfit",
+        "min": 20,
+        "how": "Lay out two options and choose one.",
+        "tiny": "open the wardrobe"
+      }
+    ]
+  },
+  "2026-10-18": {
+    "after": [
+      {
+        "title": "Prepare your workout bag and a full outfit for the gym tomorrow",
+        "min": 20
+      }
+    ]
+  },
+  "2026-10-19": {
+    "skipMove": true,
+    "blocks": [
+      {
+        "at": "06:10",
+        "until": "07:30",
+        "title": "Gym, then get ready there and go straight to work",
+        "approx": true
+      }
     ]
   }
 }

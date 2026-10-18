@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=78">
+<link rel="stylesheet" href="styles.css?v=79">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -883,7 +883,7 @@
     });
   } catch(e){}
   var prep = {tasks: {}}, dayplan = {};
-  try { fetch('dayplan.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j){ dayplan = j; renderToday(); } }).catch(function(){}); } catch(e){}
+  try { fetch('dayplan.json?v=3').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j){ dayplan = j; renderToday(); } }).catch(function(){}); } catch(e){}
   function hmMin(t){ var m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? (+m[1]) * 60 + (+m[2]) : null; }
   try { fetch('prep.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.tasks){ prep = j; renderToday(); } }).catch(function(){}); } catch(e){}
 
@@ -1042,7 +1042,7 @@
       c.push({pri: 0.4, due: T, ord: ti, kind: 'move', key: dkey, id: dkey, title: td.title, kit: dkit, total: kitTotal(dkit), min: kitLeft(dkit, dkey, st), href: ''});
     });
     var nd = new Date(), ndh = nd.getHours(), ndw = nd.getDay();
-    if(ndh >= 5 && ndh < 9 && (ndw === 1 || ndw === 3 || ndw === 5)){
+    if(ndh >= 5 && ndh < 9 && (ndw === 1 || ndw === 3 || ndw === 5) && !(dayplan[T] && dayplan[T].skipMove)){
       var mkey = 'move:' + T, mmin = kitLeft(MOVE_KIT, mkey, st);
       c.push({pri: 0.5, due: T, ord: 0, kind: 'move', key: mkey, id: T, title: MOVE_KIT.name, kit: MOVE_KIT, total: kitTotal(MOVE_KIT), min: mmin, href: ''});
     }
@@ -1300,6 +1300,11 @@
     // Saturday morning: the week-planning invitation stays reachable from the sky
     var weekGone = false; try { weekGone = localStorage.getItem('badriyah-week-dismiss') === T; } catch(err){}
     if(new Date().getDay() === 6 && hr >= 5 && hr < 14 && !weekGone) extra += '<button type="button" class="cm-link" data-act="everything" data-tab="today">Plan the week</button>';
+    // "After work" things for today (dayplan.json: after), shown above the main card
+    var lead = ((dayplan[T] && dayplan[T].after) || []).map(function(a, ai){
+      var ak = 'after:' + T + '|' + ai, dn = !!st.done[ak];
+      return '<div class="cm-after' + (dn ? ' is-done' : '') + '"><button type="button" class="cm-after-box" data-act="afterdone" data-key="' + e(ak) + '" data-title="' + e(a.title) + '" aria-pressed="' + dn + '" aria-label="' + (dn ? 'Mark not done: ' : 'Mark done: ') + e(a.title) + '"></button><div class="cm-after-tx"><span class="cm-after-l">After work' + (+a.min ? ' · ' + span(+a.min) : '') + '</span><span class="cm-after-t">' + e(a.title) + '</span></div></div>';
+    }).join('');
     var quiet = '<div class="cm-quiet"><button type="button" data-act="fstart">25 quiet minutes</button><button type="button" data-act="gentle">' + (gentle ? 'Back to normal' : 'Low energy') + '</button></div>';
 
     if(Date.now() < calmCele){
@@ -1326,18 +1331,18 @@
     if(left <= 0 || hr < 5){
       var tom = cand.filter(function(x){ return x.kind !== 'move'; })[0] || P.later.filter(function(x){ return x.kind !== 'move'; })[0];
       body = '<div class="cm-card"><div class="cm-label">' + (tom ? 'Tomorrow you get to' : 'Rest well') + '</div><h2 class="cm-title">' + (tom ? e(clip(tom.title, 60)) : 'Goodnight, Badriyah <span aria-hidden="true">✦</span>') + '</h2>' + (tom ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(Math.min(25, tom.min || 25)) + '</div>' : '') + '</div>';
-      calmHTML = moon + body + constellation(wins, 0, false) + extra; return;
+      calmHTML = moon + lead + body + constellation(wins, 0, false) + extra; return;
     }
     if(!it){
       body = '<div class="cm-card"><div class="cm-label">Nothing is waiting</div><h2 class="cm-title">Rest is lovely <span aria-hidden="true">✦</span></h2>' + (P.pool.length > 1 ? '<div class="cm-more"><button type="button" data-act="pick">Pick one for me</button></div>' : '') + '</div>';
-      calmHTML = moon + body + constellation(wins, 0, false) + extra + quiet; return;
+      calmHTML = moon + lead + body + constellation(wins, 0, false) + extra + quiet; return;
     }
     var si = stepInfo(it, st);
     if(si.cur === -1){
       var fin = it.kind === 'task' ? '<button type="button" class="cm-begin" data-act="taskdone" data-id="' + e(it.id) + '" data-key="' + e(it.key) + '" data-title="' + e(it.title) + '" data-cele="1">Mark it done</button>'
         : it.kind === 'call' ? '<button type="button" class="cm-begin" data-act="callsubmit" data-id="' + e(it.id) + '" data-cele="1">Mark submitted</button>' : '';
       body = '<div class="cm-card"><div class="cm-label">All done here</div><h2 class="cm-title">' + e(clip(it.title, 60)) + ' <span aria-hidden="true">✦</span></h2>' + fin + '<div class="cm-more"><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
-      calmHTML = moon + body + constellation(wins, ahead, false) + extra + quiet; return;
+      calmHTML = moon + lead + body + constellation(wins, ahead, false) + extra + quiet; return;
     }
     var stp = si.steps[si.cur], multi2 = it.kit && si.steps.length > 1;
     var ttl = multi2 ? stp.t : it.title, sb = multi2 ? it.title : '';
@@ -1354,7 +1359,7 @@
       '<button type="button" class="cm-begin" data-act="cbegin" data-key="' + e(it.key + '|' + si.cur) + '" data-min="' + dur + '" data-url="' + e(url) + '">Begin</button>' +
       (after ? '<div class="cm-next">' + e(after) + '</div>' : '') +
       '<div class="cm-more"><button type="button" data-act="pick">Another</button><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
-    calmHTML = moon + body + constellation(wins, ahead, false) + extra + quiet;
+    calmHTML = moon + lead + body + constellation(wins, ahead, false) + extra + quiet;
   }
 
   function skipWord(button){ var late = new Date().getHours() >= 17 || new Date().getHours() < 5; return button ? (late ? 'Skip for tonight' : 'Skip for today') : (late ? 'tonight' : 'today'); }
@@ -1577,6 +1582,13 @@
       var cu = b.dataset.url;
       if(cu && /^(https?:\/\/|[a-z0-9-]+\.html(#[\w-]*)?$)/i.test(cu)){ try { window.open(cu, '_blank', 'noopener'); } catch(e){} }
       startTimer(b.dataset.key, +b.dataset.min || 10);
+    } else if(act === 'afterdone'){
+      var ak = b.dataset.key;
+      if(st.done[ak]){ delete st.done[ak]; removeWin(ak); savePrep(st); renderToday(); }
+      else {
+        st.done[ak] = L.todayISO(); addWin(ak, b.dataset.title); savePrep(st); celebrate(); renderToday();
+        toast('Nicely done', function(){ var s3 = prepState(); delete s3.done[ak]; savePrep(s3); removeWin(ak); calmCele = 0; renderToday(); });
+      }
     } else if(act === 'gentle'){
       try { if(isGentle()) localStorage.removeItem(GENTLE_KEY); else localStorage.setItem(GENTLE_KEY, L.todayISO()); } catch(e){}
       renderToday();
