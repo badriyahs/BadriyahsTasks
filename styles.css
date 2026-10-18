@@ -1244,15 +1244,16 @@ body{
 @keyframes cmpop{0%{transform:scale(.2);}60%{transform:scale(1.7);}100%{transform:scale(1);}}
 .cm-alert{display:block;margin-top:14px;font-size:14px;color:#FFB6D2;text-decoration:none;}
 .cm-quiet{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-top:4px;}
-.cm-after{display:flex;align-items:center;gap:4px;text-align:left;margin:0 0 12px;padding:6px 16px 6px 6px;border-radius:20px;background:rgba(255,233,168,.07);border:1px solid rgba(255,233,168,.28);}
+.cm-after{text-align:left;margin:0 0 12px;padding:12px 16px 6px 12px;border-radius:20px;background:rgba(255,233,168,.07);border:1px solid rgba(255,233,168,.28);}
+.cm-after-l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#FFE9A8;padding-left:4px;}
+.cm-after-row{display:flex;align-items:center;gap:2px;}
 .cm-after-box{flex:none;width:46px;height:46px;border:0;background:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .cm-after-box::before{content:'';width:26px;height:26px;border-radius:50%;border:2px solid #FFE9A8;display:flex;align-items:center;justify-content:center;box-sizing:border-box;font-size:15px;font-weight:700;color:#17113a;}
-.cm-after.is-done .cm-after-box::before{content:'\2713';background:#FFE9A8;}
+.cm-after-row.is-done .cm-after-box::before{content:'\2713';background:#FFE9A8;}
 .cm-after-box:focus-visible{outline:2px solid #FFE9A8;outline-offset:-4px;border-radius:50%;}
-.cm-after-tx{display:flex;flex-direction:column;gap:2px;min-width:0;}
-.cm-after-l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#FFE9A8;}
-.cm-after-t{font-size:15px;line-height:1.35;color:#F2EEFF;}
-.cm-after.is-done .cm-after-t{color:#BDB4E3;text-decoration:line-through;text-decoration-color:rgba(189,180,227,.6);}
+.cm-after-t{font-size:15px;line-height:1.35;color:#F2EEFF;min-width:0;}
+.cm-after-t small{font-size:12.5px;color:#BDB4E3;margin-left:4px;white-space:nowrap;}
+.cm-after-row.is-done .cm-after-t{color:#BDB4E3;text-decoration:line-through;text-decoration-color:rgba(189,180,227,.6);}
 .calm-page .home-banner{max-width:440px;margin:14px auto 0;padding:0 18px;display:block;}
 .calm-page .home-banner .dua-box{border:0;border-radius:0;background:none;padding:8px 6px 0;margin:0;}
 .calm-page .dua-ar{font-size:21px;line-height:1.95;color:#E4DDFF;}

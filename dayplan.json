@@ -1,5 +1,5 @@
 {
-  "_about": "Hand-made plans for specific days. blocks: things with real times. todos: flexible things with a length in minutes. after: a quiet After work reminder shown above the main card (tick it to earn a star). skipMove: true hides the morning strength kit (e.g. on gym days). Keyed by date.",
+  "_about": "Hand-made plans for specific days. blocks: things with real times. todos: flexible things with a length in minutes. after: a quiet After work reminder shown above the main card (tick it to earn a star; \"from\": \"16:00\" adds a small \"after 4:00 PM\" hint). skipMove: true hides the morning strength kit (e.g. on gym days). Keyed by date.",
   "2026-10-17": {
     "blocks": [
       {
@@ -39,6 +39,14 @@
       {
         "title": "Prepare your workout bag and a full outfit for the gym tomorrow",
         "min": 20
+      },
+      {
+        "title": "Figure out Laura's talk",
+        "from": "16:00"
+      },
+      {
+        "title": "Reply to Sahil",
+        "from": "16:00"
       }
     ]
   },

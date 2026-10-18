@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=79">
+<link rel="stylesheet" href="styles.css?v=80">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -883,7 +883,7 @@
     });
   } catch(e){}
   var prep = {tasks: {}}, dayplan = {};
-  try { fetch('dayplan.json?v=3').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j){ dayplan = j; renderToday(); } }).catch(function(){}); } catch(e){}
+  try { fetch('dayplan.json?v=5').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j){ dayplan = j; renderToday(); } }).catch(function(){}); } catch(e){}
   function hmMin(t){ var m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? (+m[1]) * 60 + (+m[2]) : null; }
   try { fetch('prep.json?v=1').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.tasks){ prep = j; renderToday(); } }).catch(function(){}); } catch(e){}
 
@@ -1300,11 +1300,13 @@
     // Saturday morning: the week-planning invitation stays reachable from the sky
     var weekGone = false; try { weekGone = localStorage.getItem('badriyah-week-dismiss') === T; } catch(err){}
     if(new Date().getDay() === 6 && hr >= 5 && hr < 14 && !weekGone) extra += '<button type="button" class="cm-link" data-act="everything" data-tab="today">Plan the week</button>';
-    // "After work" things for today (dayplan.json: after), shown above the main card
-    var lead = ((dayplan[T] && dayplan[T].after) || []).map(function(a, ai){
+    // "After work" things for today (dayplan.json: after; "from": "16:00" adds a small "after 4:00 PM" hint), in one quiet card above the main one
+    var afterRows = ((dayplan[T] && dayplan[T].after) || []).map(function(a, ai){
+      var fp = String(a.from || '').split(':'), fromMin = fp.length === 2 ? (+fp[0]) * 60 + (+fp[1]) : 0;
       var ak = 'after:' + T + '|' + ai, dn = !!st.done[ak];
-      return '<div class="cm-after' + (dn ? ' is-done' : '') + '"><button type="button" class="cm-after-box" data-act="afterdone" data-key="' + e(ak) + '" data-title="' + e(a.title) + '" aria-pressed="' + dn + '" aria-label="' + (dn ? 'Mark not done: ' : 'Mark done: ') + e(a.title) + '"></button><div class="cm-after-tx"><span class="cm-after-l">After work' + (+a.min ? ' · ' + span(+a.min) : '') + '</span><span class="cm-after-t">' + e(a.title) + '</span></div></div>';
-    }).join('');
+      return '<div class="cm-after-row' + (dn ? ' is-done' : '') + '"><button type="button" class="cm-after-box" data-act="afterdone" data-key="' + e(ak) + '" data-title="' + e(a.title) + '" aria-pressed="' + dn + '" aria-label="' + (dn ? 'Mark not done: ' : 'Mark done: ') + e(a.title) + '"></button><div class="cm-after-t">' + e(a.title) + (+a.min ? ' <small>' + span(+a.min) + '</small>' : '') + (fromMin ? ' <small>after ' + clockMin(fromMin).replace(':00 ', ' ') + '</small>' : '') + '</div></div>';
+    }).filter(Boolean);
+    var lead = afterRows.length ? '<div class="cm-after"><div class="cm-after-l">After work</div>' + afterRows.join('') + '</div>' : '';
     var quiet = '<div class="cm-quiet"><button type="button" data-act="fstart">25 quiet minutes</button><button type="button" data-act="gentle">' + (gentle ? 'Back to normal' : 'Low energy') + '</button></div>';
 
     if(Date.now() < calmCele){
