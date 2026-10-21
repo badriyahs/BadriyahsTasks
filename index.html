@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=81">
+<link rel="stylesheet" href="styles.css?v=82">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1335,7 +1335,8 @@
       }
       var rtotal = timer.mins * 60, rleft = Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)), roff = timer.over ? 0 : RING_C * (1 - rleft / rtotal);
       var ring = '<div class="td-ring run' + (tk === 'break' ? ' brk' : '') + (timer.over ? ' over' : '') + '"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="cmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B8FF"/><stop offset="1" stop-color="#FFB6D2"/></linearGradient></defs><circle class="td-ring-track" cx="60" cy="60" r="52"/><circle class="td-arc" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke="url(#cmg)" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="' + roff.toFixed(1) + '"/></svg><div class="td-ring-btn" style="pointer-events:none">' + (timer.over ? '<b aria-hidden="true">✓</b><small>time</small>' : '<b class="td-timer">' + mmss(rleft) + '</b>') + '</div></div>';
-      body = '<div class="cm-card cm-run"><div class="cm-label">' + (tk === 'break' ? 'Take a breath' : timer.over ? 'That’s your time' : 'You’re on it') + '</div><h2 class="cm-title">' + e(clip(title, 70)) + '</h2>' + (sub ? '<div class="cm-sub">' + e(clip(sub, 60)) + '</div>' : '') + ring + '<div class="cm-actions">' + actions + '</div></div>';
+      body = '<div class="cm-card cm-run"><div class="cm-label">' + (tk === 'break' ? 'Take a breath' : timer.over ? 'That’s your time' : 'You’re on it') + '</div><h2 class="cm-title">' + e(clip(title, 70)) + '</h2>' + (sub ? '<div class="cm-sub">' + e(clip(sub, 60)) + '</div>' : '') + ring + '<div class="cm-actions">' + actions + '</div>' +
+        (tk !== 'break' && !timer.over ? '<form class="cm-park" autocomplete="off"><input type="text" maxlength="140" enterkeyhint="done" placeholder="Park a stray thought" aria-label="Park a thought for later"><button type="submit">Park</button></form>' : '') + '</div>';
       calmHTML = moon + body + constellation(wins, ahead, false); return;
     }
     if(left <= 0 || hr < 5){
@@ -1666,6 +1667,19 @@
     }
   }
   document.getElementById('todaybody').addEventListener('click', todayClick);
+  (function(){   // "park it": a stray thought goes to Tasks (category Parked) and you stay in the timer
+    var ce = document.getElementById('calm'); if(!ce) return;
+    ce.addEventListener('submit', function(ev){
+      var f = ev.target.closest && ev.target.closest('.cm-park'); if(!f) return;
+      ev.preventDefault();
+      var inp = f.querySelector('input'), txt = inp.value.trim(); if(!txt) return;
+      inp.disabled = true;
+      L.addTask({description: txt, category: 'Parked'}).then(function(){
+        inp.value = ''; inp.disabled = false; toast('Parked. Back to it.', true);
+        try { inp.focus({preventScroll: true}); } catch(err){}
+      }).catch(function(err){ console.error(err); inp.disabled = false; toast('Couldn’t save that. Try again.'); });
+    });
+  })();
   (function(){ var ce = document.getElementById('calm'); if(ce) ce.addEventListener('click', todayClick); var ca = document.getElementById('calmfoot'); if(ca) ca.addEventListener('click', todayClick); var al = document.getElementById('all'); if(al) al.addEventListener('click', function(e){ if(e.target.closest('[data-act="back"]')) todayClick(e); }); })();
   setInterval(function(){
     if(timer && !timer.over){
