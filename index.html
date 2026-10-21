@@ -1288,6 +1288,12 @@
       if(again) try { again.focus({preventScroll: true}); } catch(err){}
     }
   }
+  // Begin opens a real link only: a kit's first link, the call or chapter page, or a link saved on the task itself
+  function beginUrl(it, stp){
+    return it.kit ? (stp.links && stp.links[0] ? stp.links[0].url : '')
+      : it.kind === 'task' ? (it.task && /^https?:\/\//i.test(it.task.link || '') ? it.task.link : '')
+      : (stp.links && stp.links[0] ? stp.links[0].url : (it.kind === 'gre' ? 'gre.html' : ''));
+  }
   function renderCalmInner(P, D, left, hr, nowMin, st, T){
     var e = L.escapeHTML, gentle = isGentle(), wins = winsToday().length;
     // finished checklists and today-only things don't take the card; the next real thing does
@@ -1340,9 +1346,12 @@
       calmHTML = moon + body + constellation(wins, ahead, false); return;
     }
     if(left <= 0 || hr < 5){
-      var tom = cand.filter(function(x){ return x.kind !== 'move'; })[0] || P.later.filter(function(x){ return x.kind !== 'move'; })[0];
-      body = '<div class="cm-card"><div class="cm-label">' + (tom ? 'Tomorrow you get to' : 'Rest well') + '</div><h2 class="cm-title">' + (tom ? e(clip(tom.title, 60)) : 'Goodnight, Badriyah <span aria-hidden="true">✦</span>') + '</h2>' + (tom ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(Math.min(25, tom.min || 25)) + '</div>' : '') + '</div>';
-      calmHTML = moon + lead + body + constellation(wins, 0, false) + extra; return;
+      var tomIn = cand.filter(function(x){ return x.kind !== 'move'; })[0];
+      var tom = tomIn || P.later.filter(function(x){ return x.kind !== 'move'; })[0];
+      var nightGo = '';
+      if(tomIn){ var tsi = stepInfo(tomIn, st); if(tsi.cur >= 0) nightGo = '<div class="cm-actions"><button type="button" class="cm-ghost" data-act="cbegin" data-key="' + e(tomIn.key + '|' + tsi.cur) + '" data-min="' + timerLen() + '" data-url="' + e(beginUrl(tomIn, tsi.steps[tsi.cur])) + '">Start it now</button></div>'; }
+      body = '<div class="cm-card"><div class="cm-label">' + (tom ? 'Tomorrow you get to' : 'Rest well') + '</div><h2 class="cm-title">' + (tom ? e(clip(tom.title, 60)) : 'Goodnight, Badriyah <span aria-hidden="true">✦</span>') + '</h2>' + (tom ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(Math.min(25, tom.min || 25)) + '</div>' : '') + nightGo + '</div>';
+      calmHTML = moon + lead + body + constellation(wins, 0, false) + extra + '<div class="cm-quiet"><button type="button" class="cm-focusbtn" data-act="fstart" data-min="' + timerLen() + '"><span aria-hidden="true">▶</span> ' + timerLen() + '-minute timer</button></div>'; return;
     }
     if(!it){
       body = '<div class="cm-card"><div class="cm-label">Nothing is waiting</div><h2 class="cm-title">Rest is lovely <span aria-hidden="true">✦</span></h2>' + (P.pool.length > 1 ? '<div class="cm-more"><button type="button" data-act="pick">Pick one for me</button></div>' : '') + '</div>';
@@ -1360,10 +1369,7 @@
     var dur = timerLen(); if(gentle) dur = Math.min(dur, 10);
     if(nb){ var gap = nb.s - nowMin; if(gap > 0 && gap < dur) dur = Math.max(5, Math.floor(gap / 5) * 5); }
     if(!multi2 && (+stp.min || 0) > dur) sb = 'the first part of about ' + span(+stp.min);
-    // Begin opens a real link only: a kit's first link, the call or chapter page, or a link saved on the task itself
-    var url = it.kit ? (stp.links && stp.links[0] ? stp.links[0].url : '')
-      : it.kind === 'task' ? (it.task && /^https?:\/\//i.test(it.task.link || '') ? it.task.link : '')
-      : (stp.links && stp.links[0] ? stp.links[0].url : (it.kind === 'gre' ? 'gre.html' : ''));
+    var url = beginUrl(it, stp);
     var after = nb && nb.s - nowMin <= 150 ? 'Then · ' + clip(nb.title, 36) + ' · ' + clockMin(nb.s) : nextIt ? 'Next · ' + clip(nextIt.title, 38) + ' · ' + span(Math.min(25, nextIt.min || 25)) : '';
     body = '<div class="cm-card"><div class="cm-label">' + (gentle ? 'A small one' : 'You get to') + '</div><h2 class="cm-title">' + e(clip(ttl, 80)) + '</h2>' + (sb ? '<div class="cm-sub">' + e(sb) + '</div>' : '') +
       '<button type="button" class="cm-dur cm-dur-btn" data-act="timerlen" aria-label="Timer length: ' + dur + ' minutes. Tap to change">' + '<span aria-hidden="true">☾</span> ' + span(dur) + ' <span class="cm-dur-ch" aria-hidden="true">↻</span></button>' +
