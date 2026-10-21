@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=82">
+<link rel="stylesheet" href="styles.css?v=83">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1310,7 +1310,7 @@
       return '<div class="cm-after-row' + (dn ? ' is-done' : '') + '"><button type="button" class="cm-after-box" data-act="afterdone" data-key="' + e(ak) + '" data-title="' + e(a.title) + '" aria-pressed="' + dn + '" aria-label="' + (dn ? 'Mark not done: ' : 'Mark done: ') + e(a.title) + '"></button><div class="cm-after-t">' + e(a.title) + (+a.min ? ' <small>' + span(+a.min) + '</small>' : '') + (fromMin ? ' <small>after ' + clockMin(fromMin).replace(':00 ', ' ') + '</small>' : '') + '</div>' + (dn ? '' : '<button type="button" class="cm-after-go" data-act="tstart" data-key="' + e(ak) + '" data-min="' + timerLen() + '" aria-label="Start a ' + timerLen() + ' minute timer: ' + e(a.title) + '"><span aria-hidden="true">▶</span> ' + timerLen() + '</button>') + '</div>';
     }).filter(Boolean);
     var lead = afterRows.length ? '<div class="cm-after"><div class="cm-after-l">After work</div>' + afterRows.join('') + '</div>' : '';
-    var quiet = '<div class="cm-quiet"><button type="button" data-act="fstart">25 quiet minutes</button><button type="button" data-act="gentle">' + (gentle ? 'Back to normal' : 'Low energy') + '</button></div>';
+    var quiet = '<div class="cm-quiet"><button type="button" class="cm-focusbtn" data-act="fstart" data-min="' + timerLen() + '"><span aria-hidden="true">▶</span> ' + timerLen() + '-minute timer</button><button type="button" data-act="gentle">' + (gentle ? 'Back to normal' : 'Low energy') + '</button></div>';
 
     if(Date.now() < calmCele){
       body = '<div class="cm-card cm-cele"><div class="cm-label">Well done, Badriyah</div><h2 class="cm-title">That’s a star <span aria-hidden="true">✦</span></h2></div>';
@@ -1336,7 +1336,7 @@
       var rtotal = timer.mins * 60, rleft = Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)), roff = timer.over ? 0 : RING_C * (1 - rleft / rtotal);
       var ring = '<div class="td-ring run' + (tk === 'break' ? ' brk' : '') + (timer.over ? ' over' : '') + '"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="cmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B8FF"/><stop offset="1" stop-color="#FFB6D2"/></linearGradient></defs><circle class="td-ring-track" cx="60" cy="60" r="52"/><circle class="td-arc" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke="url(#cmg)" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="' + roff.toFixed(1) + '"/></svg><div class="td-ring-btn" style="pointer-events:none">' + (timer.over ? '<b aria-hidden="true">✓</b><small>time</small>' : '<b class="td-timer">' + mmss(rleft) + '</b>') + '</div></div>';
       body = '<div class="cm-card cm-run"><div class="cm-label">' + (tk === 'break' ? 'Take a breath' : timer.over ? 'That’s your time' : 'You’re on it') + '</div><h2 class="cm-title">' + e(clip(title, 70)) + '</h2>' + (sub ? '<div class="cm-sub">' + e(clip(sub, 60)) + '</div>' : '') + ring + '<div class="cm-actions">' + actions + '</div>' +
-        (tk !== 'break' && !timer.over ? '<form class="cm-park" autocomplete="off"><input type="text" maxlength="140" enterkeyhint="done" placeholder="Park a stray thought" aria-label="Park a thought for later"><button type="submit">Park</button></form>' : '') + '</div>';
+        (tk !== 'break' && !timer.over ? '<form class="cm-park" autocomplete="off"><input type="text" maxlength="140" enterkeyhint="done" placeholder="Park a thought" aria-label="Park a thought for later"><button type="submit">Park</button></form>' : '') + '</div>';
       calmHTML = moon + body + constellation(wins, ahead, false); return;
     }
     if(left <= 0 || hr < 5){
@@ -1634,7 +1634,7 @@
     } else if(act === 'tstart'){
       startTimer(b.dataset.key, +b.dataset.min || 10);
     } else if(act === 'fstart'){
-      startTimer('focus', 25);
+      startTimer('focus', +b.dataset.min || 25);
     } else if(act === 'tstop'){
       stopTimer(false);
     } else if(act === 'taskdone'){
