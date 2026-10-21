@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=80">
+<link rel="stylesheet" href="styles.css?v=81">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -928,6 +928,9 @@
     } catch(e){}
     renderToday();
   }
+  // how long Begin runs: her usual work stretch (25 by default), changeable by tapping the length on the card
+  var TIMER_LENS = [10, 15, 25, 45], TIMER_LEN_KEY = 'badriyah-timer-len';
+  function timerLen(){ try { var v = parseInt(localStorage.getItem(TIMER_LEN_KEY), 10); return TIMER_LENS.indexOf(v) >= 0 ? v : 25; } catch(e){ return 25; } }
   function startTimer(key, mins){
     if(timer) stopTimer(true);
     var now = Date.now();
@@ -1304,7 +1307,7 @@
     var afterRows = ((dayplan[T] && dayplan[T].after) || []).map(function(a, ai){
       var fp = String(a.from || '').split(':'), fromMin = fp.length === 2 ? (+fp[0]) * 60 + (+fp[1]) : 0;
       var ak = 'after:' + T + '|' + ai, dn = !!st.done[ak];
-      return '<div class="cm-after-row' + (dn ? ' is-done' : '') + '"><button type="button" class="cm-after-box" data-act="afterdone" data-key="' + e(ak) + '" data-title="' + e(a.title) + '" aria-pressed="' + dn + '" aria-label="' + (dn ? 'Mark not done: ' : 'Mark done: ') + e(a.title) + '"></button><div class="cm-after-t">' + e(a.title) + (+a.min ? ' <small>' + span(+a.min) + '</small>' : '') + (fromMin ? ' <small>after ' + clockMin(fromMin).replace(':00 ', ' ') + '</small>' : '') + '</div></div>';
+      return '<div class="cm-after-row' + (dn ? ' is-done' : '') + '"><button type="button" class="cm-after-box" data-act="afterdone" data-key="' + e(ak) + '" data-title="' + e(a.title) + '" aria-pressed="' + dn + '" aria-label="' + (dn ? 'Mark not done: ' : 'Mark done: ') + e(a.title) + '"></button><div class="cm-after-t">' + e(a.title) + (+a.min ? ' <small>' + span(+a.min) + '</small>' : '') + (fromMin ? ' <small>after ' + clockMin(fromMin).replace(':00 ', ' ') + '</small>' : '') + '</div>' + (dn ? '' : '<button type="button" class="cm-after-go" data-act="tstart" data-key="' + e(ak) + '" data-min="' + timerLen() + '" aria-label="Start a ' + timerLen() + ' minute timer: ' + e(a.title) + '"><span aria-hidden="true">▶</span> ' + timerLen() + '</button>') + '</div>';
     }).filter(Boolean);
     var lead = afterRows.length ? '<div class="cm-after"><div class="cm-after-l">After work</div>' + afterRows.join('') + '</div>' : '';
     var quiet = '<div class="cm-quiet"><button type="button" data-act="fstart">25 quiet minutes</button><button type="button" data-act="gentle">' + (gentle ? 'Back to normal' : 'Low energy') + '</button></div>';
@@ -1317,6 +1320,11 @@
       var tk = timer.key, title = '', sub = '', actions = '';
       if(tk === 'focus'){ title = 'Quiet focus'; actions = '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>'; }
       else if(tk === 'break'){ title = 'Rest a little'; actions = '<button type="button" class="cm-ghost" data-act="tstop">Skip</button>'; }
+      else if(tk.indexOf('after:') === 0){
+        var ao = ((dayplan[T] && dayplan[T].after) || [])[+tk.split('|')[1]];
+        title = ao ? ao.title : 'Your star';
+        actions = (ao ? '<button type="button" class="cm-done" data-act="afterdone" data-key="' + e(tk) + '" data-title="' + e(ao.title) + '" data-cele="1">Done<span aria-hidden="true"> ✓</span></button>' : '') + (timer.over ? '<button type="button" class="cm-ghost" data-act="tstart" data-key="' + e(tk) + '" data-min="5">5 more</button>' : '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>');
+      }
       else {
         var base = tk.split('|')[0], idx = +tk.split('|')[1], item = P.plan.filter(function(x){ return x.key === base; })[0];
         if(item){
@@ -1348,7 +1356,7 @@
     }
     var stp = si.steps[si.cur], multi2 = it.kit && si.steps.length > 1;
     var ttl = multi2 ? stp.t : it.title, sb = multi2 ? it.title : '';
-    var dur = Math.max(5, Math.min(+stp.min || 25, 25)); if(gentle) dur = Math.min(dur, 10);
+    var dur = timerLen(); if(gentle) dur = Math.min(dur, 10);
     if(nb){ var gap = nb.s - nowMin; if(gap > 0 && gap < dur) dur = Math.max(5, Math.floor(gap / 5) * 5); }
     if(!multi2 && (+stp.min || 0) > dur) sb = 'the first part of about ' + span(+stp.min);
     // Begin opens a real link only: a kit's first link, the call or chapter page, or a link saved on the task itself
@@ -1357,7 +1365,7 @@
       : (stp.links && stp.links[0] ? stp.links[0].url : (it.kind === 'gre' ? 'gre.html' : ''));
     var after = nb && nb.s - nowMin <= 150 ? 'Then · ' + clip(nb.title, 36) + ' · ' + clockMin(nb.s) : nextIt ? 'Next · ' + clip(nextIt.title, 38) + ' · ' + span(Math.min(25, nextIt.min || 25)) : '';
     body = '<div class="cm-card"><div class="cm-label">' + (gentle ? 'A small one' : 'You get to') + '</div><h2 class="cm-title">' + e(clip(ttl, 80)) + '</h2>' + (sb ? '<div class="cm-sub">' + e(sb) + '</div>' : '') +
-      '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(dur) + '</div>' +
+      '<button type="button" class="cm-dur cm-dur-btn" data-act="timerlen" aria-label="Timer length: ' + dur + ' minutes. Tap to change">' + '<span aria-hidden="true">☾</span> ' + span(dur) + ' <span class="cm-dur-ch" aria-hidden="true">↻</span></button>' +
       '<button type="button" class="cm-begin" data-act="cbegin" data-key="' + e(it.key + '|' + si.cur) + '" data-min="' + dur + '" data-url="' + e(url) + '">Begin</button>' +
       (after ? '<div class="cm-next">' + e(after) + '</div>' : '') +
       '<div class="cm-more"><button type="button" data-act="pick">Another</button><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
@@ -1584,12 +1592,17 @@
       var cu = b.dataset.url;
       if(cu && /^(https?:\/\/|[a-z0-9-]+\.html(#[\w-]*)?$)/i.test(cu)){ try { window.open(cu, '_blank', 'noopener'); } catch(e){} }
       startTimer(b.dataset.key, +b.dataset.min || 10);
+    } else if(act === 'timerlen'){
+      var tl = TIMER_LENS.indexOf(timerLen());
+      try { localStorage.setItem(TIMER_LEN_KEY, String(TIMER_LENS[(tl + 1) % TIMER_LENS.length])); } catch(e){}
+      renderToday();
     } else if(act === 'afterdone'){
       var ak = b.dataset.key;
       if(st.done[ak]){ delete st.done[ak]; removeWin(ak); savePrep(st); renderToday(); }
       else {
         st.done[ak] = L.todayISO(); addWin(ak, b.dataset.title); savePrep(st); celebrate(); renderToday();
         toast('Nicely done', function(){ var s3 = prepState(); delete s3.done[ak]; savePrep(s3); removeWin(ak); calmCele = 0; renderToday(); });
+        if(timer && timer.key === ak) stopTimer(true);
       }
     } else if(act === 'gentle'){
       try { if(isGentle()) localStorage.removeItem(GENTLE_KEY); else localStorage.setItem(GENTLE_KEY, L.todayISO()); } catch(e){}
