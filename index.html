@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=83">
+<link rel="stylesheet" href="styles.css?v=84">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,6 +19,7 @@
 <body class="calm-page">
 <div class="tabbar">
   <a class="tab active" href="index.html">Today</a>
+  <a class="tab" href="plan.html">Plan</a>
   <a class="tab" href="tasks.html">Tasks</a>
   <a class="tab" href="calendar.html">Calendar</a>
   <a class="tab" href="archive.html">Archive</a>
@@ -46,6 +47,8 @@
       </div>
 
       <section id="calm" class="calm" aria-label="What you get to do next"></section>
+
+      <section id="planchart" aria-label="The plan"></section>
 
       <div class="home-banner">
         <div class="dua-box" id="duabox"></div>
@@ -113,6 +116,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="app.js?v=24"></script>
+<script src="plan.js?v=1"></script>
 <script>
 (function(){
   "use strict";
@@ -1237,7 +1241,7 @@
   function isGentle(){ try { return localStorage.getItem(GENTLE_KEY) === L.todayISO(); } catch(e){ return false; } }
   function celebrate(){ calmCele = Date.now() + 4500; setTimeout(function(){ renderToday(); }, 4600); }
   function showEverything(on){
-    var parts = [document.getElementById('calm'), document.querySelector('.home-banner'), document.getElementById('calmfoot')];
+    var parts = [document.getElementById('calm'), document.getElementById('planchart'), document.querySelector('.home-banner'), document.getElementById('calmfoot')];
     var all = document.getElementById('all'); if(all) all.hidden = !on;
     parts.forEach(function(x){ if(x) x.hidden = on; });
     document.body.classList.toggle('calm-page', !on);
@@ -1428,6 +1432,12 @@
     g.textContent = h >= 5 && h < 12 ? 'صباح الخير بدرية' : h >= 12 && h < 21 ? 'مساء الخير بدرية' : 'تصبحين على خير يا بدرية';
   }
   renderGreeting(); setInterval(renderGreeting, 60000);
+  (function(){   // the plan card on the home page
+    var planData = null;
+    function drawPlan(){ var el = document.getElementById('planchart'); if(el && planData && window.PlanChart) el.innerHTML = PlanChart.homeCard(planData); }
+    if(window.PlanChart) PlanChart.load(function(P){ planData = P; drawPlan(); });
+    setInterval(drawPlan, 600000);
+  })();
 
   /* ---- ورد: the Quran in two-page portions (604 pages -> 302 portions), read on quran.com; the place is kept ---- */
   var wirdPage = 1, WIRD_KEY = 'badriyah-wird-v1';
