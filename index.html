@@ -313,7 +313,7 @@
     var open = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
     var pick = pickRotating(open.filter(function(r){ return r.kind !== 'podcast'; }), 1)[0];
     var listen = pickRotating(open.filter(function(r){ return r.kind === 'podcast'; }), 1)[0];
-    var row = function(label, r){ return '<a class="lib-pick" href="library.html#source/' + r.id + '"><span class="lib-k">' + label + '</span><span class="lib-t">' + L.escapeHTML(r.title) + '</span></a>'; };
+    var row = function(label, r){ return '<a class="lib-pick" href="' + (r.kind === 'podcast' ? 'reading.html#task-' : 'library.html#source/') + r.id + '"><span class="lib-k">' + label + '</span><span class="lib-t">' + L.escapeHTML(r.title) + '</span></a>'; };
     document.getElementById('libpicks').innerHTML = (pick || listen) ?
       '<div class="todo-group">From your library</div>' + (pick ? row('Worth a read', pick) : '') + (listen ? row('Worth a listen', listen) : '') : '';
   }

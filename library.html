@@ -7,7 +7,7 @@
 <title>Badriyah's Tasks — Library</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
 <link rel="stylesheet" href="styles.css?v=84">
-<link rel="stylesheet" href="library.css?v=1">
+<link rel="stylesheet" href="library.css?v=2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,10 +43,10 @@
 
 <main class="lb" id="lb">
   <header class="lb-head">
-    <nav class="lb-seg" id="lbnav" role="tablist" aria-label="Library">
-      <button type="button" role="tab" data-view="shelf" class="on">Shelf</button>
-      <button type="button" role="tab" data-view="notes">Notes</button>
-      <button type="button" role="tab" data-view="cite">Cite</button>
+    <nav class="lb-seg" id="lbnav" aria-label="Library">
+      <button type="button" data-view="shelf" class="on" aria-pressed="true">Shelf</button>
+      <button type="button" data-view="notes" aria-pressed="false">Notes</button>
+      <button type="button" data-view="cite" aria-pressed="false">Cite</button>
     </nav>
     <label class="lb-search">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -104,12 +104,12 @@
   try { firebase.initializeApp({apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M", authDomain: "badriyahstasks.firebaseapp.com", projectId: "badriyahstasks", storageBucket: "badriyahstasks.firebasestorage.app", messagingSenderId: "97057321631", appId: "1:97057321631:web:fa339e1352631ecb9d68aa"}); } catch(e){}
   if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 </script>
-<script src="lib/cite.js?v=2"></script>
-<script src="lib/search.js?v=2"></script>
-<script src="lib/store.js?v=2"></script>
-<script src="lib/files.js?v=2"></script>
-<script src="lib/reader.js?v=2"></script>
-<script src="lib/ui.js?v=2"></script>
+<script src="lib/cite.js?v=3"></script>
+<script src="lib/search.js?v=3"></script>
+<script src="lib/store.js?v=3"></script>
+<script src="lib/files.js?v=3"></script>
+<script src="lib/reader.js?v=3"></script>
+<script src="lib/ui.js?v=3"></script>
 <script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
 <script src="nav.js?v=2"></script>
 </body>
