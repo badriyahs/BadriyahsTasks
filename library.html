@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="lock.js?v=2"></script>
+<title>Badriyah's Tasks — Library</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=84">
+<link rel="stylesheet" href="library.css?v=1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#1a1342">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
+</head>
+<body class="lb-body">
+<div class="tabbar">
+  <a class="tab" href="index.html">Today</a>
+  <a class="tab" href="plan.html">Plan</a>
+  <a class="tab" href="tasks.html">Tasks</a>
+  <a class="tab" href="calendar.html">Calendar</a>
+  <a class="tab" href="archive.html">Archive</a>
+  <a class="tab" href="activity.html">Activity</a>
+  <a class="tab active" href="library.html">Library</a>
+  <a class="tab" href="notes.html">Notes</a>
+  <a class="tab" href="events.html">Events</a>
+  <a class="tab" href="calls.html">Calls</a>
+  <a class="tab" href="jobs.html">Jobs</a>
+  <a class="tab" href="health.html">Health</a>
+  <a class="tab" href="gre.html">GRE</a>
+  <a class="tab" href="manifest.html">Manifest</a>
+</div>
+
+<div class="topbar">
+  <h1>Badriyah's Tasks</h1>
+  <div class="sub"><span class="dot off" id="syncdot"></span><span id="syncstate">Connecting…</span></div>
+  <div class="spacer"></div>
+</div>
+
+<main class="lb" id="lb">
+  <header class="lb-head">
+    <nav class="lb-seg" id="lbnav" role="tablist" aria-label="Library">
+      <button type="button" role="tab" data-view="shelf" class="on">Shelf</button>
+      <button type="button" role="tab" data-view="notes">Notes</button>
+      <button type="button" role="tab" data-view="cite">Cite</button>
+    </nav>
+    <label class="lb-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="lbq" type="search" placeholder="Search everything" autocomplete="off" aria-label="Search sources, notes and highlights">
+    </label>
+    <button type="button" class="lb-add" id="lbadd" aria-label="Add">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      <span>Add</span>
+    </button>
+  </header>
+
+  <p class="lb-status" id="lbstatus" role="status" hidden></p>
+
+  <section class="lb-view" id="v-shelf" aria-label="Shelf"></section>
+  <section class="lb-view" id="v-notes" aria-label="Notes" hidden></section>
+  <section class="lb-view" id="v-cite" aria-label="Cite" hidden></section>
+  <section class="lb-view" id="v-search" aria-label="Search results" hidden></section>
+</main>
+
+<div class="lb-scrim" id="lbscrim" hidden></div>
+<div class="lb-sheet" id="lbsheet" role="dialog" aria-modal="true" aria-label="Details" hidden></div>
+
+<div class="lb-reader" id="lbreader" role="dialog" aria-modal="true" aria-label="Reader" hidden>
+  <div class="lb-rbar">
+    <button type="button" class="lb-rbtn" id="rback" aria-label="Back to the shelf">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="lb-rtitle" id="rtitle"></div>
+    <label class="lb-rpage"><span class="lb-sr">Page</span><input id="rpage" type="text" inputmode="numeric" value="1" aria-label="Page number"><span id="rtotal">/ 1</span></label>
+    <button type="button" class="lb-rbtn" id="rzout" aria-label="Zoom out">−</button>
+    <button type="button" class="lb-rbtn" id="rzin" aria-label="Zoom in">+</button>
+    <button type="button" class="lb-rbtn lb-rtext" id="rnight" aria-label="Page colour">Night</button>
+    <button type="button" class="lb-rbtn lb-rtext" id="rside" aria-label="Show highlights and notes">Marks <b id="rcount">0</b></button>
+  </div>
+  <div class="lb-rbody">
+    <div class="lb-rhost" id="rhost"></div>
+    <aside class="lb-rpanel" id="rpanel" hidden aria-label="Highlights and notes for this paper"></aside>
+  </div>
+  <div class="lb-seltb" id="seltb" hidden role="toolbar" aria-label="Mark the selected text">
+    <button type="button" data-hl="idea" class="hl-idea">Idea</button>
+    <button type="button" data-hl="evidence" class="hl-evidence">Evidence</button>
+    <button type="button" data-hl="quote" class="hl-quote">Quote</button>
+    <button type="button" data-hl="question" class="hl-question">Question</button>
+    <button type="button" data-act="cite" class="hl-plain">Copy with citation</button>
+  </div>
+  <div class="lb-rempty" id="rempty" hidden></div>
+</div>
+
+<div class="lb-toast" id="lbtoast" role="status" aria-live="polite" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  try { firebase.initializeApp({apiKey: "AIzaSyD5Enp6XOf64EEBnjDf6A2NsKxG_GTW36M", authDomain: "badriyahstasks.firebaseapp.com", projectId: "badriyahstasks", storageBucket: "badriyahstasks.firebasestorage.app", messagingSenderId: "97057321631", appId: "1:97057321631:web:fa339e1352631ecb9d68aa"}); } catch(e){}
+  if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+</script>
+<script src="lib/cite.js?v=2"></script>
+<script src="lib/search.js?v=2"></script>
+<script src="lib/store.js?v=2"></script>
+<script src="lib/files.js?v=2"></script>
+<script src="lib/reader.js?v=2"></script>
+<script src="lib/ui.js?v=2"></script>
+<script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
+<script src="nav.js?v=2"></script>
+</body>
+</html>

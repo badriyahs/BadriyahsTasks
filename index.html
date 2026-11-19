@@ -24,7 +24,7 @@
   <a class="tab" href="calendar.html">Calendar</a>
   <a class="tab" href="archive.html">Archive</a>
   <a class="tab" href="activity.html">Activity</a>
-  <a class="tab" href="reading.html">Library</a>
+  <a class="tab" href="library.html">Library</a>
   <a class="tab" href="notes.html">Notes</a>
   <a class="tab" href="events.html">Events</a>
   <a class="tab" href="calls.html">Calls</a>
@@ -115,7 +115,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=26"></script>
 <script src="plan.js?v=1"></script>
 <script>
 (function(){
@@ -313,7 +313,7 @@
     var open = L.readingState.items.filter(function(r){ return r.title && r.status !== 'finished'; });
     var pick = pickRotating(open.filter(function(r){ return r.kind !== 'podcast'; }), 1)[0];
     var listen = pickRotating(open.filter(function(r){ return r.kind === 'podcast'; }), 1)[0];
-    var row = function(label, r){ return '<a class="lib-pick" href="reading.html#task-' + r.id + '"><span class="lib-k">' + label + '</span><span class="lib-t">' + L.escapeHTML(r.title) + '</span></a>'; };
+    var row = function(label, r){ return '<a class="lib-pick" href="library.html#source/' + r.id + '"><span class="lib-k">' + label + '</span><span class="lib-t">' + L.escapeHTML(r.title) + '</span></a>'; };
     document.getElementById('libpicks').innerHTML = (pick || listen) ?
       '<div class="todo-group">From your library</div>' + (pick ? row('Worth a read', pick) : '') + (listen ? row('Worth a listen', listen) : '') : '';
   }
@@ -661,7 +661,7 @@
       actions = '<button type="button" data-a="eventyes">Yes</button><button type="button" data-a="eventno">No, clear it</button>' + skip;
     } else if(q.type === 'reading'){
       var pod = q.o.kind === 'podcast';
-      text = (pod ? 'Still listening to ' : 'Still reading ') + ql('reading.html#task-' + q.o.id, q.o.title) + '?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
+      text = (pod ? 'Still listening to ' : 'Still reading ') + ql((pod ? 'reading.html#task-' : 'library.html#source/') + q.o.id, q.o.title) + '?' + (q.o.author ? ' <span class="q-meta" style="color:var(--muted)">' + L.escapeHTML(q.o.author) + '</span>' : '');
       actions = '<button type="button" data-a="readfinished">Finished it</button><button type="button" data-a="skip">' + (pod ? 'Still listening' : 'Still reading') + '</button>' +
         '<button type="button" data-a="readback">Put it back</button>' + skip;
     } else if(q.type === 'prompt'){
@@ -1785,7 +1785,7 @@
      Jobs sheet, news in the Library. A Google Calendar link is there too for the phone's own calendar. */
   var SCOUT_ADDED = 'badriyah-scout-added-v1';
   var SCOUT_DONE = {cal: 'On your calendar', task: 'Added as a task', jobs: 'Added to Jobs', lib: 'Saved to Library'};
-  var SCOUT_DONE_HREF = {cal: 'calendar.html', task: 'tasks.html', jobs: 'jobs.html', lib: 'reading.html'};
+  var SCOUT_DONE_HREF = {cal: 'calendar.html', task: 'tasks.html', jobs: 'jobs.html', lib: 'library.html'};
   function scoutAdded(){ try { return JSON.parse(localStorage.getItem(SCOUT_ADDED) || '{}'); } catch(e){ return {}; } }
   function markScoutAdded(id, kind){ var a = scoutAdded(); a[id] = kind; try { localStorage.setItem(SCOUT_ADDED, JSON.stringify(a)); } catch(e){} }
   function gcalURL(i){

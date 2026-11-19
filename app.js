@@ -439,10 +439,12 @@ window.Ledger = (function(){
     'finished':    {label:'Finished',    bg:'var(--cat4-bg)', fg:'var(--cat4-fg)'}
   };
 
+  var readingAll = [];
   readingCol.orderBy('order', 'asc').onSnapshot(function(snap){
-    readingState.items = snap.docs.map(function(d){
+    readingAll = snap.docs.map(function(d){
       var data = d.data() || {};
       return {
+        archived: data.archived === true,
         id: d.id,
         ref: data.ref || '',
         category: data.category || '',
@@ -458,6 +460,8 @@ window.Ledger = (function(){
         order: typeof data.order === 'number' ? data.order : 0
       };
     });
+    // Sources removed in the Library are archived, not deleted: hide them here, but keep counting their refs and orders
+    readingState.items = readingAll.filter(function(r){ return !r.archived; });
     readingReady = true;
     notifyReadingStatus('ok', '');
     notifyReading();
@@ -471,7 +475,7 @@ window.Ledger = (function(){
 
   function nextReadingRef(){
     var max = 0;
-    readingState.items.forEach(function(r){
+    readingAll.forEach(function(r){
       var n = parseInt(r.ref, 10);
       if(!isNaN(n) && n > max) max = n;
     });
@@ -479,7 +483,7 @@ window.Ledger = (function(){
   }
 
   function addReadingItem(kind){
-    var maxOrder = readingState.items.reduce(function(m,r){ return Math.max(m, r.order||0); }, 0);
+    var maxOrder = readingAll.reduce(function(m,r){ return Math.max(m, r.order||0); }, 0);
     var data = {ref:String(nextReadingRef()), category:'', title:'', author:'', year:'', pages:'', priority:'', status:'not-started', link:'', note:'', kind: kind === 'podcast' ? 'podcast' : 'read', order: maxOrder + 10};
     readingCol.add(data).then(function(ref){
       pendingReadingFocusId = ref.id;
@@ -493,7 +497,8 @@ window.Ledger = (function(){
     readingCol.doc(id).update({status: status}).catch(function(e){ console.error(e); });
   }
   function deleteReadingItem(id){
-    readingCol.doc(id).delete().catch(function(e){ console.error(e); });
+    // never hard-delete: archive it (lists above hide archived items)
+    readingCol.doc(id).update({ archived: true, updatedAt: new Date().toISOString() }).catch(function(e){ console.error(e); });
   }
 
   /* ---------- podcasts (live in the same "reading" collection, kind: 'podcast') ---------- */
@@ -563,7 +568,7 @@ window.Ledger = (function(){
   function addPodcasts(text){
     var lines = parsePodcastLines(text);
     if(!lines.length) return Promise.resolve([]);
-    var maxOrder = readingState.items.reduce(function(m, r){ return Math.max(m, r.order || 0); }, 0);
+    var maxOrder = readingAll.reduce(function(m, r){ return Math.max(m, r.order || 0); }, 0);
     var ref = nextReadingRef();
     var batch = db.batch(), refs = [];
     lines.forEach(function(l, i){
@@ -667,8 +672,11 @@ window.Ledger = (function(){
   function onNotesStatus(fn){ notesStatusListeners.push(fn); }
   function notifyNotesStatus(kind, text){ notesStatusListeners.forEach(function(fn){ fn(kind, text); }); }
 
+  var notesAllMax = 0;
   notesCol.orderBy('order', 'asc').onSnapshot(function(snap){
-    notesState.items = snap.docs.map(function(d){
+    notesAllMax = snap.docs.reduce(function(m, d){ var o = (d.data() || {}).order; return typeof o === 'number' && o > m ? o : m; }, 0);
+    // Library highlights and archived research notes live in the same collection; this quick-notes page only shows plain notes
+    notesState.items = snap.docs.filter(function(d){ var x = d.data() || {}; return x.kind !== 'highlight' && !x.archived && !x.createdAt; }).map(function(d){
       var data = d.data() || {};
       return { id: d.id, text: data.text || '', order: typeof data.order === 'number' ? data.order : 0 };
     });
@@ -684,7 +692,7 @@ window.Ledger = (function(){
   function focusNoteIdOnce(){ var id = pendingNoteFocusId; pendingNoteFocusId = null; return id; }
 
   function addNote(){
-    var maxOrder = notesState.items.reduce(function(m,n){ return Math.max(m, n.order||0); }, 0);
+    var maxOrder = notesAllMax;
     notesCol.add({ text: '', order: maxOrder + 10 }).then(function(ref){
       pendingNoteFocusId = ref.id;
     }).catch(function(e){ console.error(e); });
@@ -693,7 +701,8 @@ window.Ledger = (function(){
     notesCol.doc(id).update({ text: value }).catch(function(e){ console.error(e); });
   }
   function deleteNote(id){
-    notesCol.doc(id).delete().catch(function(e){ console.error(e); });
+    // never hard-delete: archive it (the list above hides archived notes)
+    notesCol.doc(id).update({ archived: true, updatedAt: new Date().toISOString() }).catch(function(e){ console.error(e); });
   }
 
   function noteCardHTML(n){
