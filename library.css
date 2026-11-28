@@ -118,6 +118,7 @@
 .lb-biblio p{margin:0 0 .9em;padding-left:2em;text-indent:-2em;}
 .lb-biblio i{font-style:italic;}
 [dir="auto"]{text-align:start;}
+.lb-next [dir="auto"]{text-align:center;}
 [dir="auto"]:lang(ar){font-family:Amiri,"IBM Plex Serif",serif;}
 .lb-biblio.mono{font-family:"IBM Plex Mono",monospace;font-size:12.5px;white-space:pre;overflow-x:auto;}
 
@@ -176,3 +177,6 @@
 .lb-removed summary{cursor:pointer;font-size:14px;color:var(--muted);padding:12px 0;min-height:44px;}
 .lb-gone{display:flex;gap:10px;align-items:center;justify-content:space-between;}
 .lb-gone em{color:var(--faint);font-style:normal;font-size:12.5px;margin-left:6px;}
+/* a long web address wraps, so Put back stays on the screen */
+.lb-gone span{min-width:0;overflow-wrap:anywhere;}
+.lb-gone button{flex:none;}

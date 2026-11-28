@@ -1469,3 +1469,152 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;
 .pl-wt{flex:none;width:38px;text-align:right;font-size:12.5px;color:var(--ink);}
 .pl-notes{margin:0;padding-left:18px;color:var(--muted);font-size:13.5px;line-height:1.55;}
 .pl-notes li{margin-bottom:6px;}
+
+/* === The home page, painted: her sunrise on warm paper, in EB Garamond === */
+.calm-page{
+  --paper:#F7F2EA;--surface:#FDF9F2;--ink:#3A2822;--muted:#75604F;--faint:#75604F;
+  --line:#E2D6C6;--line-strong:#CFBFAA;--accent:#9C1F43;--accent-ink:#FDF9F2;--accent-tint:rgba(156,31,67,.09);
+  background:#F7F2EA;color:#3A2822;font-family:"EB Garamond",Garamond,Georgia,serif;color-scheme:light;
+}
+.calm-page::before,.calm-page::after{content:none;}
+.calm-page ::selection{background:rgba(233,170,60,.35);color:#3A2822;}
+.calm-page .tabbar,.calm-page .navbar-m{background:#F7F2EA;border-color:#E2D6C6;}
+.calm-page .tab{background:transparent;color:#75604F;border-color:#E2D6C6;}
+.calm-page .tab:hover{color:#3A2822;background:#EFE6D8;}
+.calm-page .tab.active{background:#3A2822;color:#F7F2EA;border-color:#3A2822;}
+.calm-page .nav-title{color:#3A2822;font-family:"EB Garamond",Georgia,serif;font-weight:400;}
+.calm-page .nav-burger{background:transparent;border-color:#CFBFAA;}
+.calm-page .nav-burger i{background:#3A2822;}
+.calm-page .mini-moon{display:none;}
+.calm-page .home-greeting{font-family:"Amiri","Noto Naskh Arabic",serif;font-weight:400;font-size:clamp(30px,8vw,38px);color:#3A2822;}
+.calm-page .home-date{font-family:"EB Garamond",Georgia,serif;font-style:italic;font-size:17px;letter-spacing:0;color:#75604F;}
+.calm-page .home-sync:has(.dot.err){color:#9C1F43;}
+
+/* the sunrise */
+#dreams{width:100%;max-width:460px;margin:4px auto 0;}
+@media (max-width:520px){#dreams{width:calc(100% + 44px);max-width:none;margin-left:-22px;}}
+.sun{display:block;width:100%;height:auto;overflow:visible;font-family:"EB Garamond",Garamond,Georgia,serif;}
+.sun-grain{opacity:.16;mix-blend-mode:soft-light;pointer-events:none;}
+.sun-ray,.sun-core{cursor:pointer;outline:none;}
+.sun-hit{fill:transparent;}
+.sun-name{fill:#3A2822;}
+.sun-ray:hover .sun-name,.sun-ray:focus-visible .sun-name{text-decoration:underline;text-underline-offset:3px;}
+.sun-title{fill:#3A1604;font-weight:500;}
+.sun-sub{fill:#3A1604;}
+.sun-core:hover .sun-title,.sun-core:focus-visible .sun-title{text-decoration:underline;text-underline-offset:3px;}
+
+/* today's one thing, set quietly under the painting */
+.calm-page .calm{padding-top:6px;}
+.calm-page .cm-moon{display:none;}
+.calm-page .cm-card{background:none;border:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:8px 6px 4px;}
+.calm-page .cm-label{font-size:17px;letter-spacing:0;text-transform:none;font-style:italic;font-weight:400;color:#75604F;}
+.calm-page .cm-title{font-family:"EB Garamond",Georgia,serif;font-weight:400;font-size:clamp(23px,6.2vw,27px);color:#3A2822;margin:6px 0;}
+.calm-page .cm-sub,.calm-page .cm-next{color:#75604F;font-size:16px;}
+.calm-page .cm-dur{font-family:"EB Garamond",Georgia,serif;font-weight:400;font-size:16px;color:#75604F;border-color:#CFBFAA;background:transparent;margin:6px 0 14px;}
+.calm-page .cm-dur-btn:hover{background:#EFE6D8;}
+.calm-page .cm-begin,.calm-page .cm-done{font-family:"EB Garamond",Georgia,serif;font-weight:500;color:#2B1A16;background:linear-gradient(135deg,#E9C25A 0%,#C69A38 45%,#E3BC55 72%,#BC8F31 100%);box-shadow:none;}
+.calm-page .cm-begin{width:auto;min-width:150px;margin:0 auto;font-size:20px;padding:11px 44px;}
+.calm-page .cm-done{font-size:19px;}
+.calm-page .cm-ghost{font-family:"EB Garamond",Georgia,serif;font-size:17px;color:#3A2822;border-color:#CFBFAA;}
+.calm-page .cm-more button,.calm-page .cm-quiet button,.calm-page .cm-link{font-family:"EB Garamond",Georgia,serif;font-size:16px;color:#75604F;}
+.calm-page .cm-more button:hover,.calm-page .cm-quiet button:hover,.calm-page .cm-link:hover{color:#3A2822;}
+.calm-page .cm-quiet .cm-focusbtn{color:#3A2822;border-color:#CFBFAA;background:transparent;font-weight:400;}
+.calm-page .cm-quiet .cm-focusbtn:hover{background:#EFE6D8;}
+.calm-page .cm-begin:focus-visible,.calm-page .cm-done:focus-visible,.calm-page .cm-ghost:focus-visible,.calm-page .cm-more button:focus-visible,.calm-page .cm-quiet button:focus-visible,.calm-page .cm-link:focus-visible,.calm-page .cm-dur-btn:focus-visible,.calm-page .cm-after-box:focus-visible,.calm-page .cm-after-go:focus-visible{outline-color:#9C1F43;}
+.calm-page .cm-run .td-arc{stroke:#C69A38;}
+.calm-page .cm-run .td-ring-btn b{font-family:"EB Garamond",Georgia,serif;color:#3A2822;}
+.calm-page .cm-run .td-ring-btn small{color:#75604F;}
+.calm-page .cm-line{stroke:#CFBFAA;}
+.calm-page .cm-star.lit path{fill:#C69A38;filter:none;}
+.calm-page .cm-star.dim path{stroke:#B7A48F;}
+.calm-page .cm-alert{color:#9C1F43;}
+.calm-page .cm-park input{font-family:"EB Garamond",Georgia,serif;color:#3A2822;background:#FDF9F2;border-color:#CFBFAA;}
+.calm-page .cm-park input::placeholder{color:#75604F;}
+.calm-page .cm-park input:focus-visible{outline-color:#9C1F43;}
+.calm-page .cm-park button{font-family:"EB Garamond",Georgia,serif;color:#3A2822;border-color:#CFBFAA;}
+.calm-page .cm-park button:hover{background:#EFE6D8;}
+.calm-page .cm-after{background:#FDF3E1;border-color:#E8D3A8;}
+.calm-page .cm-after-l{font-family:"EB Garamond",Georgia,serif;color:#8A5A12;}
+.calm-page .cm-after-box::before{border-color:#B07A1E;color:#FDF9F2;}
+.calm-page .cm-after-row.is-done .cm-after-box::before{background:#B07A1E;}
+.calm-page .cm-after-t{color:#3A2822;font-size:17px;}
+.calm-page .cm-after-t small,.calm-page .cm-after-row.is-done .cm-after-t{color:#75604F;}
+.calm-page .cm-after-go{font-family:"EB Garamond",Georgia,serif;color:#3A2822;background:transparent;border-color:#CFBFAA;}
+.calm-page .toast{background:#3A2822;color:#F7F2EA;border-color:#3A2822;}
+.calm-page .toast button{color:#F6D58A;border-color:rgba(246,213,138,.6);}
+
+/* every dream, written out */
+#dreamlist{max-width:440px;margin:26px auto 0;padding:0 18px;text-align:left;}
+.dl-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid #E2D6C6;}
+.dl-head h2{margin:0;font:400 28px/1.2 "EB Garamond",Georgia,serif;}
+.dl-head span,.dl-sub{font-size:15px;font-style:italic;color:#75604F;}
+.dl-part{padding:14px 0 6px;border-bottom:1px solid #E2D6C6;scroll-margin-top:12px;}
+.dl-part header{display:flex;align-items:center;gap:12px;}
+.dl-mark{flex:none;width:24px;height:22px;background:var(--c);clip-path:polygon(0 12%,25% 3%,50% 0,75% 3%,100% 12%,50% 100%);}
+.dl-part h3{flex:1;margin:0;font:500 21px/1.25 "EB Garamond",Georgia,serif;outline:none;}
+.dl-part h3:focus-visible{text-decoration:underline;text-decoration-color:var(--c);text-underline-offset:5px;}
+.dl-steps{list-style:none;margin:6px 0 0;padding:0;}
+.dl-steps li{display:flex;align-items:flex-start;gap:2px;font-size:18px;line-height:1.35;}
+.dl-tick{flex:none;width:36px;height:40px;margin-left:-6px;border:0;background:none;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.dl-tick i{width:17px;height:17px;border-radius:50%;border:1.8px solid var(--c);box-sizing:border-box;display:flex;align-items:center;justify-content:center;}
+.dl-tick[aria-pressed="true"] i{background:var(--c);}
+.dl-tick[aria-pressed="true"] i::after{content:'';width:4px;height:8px;margin-top:-2px;border:solid #FDF9F2;border-width:0 1.8px 1.8px 0;transform:rotate(45deg);}
+.dl-tick:focus-visible{outline:2px solid #9C1F43;outline-offset:-4px;border-radius:50%;}
+.dl-text{flex:1;min-width:0;margin:8px 0;margin-left:6px;outline:none;border-radius:5px;overflow-wrap:anywhere;}
+.dl-text:focus{background:#EFE6D8;}
+.dl-actions{display:flex;flex-wrap:wrap;gap:4px 20px;padding-left:36px;}
+.dl-more{background:none;border:0;padding:9px 0;font:italic 400 16px "EB Garamond",Georgia,serif;color:#75604F;cursor:pointer;}
+a.dl-more{text-decoration:none;}
+.dl-more:hover{color:#3A2822;text-decoration:underline;text-underline-offset:4px;}
+.dl-more[aria-expanded="true"]{color:#3A2822;text-decoration:underline;text-underline-offset:4px;}
+.dl-more[data-back]{max-width:100%;text-align:start;overflow-wrap:anywhere;}
+.dl-btn{font:400 16px "EB Garamond",Georgia,serif;color:#3A2822;background:transparent;border:1px solid #CFBFAA;border-radius:24px;padding:8px 16px;min-height:40px;cursor:pointer;}
+.dl-btn:hover{background:#EFE6D8;}
+.dl-more:focus-visible,.dl-btn:focus-visible,.dl-x:focus-visible,.dl-links a:focus-visible{outline:2px solid #9C1F43;outline-offset:2px;}
+.dl-add{display:flex;gap:8px;padding:4px 0 8px;}
+#dreamlist input,#dreamlist textarea{width:100%;box-sizing:border-box;font:400 17px "EB Garamond",Georgia,serif;color:#3A2822;background:#FDF9F2;border:1px solid #CFBFAA;border-radius:12px;padding:9px 12px;outline:none;}
+#dreamlist input:focus,#dreamlist textarea:focus{border-color:#9C1F43;}
+#dreamlist input::placeholder{color:#75604F;}
+#dreamlist textarea{resize:vertical;line-height:1.45;}
+.dl-tool{padding:8px 0 10px;}
+.dl-kinds{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.dl-month{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:14px;text-align:center;}
+.dl-dow{font-size:13px;color:#75604F;}
+.dl-day{height:30px;display:flex;align-items:center;justify-content:center;border-radius:9px;}
+.dl-day.today{box-shadow:inset 0 0 0 1px #CFBFAA;}
+.dl-day.future{visibility:hidden;}
+.dl-dim{width:3px;height:3px;border-radius:50%;background:#CFBFAA;}
+.dl-star{font-style:normal;line-height:1;font-size:13px;color:#C4700F;}
+.dl-star.n2{font-size:18px;}
+.dl-star.n3{font-size:23px;}
+.dl-recent{list-style:none;margin:10px 0 0;padding:0;}
+.dl-recent li{display:flex;align-items:center;gap:10px;font-size:16px;}
+.dl-when{flex:none;width:58px;color:#75604F;}
+.dl-did{flex:1;min-width:0;overflow-wrap:anywhere;}
+.dl-did b{font-weight:500;}
+.dl-x{flex:none;width:40px;height:40px;border:0;border-radius:50%;background:none;color:#75604F;cursor:pointer;}
+.dl-x:hover{background:#EFE6D8;color:#3A2822;}
+.dl-links{display:flex;flex-wrap:wrap;gap:20px;margin:12px 0 0;}
+.dl-links a{color:#9C1F43;font-size:16px;}
+.dl-ep{padding:12px;border:1px solid #E2D6C6;border-radius:14px;margin-bottom:10px;}
+.dl-epn{font-size:17px;font-weight:500;color:#8E123C;}
+.dl-field{display:block;margin-top:8px;}
+.dl-field span{display:block;font-size:15px;color:#75604F;margin-bottom:3px;}
+.dl-saved{margin:10px 0 0;font-size:14px;font-style:italic;color:#75604F;min-height:16px;}
+.dl-saved.bad{color:#9C1F43;}
+
+/* the prayer and the Quran reading, below */
+.calm-page .home-banner{margin-top:26px;}
+.calm-page .dua-ar{color:#3A2822;}
+.calm-page .dua-src{color:#75604F;font-size:13px;}
+.calm-page .dua-box::before{color:#C69A38;}
+.calm-page .wird-btn{color:#3A2822;border-color:#CFBFAA;}
+.calm-page .wird-btn small{color:#75604F;}
+.calm-page .wird-btn:hover{background:#3A2822;color:#F7F2EA;}
+.calm-page .wird-btn:hover small{color:#F7F2EA;}
+.calm-page .wird-done{border-color:#CFBFAA;color:#3A2822;}
+.calm-page .wird-done:hover{border-color:#3A2822;color:#3A2822;}
+.calm-page .cm-cele,.calm-page .cm-star.newest path{animation:none;}
+.calm-page .cm-after-row.is-done .cm-after-t{text-decoration-color:#75604F;}
+.calm-page .cm-run .td-ring-track{stroke:#E2D6C6;}
+.calm-page .cm-run .td-arc{filter:none;}

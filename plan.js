@@ -30,8 +30,9 @@
     var d = day.date, isToday = d === today, cls = 'pl-row' + (isToday ? ' is-today' : '') + (day.off ? ' is-off' : '');
     return '<div class="' + cls + '"><div class="pl-day"><span>' + esc(dayName(d)) + '</span><b>' + dayNum(d) + '</b></div><div class="pl-main">' + bar(day, day.cap || cap) + (day.what ? '<div class="pl-what">' + esc(day.what) + '</div>' : '') + '</div></div>';
   }
-  function legend(){
-    return '<div class="pl-legend">' + KINDS.map(function(K){ return '<span><i class="pl-dot pl-' + K.cls + '"></i>' + esc(K.name) + '</span>'; }).join('') + '</div>';
+  function legend(P){
+    var used = KINDS.filter(function(K){ return !P || P.days.some(function(d){ return d[K.k]; }); });
+    return '<div class="pl-legend">' + used.map(function(K){ return '<span><i class="pl-dot pl-' + K.cls + '"></i>' + esc(K.name) + '</span>'; }).join('') + '</div>';
   }
   function dates(P, from, n){
     var out = [], todayISO = iso(new Date());
@@ -44,7 +45,7 @@
     if(!rows.length) return '';
     var next = (P.milestones || []).filter(function(m){ return m.date >= today; }).slice(0, 3);
     return '<div class="pl-card"><div class="pl-head"><span class="pl-title">The plan</span><a class="pl-more" href="plan.html">Whole plan</a></div>' +
-      rows.map(function(d){ return row(d, P.cap || 120, today); }).join('') + legend() +
+      rows.map(function(d){ return row(d, P.cap || 120, today); }).join('') + legend(P) +
       (next.length ? '<ul class="pl-next">' + next.map(function(m){ return '<li><b>' + esc(monthName(m.date) + ' ' + dayNum(m.date)) + '</b> ' + esc(m.label) + ' <small>' + when(daysTo(m.date)) + '</small></li>'; }).join('') + '</ul>' : '') + '</div>';
   }
   function fullPage(P){
@@ -57,24 +58,27 @@
     }).join('') + '</ol>';
     // weeks
     if(P.weeks && P.weeks.length){
+      var sum = function(w){ return KINDS.reduce(function(s, K){ return s + (w[K.k] || 0); }, 0); };
+      var max = Math.max.apply(null, P.weeks.map(sum));   // the fullest week fills the bar; lighter weeks are shorter
       html += '<h2 class="pl-h">Week by week, in hours</h2><div class="pl-weeks">' + P.weeks.map(function(w){
-        var tot = KINDS.reduce(function(s, K){ return s + (w[K.k] || 0); }, 0);
-        return '<div class="pl-wk"><div class="pl-wl">' + esc(w.label) + '</div><div class="pl-bar pl-bar-wk">' + KINDS.map(function(K){ var m = w[K.k] || 0; return m ? '<i class="pl-seg pl-' + K.cls + '" style="flex:' + m + ' 1 0" title="' + esc(K.name + ' ' + hm(m)) + '"><b>' + (m >= 180 ? esc(K.name) + ' ' + Math.round(m / 6) / 10 + 'h' : '') + '</b></i>' : ''; }).join('') + '</div><div class="pl-wt">' + Math.round(tot / 6) / 10 + 'h</div></div>';
+        var tot = sum(w);
+        return '<div class="pl-wk"><div class="pl-wl">' + esc(w.label) + '</div><div class="pl-bar pl-bar-wk">' + KINDS.map(function(K){ var m = w[K.k] || 0; return m ? '<i class="pl-seg pl-' + K.cls + '" style="flex:' + m + ' 1 0" title="' + esc(K.name + ' ' + hm(m)) + '"><b>' + (m >= 180 ? esc(K.name) + ' ' + Math.round(m / 6) / 10 + 'h' : '') + '</b></i>' : ''; }).join('') + (max > tot ? '<i class="pl-seg pl-rest" style="flex:' + (max - tot) + ' 1 0"></i>' : '') + '</div><div class="pl-wt">' + Math.round(tot / 6) / 10 + 'h</div></div>';
       }).join('') + '</div>';
     }
     // days
-    html += '<h2 class="pl-h">Day by day</h2>' + legend();
+    html += '<h2 class="pl-h">Day by day</h2>' + legend(P);
     var curMonth = '';
     P.days.forEach(function(d){
+      if(d.date < today) return;   // passed days, and months with nothing left, are not shown
       var m = monthName(d.date);
       if(m !== curMonth){ curMonth = m; html += '<h3 class="pl-mon">' + esc(parse(d.date).toLocaleDateString(undefined, {month: 'long', year: 'numeric'})) + '</h3>'; }
-      if(d.date >= today) html += row(d, cap, today);
+      html += row(d, cap, today);
     });
     if(P.notes && P.notes.length) html += '<h2 class="pl-h">Good to know</h2><ul class="pl-notes">' + P.notes.map(function(n){ return '<li>' + esc(n) + '</li>'; }).join('') + '</ul>';
     return html;
   }
   function load(cb){
-    try { fetch('plan.json?v=' + (window.PLAN_V || 1)).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.days) cb(j); }).catch(function(){}); } catch(e){}
+    try { fetch('plan.json?v=' + (window.PLAN_V || 2)).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){ if(j && j.days) cb(j); }).catch(function(){}); } catch(e){}
   }
   window.PlanChart = {homeCard: homeCard, fullPage: fullPage, load: load};
 })();

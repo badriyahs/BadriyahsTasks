@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — Today</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=84">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@400;500;600&family=Amiri:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap">
+<link rel="stylesheet" href="styles.css?v=86">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tasks">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="theme-color" content="#1a1342">
+<meta name="theme-color" content="#F7F2EA">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.85em%27 font-size=%2290%27 text-anchor=%27middle%27 x=%2750%27>%E2%9C%A7</text></svg>">
 </head>
 <body class="calm-page">
@@ -30,7 +30,6 @@
   <a class="tab" href="calls.html">Calls</a>
   <a class="tab" href="jobs.html">Jobs</a>
   <a class="tab" href="health.html">Health</a>
-  <a class="tab" href="gre.html">GRE</a>
   <a class="tab" href="manifest.html">Manifest</a>
 </div>
 
@@ -46,9 +45,11 @@
       </div>
       </div>
 
+      <section id="dreams" aria-label="My dreams"></section>
+
       <section id="calm" class="calm" aria-label="What you get to do next"></section>
 
-      <section id="planchart" aria-label="The plan"></section>
+      <section id="dreamlist" aria-label="My dreams, step by step"></section>
 
       <div class="home-banner">
         <div class="dua-box" id="duabox"></div>
@@ -116,7 +117,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="app.js?v=26"></script>
-<script src="plan.js?v=1"></script>
+<script src="dreams.js?v=5"></script>
 <script>
 (function(){
   "use strict";
@@ -214,16 +215,9 @@
       '<button type="button" class="todo-check" data-act="done" aria-label="Mark done"></button>' +
       '<a class="todo-text" href="tasks.html#task-' + t.id + '">' + L.escapeHTML(t.description || 'Untitled') + '</a>' +
       '<span class="todo-est">~' + L.escapeHTML(span(L.estMin(t))) + '</span>' +
-      '<span class="todo-due">' + L.escapeHTML(chip) + '</span></div>';
+      '<span class="todo-due">' + L.escapeHTML(chip).replace('was due ', 'was due<br>') + '</span></div>';   // two short lines leave the title room on a phone
   }
   function tickDays(){ try { return JSON.parse(localStorage.getItem('badriyah-ticks') || '[]'); } catch(e){ return []; } }
-  function streakCount(){
-    var days = tickDays(), set = {}; days.forEach(function(d){ set[d] = true; });
-    var d = L.todayISO(), n = 0;
-    if(!set[d]) d = addDaysISO(d, -1);              // today doesn't break a streak until it's over
-    while(set[d]){ n++; d = addDaysISO(d, -1); }
-    return n;
-  }
   function recordTick(){
     var T = L.todayISO(), days = tickDays();
     if(days.indexOf(T) === -1){ days.push(T); try { localStorage.setItem('badriyah-ticks', JSON.stringify(days.slice(-60))); } catch(e){} }
@@ -231,13 +225,11 @@
   function renderSummary(dueToday, doneToday){
     var el = document.getElementById('todaysum');
     var total = dueToday, left = total - doneToday, pct = total ? doneToday / total : 0, C = 163.4;
-    var streak = streakCount();
     var line = !total ? 'Nothing due today. A calm day.' : left === 0 ? 'Clean sheet today. Well done.' : doneToday + ' of ' + total + ' done today. ' + left + ' to go, then you’re free.';
     el.innerHTML = '<div class="ring"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="7"/>' +
       '<circle cx="32" cy="32" r="26" fill="none" stroke="var(--good,#2E7D4F)" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + C + '" stroke-dashoffset="' + (C * (1 - pct)).toFixed(1) + '"/></svg>' +
       '<b>' + (total ? doneToday + '/' + total : '✓') + '</b></div>' +
-      '<div class="sum-text"><div class="sum-line">' + L.escapeHTML(line) + '</div>' +
-      (streak >= 2 ? '<div class="sum-sub">' + streak + '-day streak of ticking things off</div>' : '') + '</div>';
+      '<div class="sum-text"><div class="sum-line">' + L.escapeHTML(line) + '</div></div>';
   }
   function renderTodos(){
     var T = L.todayISO(), weekEnd = addDaysISO(T, 7);
@@ -253,16 +245,13 @@
     if(todayAll.length) html += '<div class="todo-group">Today</div>' + todayAll.slice(0, cap + 4).map(function(t){ return todoRow(t, 'Today', t.struck ? 'is-done' : ''); }).join('');
     if(soon.length) html += '<div class="todo-group">Next 7 days</div>' + soon.slice(0, cap).map(function(t){
       var d = diffDays(T, t.due); return todoRow(t, d === 1 ? 'Tomorrow' : prettyDate(t.due).replace(/,.*/, '') + ' ' + new Date(t.due + 'T00:00:00').getDate()); }).join('');
-    if(late.length) html += '<details class="todo-late"><summary>' + late.length + ' late, one at a time</summary>' + late.slice(0, todoAll ? 99 : 8).map(function(t){
-      var d = diffDays(t.due, T); return todoRow(t, d + 'd late', 'is-late'); }).join('') + '</details>';
+    if(late.length) html += '<details class="todo-late"><summary>Earlier, one at a time</summary>' + late.slice(0, todoAll ? 99 : 8).map(function(t){
+      return todoRow(t, 'was due ' + new Date(t.due + 'T00:00:00').toLocaleDateString(undefined, {month:'short', day:'numeric'}), 'is-late'); }).join('') + '</details>';
     if(!html) html = '<div class="panel-empty">Nothing due. Add something above, or enjoy the quiet.</div>';
     var hidden = Math.max(0, soon.length - cap);
     if(hidden > 0 || todoAll) html += '<button type="button" class="q-more" data-act="todomore">' + (todoAll ? 'Show fewer' : 'Show ' + hidden + ' more') + '</button>';
     document.getElementById('todolist').innerHTML = html;
-    var parts = [];
-    if(today.length) parts.push(today.length + ' left today');
-    if(late.length) parts.push(late.length + ' late');
-    document.getElementById('todocount').textContent = parts.join(' · ');
+    document.getElementById('todocount').textContent = today.length ? today.length + ' left today' : '';
     renderSummary(todayAll.length, todayAll.length - today.length);
   }
   document.getElementById('todolist').addEventListener('click', function(e){
@@ -617,14 +606,12 @@
     var text = '', actions = '', extra = '';
     var skip = '<button type="button" class="q-skip" data-a="skip">Not now</button>';
     if(q.type === 'overdue'){
-      var n = diffDays(q.t.due, L.todayISO());
-      text = 'Is ' + name(q.t) + ' done, waiting on someone, or still yours? <span class="q-meta">' + n + (n === 1 ? ' day' : ' days') + ' overdue</span>';
+      text = 'Is ' + name(q.t) + ' done, waiting on someone, or still yours? <span class="q-meta">was due ' + prettyDate(q.t.due) + '</span>';
       actions = '<button type="button" data-a="done">Done</button><button type="button" data-a="wait">Waiting on someone</button>' +
         '<button type="button" data-a="move">Move the date</button><button type="button" data-a="step">First step</button>' +
         '<button type="button" data-a="drop">Drop it</button>' + skip;
     } else if(q.type === 'waiting'){
-      var w = diffDays(q.t.due, L.todayISO());
-      text = 'You’re waiting on <b>' + L.escapeHTML(q.t.dependency) + '</b> for ' + name(q.t) + '. Have you followed up? <span class="q-meta">' + w + ' days past its date</span>';
+      text = 'You’re waiting on <b>' + L.escapeHTML(q.t.dependency) + '</b> for ' + name(q.t) + '. Have you followed up? <span class="q-meta">was due ' + prettyDate(q.t.due) + '</span>';
       actions = '<button type="button" data-a="done">It’s sorted</button><button type="button" data-a="followed">I followed up</button>' +
         '<button type="button" data-a="nudge">Nudge me tomorrow</button>' + skip;
     } else if(q.type === 'step'){
@@ -686,6 +673,12 @@
   var assistBody = document.getElementById('assistbody');
   var assistCount = document.getElementById('assistcount');
   var assistEl = document.getElementById('assist');
+  var Q_KEY = 'badriyah-question-drafts';
+  function qDrafts(){ try { return JSON.parse(localStorage.getItem(Q_KEY) || '{}') || {}; } catch(e){ return {}; } }
+  function qDraftKey(f){ return f.dataset.a === 'saveprompt' ? 'saveprompt' : f.closest('.q').dataset.qid + '|' + f.dataset.a; }
+  function qKeep(f, v){ var d = qDrafts(); if(v) d[qDraftKey(f)] = v; else delete d[qDraftKey(f)]; try { localStorage.setItem(Q_KEY, JSON.stringify(d)); } catch(e){} }
+  assistBody.addEventListener('input', function(e){ var f = e.target.closest('.q-form'); if(f) qKeep(f, e.target.value); });
+  assistBody.addEventListener('mousedown', function(e){ if(e.target.closest('.q-form button')) e.preventDefault(); });   // Save must not blur the box first
   function renderAssistant(){
     var ae = document.activeElement;
     if(ae && assistBody.contains(ae) && ae.tagName === 'INPUT') return; // don't wipe what she's typing
@@ -700,6 +693,7 @@
     var shown = showAll ? qs : qs.slice(0, 3);
     assistBody.innerHTML = shown.map(questionHTML).join('') +
       (qs.length > 3 ? '<button type="button" class="q-more" data-a="more">' + (showAll ? 'Show fewer' : 'Show ' + (qs.length - 3) + ' more') + '</button>' : '');
+    var d = qDrafts(); [].forEach.call(assistBody.querySelectorAll('.q-form'), function(f){ var v = d[qDraftKey(f)]; if(v) f.querySelector('input').value = v; });
   }
 
   function applyDue(id, iso, label){
@@ -756,6 +750,7 @@
     var val = form.querySelector('input').value.trim();
     if(!val) return;
     var id = card.dataset.id;
+    qKeep(form, '');
     if(form.dataset.a === 'saveprompt'){
       var pdue = card.dataset.due === '1' ? addDaysISO(L.todayISO(), 1) : '';
       L.addTask({description: val, due: pdue}).then(function(r){
@@ -849,7 +844,7 @@
 
     // focus strip
     var f = [];
-    f.push('<a class="focus-item" href="gre.html"><span class="focus-k">GRE</span><span class="focus-v">' +
+    if(greNext) f.push('<a class="focus-item" href="gre.html"><span class="focus-k">GRE</span><span class="focus-v">' +
       (greDays === null ? '—' : (greDays < 0 ? 'Done' : greDays + '<small> days to test</small>')) + '</span><span class="focus-c">' +
       (greNext ? L.escapeHTML('Next: ' + clip(greNext.title, 52)) : (gre.ok ? 'All chapters done' : 'Open the tracker')) + '</span></a>');
     f.push('<a class="focus-item" href="jobs.html"><span class="focus-k">Job search</span><span class="focus-v">' +
@@ -1241,7 +1236,7 @@
   function isGentle(){ try { return localStorage.getItem(GENTLE_KEY) === L.todayISO(); } catch(e){ return false; } }
   function celebrate(){ calmCele = Date.now() + 4500; setTimeout(function(){ renderToday(); }, 4600); }
   function showEverything(on){
-    var parts = [document.getElementById('calm'), document.getElementById('planchart'), document.querySelector('.home-banner'), document.getElementById('calmfoot')];
+    var parts = [document.getElementById('dreams'), document.getElementById('calm'), document.getElementById('dreamlist'), document.querySelector('.home-banner'), document.getElementById('calmfoot')];
     var all = document.getElementById('all'); if(all) all.hidden = !on;
     parts.forEach(function(x){ if(x) x.hidden = on; });
     document.body.classList.toggle('calm-page', !on);
@@ -1280,13 +1275,20 @@
     return '<button type="button" class="cm-done" data-act="step" data-key="' + e(it.key) + '" data-i="' + si.cur + '" data-title="' + e(title) + '" data-itemtitle="' + e(it.title) + '" data-single="' + (si.steps.length === 1 ? '1' : '0') + '" data-nsteps="' + si.steps.length + '" data-cele="1">' + tick + '</button>';
   }
   // redraws the card only when it really changed, and keeps keyboard focus on the same button
-  var calmHTML = null, calmLast = '';
+  var calmHTML = null, calmLast = '', calmFor = 0;
+  var PARK_KEY = 'badriyah-park-draft';
+  var PARK = '<form class="cm-park" autocomplete="off"><input type="text" maxlength="140" enterkeyhint="done" placeholder="Park a thought" aria-label="Park a thought for later"><button type="submit">Park</button></form>';
+  function parkDraft(){ try { return localStorage.getItem(PARK_KEY) || ''; } catch(e){ return ''; } }
   function renderCalm(P, D, left, hr, nowMin, st, T){
     var el = document.getElementById('calm'); if(!el) return;
     calmHTML = null; renderCalmInner(P, D, left, hr, nowMin, st, T);
+    var pk = el.querySelector('.cm-park input'), typing = !!pk && pk === document.activeElement, run = timer && !timer.over ? timer.start : 0;
+    if(calmHTML !== null && (typing || parkDraft()) && calmHTML.indexOf('cm-park') < 0) calmHTML += PARK;   // the box stays while it holds words or the cursor
     if(calmHTML === null || calmHTML === calmLast) return;
+    if(typing && run && run === calmFor) return;   // she is typing a thought: leave the card be
     var ae = document.activeElement, ref = ae && el.contains(ae) && ae.dataset && ae.dataset.act ? {act: ae.dataset.act, key: ae.dataset.key || ''} : null;
-    calmLast = calmHTML; el.innerHTML = calmHTML;
+    calmLast = calmHTML; calmFor = run; el.innerHTML = calmHTML;
+    var ni = el.querySelector('.cm-park input'); if(ni){ ni.value = parkDraft(); if(typing) try { ni.focus({preventScroll: true}); } catch(err){} }
     if(ref){
       var again = [].slice.call(el.querySelectorAll('[data-act]')).filter(function(x){ return x.dataset.act === ref.act && (x.dataset.key || '') === ref.key; })[0] || el.querySelector('.cm-begin, .cm-done');
       if(again) try { again.focus({preventScroll: true}); } catch(err){}
@@ -1300,6 +1302,7 @@
   }
   function renderCalmInner(P, D, left, hr, nowMin, st, T){
     var e = L.escapeHTML, gentle = isGentle(), wins = winsToday().length;
+    function closing(x){ if(!x || x.kind !== 'call' || !x.call) return ''; var d = L.daysUntil(x.call.deadline); return closesWord(x.call) + (d <= 0 ? ' today' : d === 1 ? ' tomorrow' : ' in ' + d + ' days'); }
     // finished checklists and today-only things don't take the card; the next real thing does
     var cand = P.plan.filter(function(x){ return !(x.min <= 0 && (x.kind === 'gre' || x.kind === 'move')); });
     if(gentle) cand = cand.slice().sort(function(a, b){ return ((b.key === st.pin) - (a.key === st.pin)) || ((a.min || 99) - (b.min || 99)); });
@@ -1328,25 +1331,25 @@
     }
     if(timer){
       var tk = timer.key, title = '', sub = '', actions = '';
-      if(tk === 'focus'){ title = 'Quiet focus'; actions = '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>'; }
+      if(tk === 'focus'){ title = 'Quiet focus'; actions = '<button type="button" class="cm-ghost" data-act="tstop">' + (timer.over ? 'Okay' : 'Stop') + '</button>'; }
       else if(tk === 'break'){ title = 'Rest a little'; actions = '<button type="button" class="cm-ghost" data-act="tstop">Skip</button>'; }
       else if(tk.indexOf('after:') === 0){
         var ao = ((dayplan[T] && dayplan[T].after) || [])[+tk.split('|')[1]];
         title = ao ? ao.title : 'Your star';
-        actions = (ao ? '<button type="button" class="cm-done" data-act="afterdone" data-key="' + e(tk) + '" data-title="' + e(ao.title) + '" data-cele="1">Done<span aria-hidden="true"> ✓</span></button>' : '') + (timer.over ? '<button type="button" class="cm-ghost" data-act="tstart" data-key="' + e(tk) + '" data-min="5">5 more</button>' : '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>');
+        actions = (ao ? '<button type="button" class="cm-done" data-act="afterdone" data-key="' + e(tk) + '" data-title="' + e(ao.title) + '" data-cele="1">Done<span aria-hidden="true"> ✓</span></button>' : '') + (timer.over ? '<button type="button" class="cm-ghost" data-act="tstart" data-key="' + e(tk) + '" data-min="5">5 more</button><button type="button" class="cm-ghost" data-act="tstop">Okay</button>' : '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>');
       }
       else {
         var base = tk.split('|')[0], idx = +tk.split('|')[1], item = P.plan.filter(function(x){ return x.key === base; })[0];
         if(item){
           var inf = stepInfo(item, st), step = inf.steps[idx] || inf.steps[0], multi = item.kit && inf.steps.length > 1;
           title = multi ? step.t : item.title; sub = multi ? item.title : '';
-          actions = doneButton(item, {steps: inf.steps, cur: idx}, title) + (timer.over ? '<button type="button" class="cm-ghost" data-act="tstart" data-key="' + e(tk) + '" data-min="5">5 more</button>' : '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>');
+          actions = doneButton(item, {steps: inf.steps, cur: idx}, title) + (timer.over ? '<button type="button" class="cm-ghost" data-act="tstart" data-key="' + e(tk) + '" data-min="5">5 more</button><button type="button" class="cm-ghost" data-act="tstop">Okay</button>' : '<button type="button" class="cm-ghost" data-act="tstop">Stop</button>');
         } else { title = 'Your star'; actions = '<button type="button" class="cm-ghost" data-act="tstop">' + (timer.over ? 'Okay' : 'Stop') + '</button>'; }
       }
       var rtotal = timer.mins * 60, rleft = Math.max(0, Math.ceil((timer.end - Date.now()) / 1000)), roff = timer.over ? 0 : RING_C * (1 - rleft / rtotal);
       var ring = '<div class="td-ring run' + (tk === 'break' ? ' brk' : '') + (timer.over ? ' over' : '') + '"><svg viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="cmg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C9B8FF"/><stop offset="1" stop-color="#FFB6D2"/></linearGradient></defs><circle class="td-ring-track" cx="60" cy="60" r="52"/><circle class="td-arc" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" stroke="url(#cmg)" stroke-dasharray="' + RING_C.toFixed(1) + '" stroke-dashoffset="' + roff.toFixed(1) + '"/></svg><div class="td-ring-btn" style="pointer-events:none">' + (timer.over ? '<b aria-hidden="true">✓</b><small>time</small>' : '<b class="td-timer">' + mmss(rleft) + '</b>') + '</div></div>';
       body = '<div class="cm-card cm-run"><div class="cm-label">' + (tk === 'break' ? 'Take a breath' : timer.over ? 'That’s your time' : 'You’re on it') + '</div><h2 class="cm-title">' + e(clip(title, 70)) + '</h2>' + (sub ? '<div class="cm-sub">' + e(clip(sub, 60)) + '</div>' : '') + ring + '<div class="cm-actions">' + actions + '</div>' +
-        (tk !== 'break' && !timer.over ? '<form class="cm-park" autocomplete="off"><input type="text" maxlength="140" enterkeyhint="done" placeholder="Park a thought" aria-label="Park a thought for later"><button type="submit">Park</button></form>' : '') + '</div>';
+        (tk !== 'break' && !timer.over ? PARK : '') + '</div>';
       calmHTML = moon + body + constellation(wins, ahead, false); return;
     }
     if(left <= 0 || hr < 5){
@@ -1354,7 +1357,8 @@
       var tom = tomIn || P.later.filter(function(x){ return x.kind !== 'move'; })[0];
       var nightGo = '';
       if(tomIn){ var tsi = stepInfo(tomIn, st); if(tsi.cur >= 0) nightGo = '<div class="cm-actions"><button type="button" class="cm-ghost" data-act="cbegin" data-key="' + e(tomIn.key + '|' + tsi.cur) + '" data-min="' + timerLen() + '" data-url="' + e(beginUrl(tomIn, tsi.steps[tsi.cur])) + '">Start it now</button></div>'; }
-      body = '<div class="cm-card"><div class="cm-label">' + (tom ? 'Tomorrow you get to' : 'Rest well') + '</div><h2 class="cm-title">' + (tom ? e(clip(tom.title, 60)) : 'Goodnight, Badriyah <span aria-hidden="true">✦</span>') + '</h2>' + (tom ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(Math.min(25, tom.min || 25)) + '</div>' : '') + nightGo + '</div>';
+      var lastDay = !!(tom && tom.kind === 'call' && tom.call.deadline <= T);
+      body = '<div class="cm-card"><div class="cm-label">' + (lastDay ? 'Still open today' : tom ? 'Tomorrow you get to' : 'Rest well') + '</div><h2 class="cm-title">' + (tom ? e(clip(tom.title, 60)) : 'Goodnight, Badriyah <span aria-hidden="true">✦</span>') + '</h2>' + (closing(tom) ? '<div class="cm-sub">' + closing(tom) + '</div>' : '') + (tom ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(Math.min(25, tom.min || 25)) + '</div>' : '') + nightGo + '</div>';
       calmHTML = moon + lead + body + constellation(wins, 0, false) + extra + '<div class="cm-quiet"><button type="button" class="cm-focusbtn" data-act="fstart" data-min="' + timerLen() + '"><span aria-hidden="true">▶</span> ' + timerLen() + '-minute timer</button></div>'; return;
     }
     if(!it){
@@ -1365,7 +1369,7 @@
     if(si.cur === -1){
       var fin = it.kind === 'task' ? '<button type="button" class="cm-begin" data-act="taskdone" data-id="' + e(it.id) + '" data-key="' + e(it.key) + '" data-title="' + e(it.title) + '" data-cele="1">Mark it done</button>'
         : it.kind === 'call' ? '<button type="button" class="cm-begin" data-act="callsubmit" data-id="' + e(it.id) + '" data-cele="1">Mark submitted</button>' : '';
-      body = '<div class="cm-card"><div class="cm-label">All done here</div><h2 class="cm-title">' + e(clip(it.title, 60)) + ' <span aria-hidden="true">✦</span></h2>' + fin + '<div class="cm-more"><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
+      body = '<div class="cm-card"><div class="cm-label">All done here</div><h2 class="cm-title">' + e(clip(it.title, 60)) + ' <span aria-hidden="true">✦</span></h2>' + (closing(it) ? '<div class="cm-sub">' + closing(it) + '</div>' : '') + fin + '<div class="cm-more"><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
       calmHTML = moon + lead + body + constellation(wins, ahead, false) + extra + quiet; return;
     }
     var stp = si.steps[si.cur], multi2 = it.kit && si.steps.length > 1;
@@ -1375,8 +1379,8 @@
     if(!multi2 && (+stp.min || 0) > dur) sb = 'the first part of about ' + span(+stp.min);
     var url = beginUrl(it, stp);
     var after = nb && nb.s - nowMin <= 150 ? 'Then · ' + clip(nb.title, 36) + ' · ' + clockMin(nb.s) : nextIt ? 'Next · ' + clip(nextIt.title, 38) + ' · ' + span(Math.min(25, nextIt.min || 25)) : '';
-    body = '<div class="cm-card"><div class="cm-label">' + (gentle ? 'A small one' : 'You get to') + '</div><h2 class="cm-title">' + e(clip(ttl, 80)) + '</h2>' + (sb ? '<div class="cm-sub">' + e(sb) + '</div>' : '') +
-      '<button type="button" class="cm-dur cm-dur-btn" data-act="timerlen" aria-label="Timer length: ' + dur + ' minutes. Tap to change">' + '<span aria-hidden="true">☾</span> ' + span(dur) + ' <span class="cm-dur-ch" aria-hidden="true">↻</span></button>' +
+    body = '<div class="cm-card"><div class="cm-label">' + (gentle ? 'A small one' : 'You get to') + '</div><h2 class="cm-title">' + e(clip(ttl, 80)) + '</h2>' + (sb ? '<div class="cm-sub">' + e(sb) + '</div>' : '') + (closing(it) ? '<div class="cm-sub">' + closing(it) + '</div>' : '') +
+      (gentle ? '<div class="cm-dur"><span aria-hidden="true">☾</span> ' + span(dur) + '</div>' : '<button type="button" class="cm-dur cm-dur-btn" data-act="timerlen" aria-label="Timer length: ' + dur + ' minutes. Tap to change">' + '<span aria-hidden="true">☾</span> ' + span(dur) + ' <span class="cm-dur-ch" aria-hidden="true">↻</span></button>') +
       '<button type="button" class="cm-begin" data-act="cbegin" data-key="' + e(it.key + '|' + si.cur) + '" data-min="' + dur + '" data-url="' + e(url) + '">Begin</button>' +
       (after ? '<div class="cm-next">' + e(after) + '</div>' : '') +
       '<div class="cm-more"><button type="button" data-act="pick">Another</button><button type="button" data-act="skip" data-key="' + e(it.key) + '">Not now</button></div></div>';
@@ -1432,12 +1436,7 @@
     g.textContent = h >= 5 && h < 12 ? 'صباح الخير بدرية' : h >= 12 && h < 21 ? 'مساء الخير بدرية' : 'تصبحين على خير يا بدرية';
   }
   renderGreeting(); setInterval(renderGreeting, 60000);
-  (function(){   // the plan card on the home page
-    var planData = null;
-    function drawPlan(){ var el = document.getElementById('planchart'); if(el && planData && window.PlanChart) el.innerHTML = PlanChart.homeCard(planData); }
-    if(window.PlanChart) PlanChart.load(function(P){ planData = P; drawPlan(); });
-    setInterval(drawPlan, 600000);
-  })();
+  if(window.DreamSun) DreamSun.mount(document.getElementById('dreams'), document.getElementById('dreamlist'));
 
   /* ---- ورد: the Quran in two-page portions (604 pages -> 302 portions), read on quran.com; the place is kept ---- */
   var wirdPage = 1, WIRD_KEY = 'badriyah-wird-v1';
@@ -1624,7 +1623,7 @@
     } else if(act === 'gentle'){
       try { if(isGentle()) localStorage.removeItem(GENTLE_KEY); else localStorage.setItem(GENTLE_KEY, L.todayISO()); } catch(e){}
       renderToday();
-    } else if(act === 'everything'){ if(b.dataset.tab) setTab(b.dataset.tab); showEverything(true);
+    } else if(act === 'everything'){ if(b.dataset.tab) setTab(b.dataset.tab); showEverything(true); if(b.dataset.tab){ var wk = document.querySelector('.td-week'); if(wk){ wk.open = true; wk.scrollIntoView({block: 'start'}); } }
     } else if(act === 'back'){ showEverything(false);
     } else if(act === 'est'){
       var etask = L.state.tasks.filter(function(x){ return x.id === b.dataset.id; })[0];
@@ -1685,15 +1684,19 @@
   document.getElementById('todaybody').addEventListener('click', todayClick);
   (function(){   // "park it": a stray thought goes to Tasks (category Parked) and you stay in the timer
     var ce = document.getElementById('calm'); if(!ce) return;
+    ce.addEventListener('input', function(ev){ if(!ev.target.closest('.cm-park')) return; try { localStorage.setItem(PARK_KEY, ev.target.value); } catch(e){} });
     ce.addEventListener('submit', function(ev){
       var f = ev.target.closest && ev.target.closest('.cm-park'); if(!f) return;
       ev.preventDefault();
       var inp = f.querySelector('input'), txt = inp.value.trim(); if(!txt) return;
       inp.disabled = true;
       L.addTask({description: txt, category: 'Parked'}).then(function(){
-        inp.value = ''; inp.disabled = false; toast('Parked. Back to it.', true);
-        try { inp.focus({preventScroll: true}); } catch(err){}
-      }).catch(function(err){ console.error(err); inp.disabled = false; toast('Couldn’t save that. Try again.'); });
+        if(parkDraft().trim() === txt) try { localStorage.removeItem(PARK_KEY); } catch(e){}
+        var cur = ce.querySelector('.cm-park input');   // the card may have been redrawn while saving
+        if(cur){ if(cur.value.trim() === txt) cur.value = ''; cur.disabled = false; }
+        toast('Parked. Back to it.', true);
+        if(!timer || timer.over) renderToday(); else if(cur) try { cur.focus({preventScroll: true}); } catch(err){}
+      }).catch(function(err){ console.error(err); var cur = ce.querySelector('.cm-park input'); if(cur) cur.disabled = false; toast('Couldn’t save that. Try again.'); });
     });
   })();
   (function(){ var ce = document.getElementById('calm'); if(ce) ce.addEventListener('click', todayClick); var ca = document.getElementById('calmfoot'); if(ca) ca.addEventListener('click', todayClick); var al = document.getElementById('all'); if(al) al.addEventListener('click', function(e){ if(e.target.closest('[data-act="back"]')) todayClick(e); }); })();
@@ -1854,6 +1857,6 @@
 })();
 </script>
 <script>(function(){var a=document.querySelector('.tab.active');if(a&&a.parentNode){a.parentNode.scrollLeft=Math.max(0,a.offsetLeft-16);}})();</script>
-<script src="nav.js?v=2"></script>
+<script src="nav.js?v=3"></script>
 </body>
 </html>

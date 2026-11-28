@@ -6,7 +6,7 @@
 <script src="lock.js?v=2"></script>
 <title>Badriyah's Tasks — GRE</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap">
-<link rel="stylesheet" href="styles.css?v=84">
+<link rel="stylesheet" href="styles.css?v=86">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -167,6 +167,7 @@
   .gre .controls{gap:10px;}
   .gre .controls label{flex:1 1 140px;}
   .gre .controls input{font-size:16px;flex:1;min-width:0;}
+  .gre #bufferdays{flex:none;width:64px;}
   .gre .controls .spacer{display:none;}
   .gre .segbtn{width:100%;}
   .gre .segbtn button{flex:1;padding:9px 4px;font-size:13px;}
@@ -479,7 +480,7 @@
       Object.keys(patches).forEach(function(id){ b.set(col.doc(id), patches[id], {merge:true}); });
       if(settingsPatch) b.set(col.doc('_settings'), settingsPatch, {merge:true});
       b.commit().catch(function(e){ console.error(e); });
-    } else {
+    } else if(state.mode === 'local'){   // while still connecting there is nothing loaded: don't save that over anything
       lsSave();
     }
     render();
@@ -526,6 +527,8 @@
 
     var first = true;
     col.onSnapshot(function(snap){
+      // An empty answer from the cache only means the database hasn't been reached: it is not a new tracker.
+      if(snap.metadata && snap.metadata.fromCache && snap.empty) return;
       var items = {}, settings = JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), hasSettings = false;
       snap.docs.forEach(function(d){
         if(d.id === '_settings'){ hasSettings = true; Object.assign(settings, d.data()); }
@@ -597,7 +600,7 @@
     var all = list(), today = todayISO(), s = state.settings;
     var dot = document.getElementById('syncdot'), st = document.getElementById('syncstate');
     dot.className = 'dot' + (state.mode === 'connecting' ? ' off' : '');
-    st.textContent = state.mode === 'cloud' ? 'Live — anyone with this link can edit' : state.mode === 'local' ? 'Saved in this browser only' : 'Connecting…';
+    st.textContent = state.mode === 'cloud' ? 'Live — anyone with this link can edit' : state.mode === 'local' ? 'Saved in this browser only' : state.offline ? 'Offline. Reload when connected.' : 'Connecting…';
     if(!all.length) return;
 
     var ae = document.activeElement;
@@ -910,7 +913,8 @@
 
   if(window.firebase){
     startCloud();
-    setTimeout(function(){ if(state.mode === 'connecting') startLocal('offline'); }, 8000);
+    // Still no answer: say so and wait. Nothing is made up or saved until the real tracker arrives.
+    setTimeout(function(){ if(state.mode === 'connecting'){ state.offline = true; render(); } }, 8000);
   } else {
     startLocal('');
   }

@@ -1,14 +1,8 @@
 {
  "updated": "2026-11-03",
  "cap": 120,
- "lead": "Two hours on weekdays, three on Fridays and Saturdays. GRE comes first; Harvard grows after Nov 26.",
+ "lead": "Talks, calls and everyday things. Light on purpose.",
  "milestones": [
-  {
-   "date": "2026-11-05",
-   "kind": "events",
-   "label": "Harvard DDes open house (online, optional)",
-   "note": "12 pm Boston = 8 pm in Kuwait"
-  },
   {
    "date": "2026-11-10",
    "kind": "events",
@@ -20,51 +14,10 @@
    "label": "Majlis talk"
   },
   {
-   "date": "2026-11-21",
-   "kind": "gre",
-   "label": "GRE practice test",
-   "note": "The one long day"
-  },
-  {
-   "date": "2026-11-26",
-   "kind": "gre",
-   "label": "GRE test day"
-  },
-  {
-   "date": "2026-12-06",
-   "kind": "gre",
-   "label": "GRE scores arrive",
-   "note": "About 8 to 10 days after the test"
-  },
-  {
-   "date": "2026-12-12",
-   "kind": "harvard",
-   "label": "TOEFL test day, if you need it",
-   "note": "Scores take 8 to 10 business days. Dec 20 is the last safe day"
-  },
-  {
    "date": "2026-12-15",
    "kind": "events",
    "label": "KFCRIS reply expected",
    "note": "About your Bedouin Arab Pioneers of Desert Computation proposal"
-  },
-  {
-   "date": "2026-12-17",
-   "kind": "gre",
-   "label": "Retake, if you want one",
-   "note": "Seats Dec 17, 21, 22. Dec 24 is the backup"
-  },
-  {
-   "date": "2027-01-02",
-   "kind": "harvard",
-   "label": "Submit the Harvard application",
-   "note": "Your target, three days early"
-  },
-  {
-   "date": "2027-01-05",
-   "kind": "harvard",
-   "label": "Harvard deadline",
-   "note": "5 pm Boston = 1 am Jan 6 in Kuwait"
   },
   {
    "date": "2027-01-07",
@@ -100,56 +53,23 @@
  ],
  "weeks": [
   {
-   "label": "Nov 3 to Nov 8",
-   "gre": 455,
-   "harvard": 50,
-   "events": 170,
-   "other": 140
-  },
-  {
-   "label": "Nov 9 to Nov 15",
-   "gre": 425,
-   "harvard": 120,
-   "events": 75,
-   "other": 60
-  },
-  {
-   "label": "Nov 16 to Nov 22",
-   "gre": 590,
-   "harvard": 220,
-   "events": 60
-  },
-  {
    "label": "Nov 23 to Nov 29",
-   "gre": 290,
-   "harvard": 210,
-   "events": 90
+   "events": 135
   },
   {
    "label": "Nov 30 to Dec 6",
-   "harvard": 745,
    "events": 45
   },
   {
    "label": "Dec 7 to Dec 13",
-   "harvard": 830,
    "other": 10
   },
   {
    "label": "Dec 14 to Dec 20",
-   "harvard": 80,
    "events": 10
   },
   {
-   "label": "Dec 21 to Dec 27 (rest, retake seats)"
-  },
-  {
-   "label": "Dec 28 to Jan 3",
-   "harvard": 375
-  },
-  {
    "label": "Jan 4 to Jan 10",
-   "harvard": 60,
    "events": 200
   },
   {
@@ -168,47 +88,44 @@
  "days": [
   {
    "date": "2026-11-03",
-   "gre": 85,
-   "harvard": 35,
-   "what": "GRE study · TOEFL check · +1 more"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-04",
-   "gre": 105,
    "other": 10,
-   "what": "GRE study · Reply to Hamida"
+   "what": "Reply to Hamida"
   },
   {
    "date": "2026-11-05",
-   "events": 120,
-   "what": "Harvard open house (optional)"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-06",
    "cap": 180,
-   "gre": 105,
-   "other": 60,
-   "what": "GRE study · Reply about the benches · +2 more"
+   "other": 165,
+   "what": "Email Sahil · Programme fixes to Sahil · +6 more"
   },
   {
    "date": "2026-11-07",
    "cap": 180,
-   "gre": 90,
-   "harvard": 15,
-   "other": 70,
-   "what": "GRE study · Book TOEFL if needed · +2 more"
+   "other": 110,
+   "what": "Outfits for the trip · Prepare presentations · +1 more"
   },
   {
    "date": "2026-11-08",
-   "gre": 70,
+   "cap": 180,
    "events": 50,
-   "what": "GRE study · Majlis: three things · +1 more"
+   "other": 45,
+   "what": "Majlis: three things · Majlis: outline · +1 more"
   },
   {
    "date": "2026-11-09",
-   "gre": 70,
+   "cap": 180,
    "events": 50,
-   "what": "GRE study · Majlis: photos in order · +1 more"
+   "other": 45,
+   "what": "Majlis: photos in order · Majlis: say it once · +1 more"
   },
   {
    "date": "2026-11-10",
@@ -222,196 +139,180 @@
   },
   {
    "date": "2026-11-12",
-   "gre": 55,
-   "harvard": 30,
    "events": 10,
    "other": 20,
-   "what": "GRE study · Ask for transcripts · +2 more"
+   "what": "Email Dr Campion · Send 8 maps to Bait Al Sadu"
   },
   {
    "date": "2026-11-13",
    "cap": 180,
-   "gre": 105,
-   "harvard": 55,
-   "what": "GRE study · Pick recommenders · +2 more"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-14",
    "cap": 180,
-   "gre": 90,
-   "harvard": 35,
    "events": 15,
    "other": 40,
-   "what": "GRE study · Research question, rough · +4 more"
+   "what": "IAU survey (optional) · Send business cards to print · +1 more"
   },
   {
    "date": "2026-11-15",
-   "gre": 105,
-   "what": "GRE study"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-16",
-   "gre": 90,
-   "harvard": 30,
-   "what": "GRE study · Ask recommenders"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-17",
-   "gre": 105,
    "events": 15,
-   "what": "GRE study · CAA travel grants"
+   "what": "CAA travel grants"
   },
   {
    "date": "2026-11-18",
-   "gre": 90,
-   "harvard": 30,
-   "what": "GRE study · Proposal: main question"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-19",
-   "gre": 105,
-   "what": "GRE study"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-20",
    "cap": 180,
-   "harvard": 100,
-   "events": 45,
-   "what": "Add recommenders in the application · Proposal outline · +1 more"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-21",
    "cap": 180,
-   "gre": 150,
-   "what": "GRE practice test"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-22",
-   "gre": 50,
-   "harvard": 60,
-   "what": "GRE study · Proposal: precedents"
+   "off": true,
+   "what": "Lujain's wedding"
   },
   {
    "date": "2026-11-23",
-   "gre": 50,
-   "harvard": 60,
-   "what": "GRE study · Proposal: faculty fit"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-24",
-   "gre": 65,
-   "what": "GRE study · Test-day checklist"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-25",
-   "gre": 100,
-   "what": "GRE study"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-26",
-   "gre": 55,
-   "what": "GRE test day · Choose Harvard as recipient"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-27",
    "cap": 180,
-   "gre": 20,
-   "what": "Decide on a retake · Book retake if wanted"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-11-28",
    "cap": 180,
-   "harvard": 90,
-   "events": 30,
-   "what": "Proposal draft: question · Send New Directions abstract"
+   "events": 75,
+   "what": "Reusable abstract · Send New Directions abstract"
   },
   {
    "date": "2026-11-29",
-   "harvard": 60,
    "events": 60,
-   "what": "Proposal draft: precedents · CAAD Futures short paper (if you want it)"
+   "what": "CAAD Futures short paper (if you want it)"
   },
   {
    "date": "2026-11-30",
-   "harvard": 75,
    "events": 45,
-   "what": "Proposal draft: methods · Send cartography abstract"
+   "what": "Send cartography abstract"
   },
   {
    "date": "2026-12-01",
-   "harvard": 110,
-   "what": "Proposal draft: timeline · TOEFL practice"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-02",
-   "harvard": 85,
-   "what": "Portfolio: choose pages"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-03",
-   "harvard": 105,
-   "what": "Portfolio: pages 1 to 10 · Proposal to a reader"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-04",
    "cap": 180,
-   "harvard": 135,
-   "what": "Portfolio: pages 11 to 20 · Essays: outlines"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-05",
    "cap": 180,
-   "harvard": 165,
-   "what": "Essay 1 draft · Essay 2 draft · +1 more"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-06",
-   "harvard": 70,
-   "what": "Portfolio: pages 21 to 30 · Pack for recommenders"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-07",
-   "harvard": 100,
-   "what": "Essays: second pass"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-08",
-   "harvard": 100,
-   "what": "Proposal: revise"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-09",
-   "harvard": 100,
-   "what": "Portfolio: read through"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-10",
-   "harvard": 110,
    "other": 10,
-   "what": "Upload transcripts · Update the CV · +1 more"
+   "what": "Add the Gulf Harvard conference to the CV"
   },
   {
    "date": "2026-12-11",
    "cap": 180,
-   "harvard": 120,
-   "what": "Proposal: second revision"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-12",
    "cap": 180,
-   "harvard": 180,
-   "what": "TOEFL test day"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-13",
-   "harvard": 120,
-   "what": "Portfolio export · Essays: final polish"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-14",
-   "harvard": 80,
    "events": 10,
-   "what": "Proposal: read aloud · Nudge the recommenders · +2 more"
+   "what": "Ask Steve about C5"
   },
   {
    "date": "2026-12-15",
@@ -426,7 +327,7 @@
   {
    "date": "2026-12-17",
    "off": true,
-   "what": "Retake seat, if you want one"
+   "what": "Free"
   },
   {
    "date": "2026-12-18",
@@ -448,12 +349,12 @@
   {
    "date": "2026-12-21",
    "off": true,
-   "what": "Retake seat, if you want one"
+   "what": "Free"
   },
   {
    "date": "2026-12-22",
    "off": true,
-   "what": "Retake seat, if you want one"
+   "what": "Free"
   },
   {
    "date": "2026-12-23",
@@ -463,7 +364,7 @@
   {
    "date": "2026-12-24",
    "off": true,
-   "what": "Retake backup"
+   "what": "Free"
   },
   {
    "date": "2026-12-25",
@@ -484,18 +385,18 @@
   },
   {
    "date": "2026-12-28",
-   "harvard": 120,
-   "what": "Read everything"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-29",
-   "harvard": 120,
-   "what": "Make fixes"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-30",
-   "harvard": 60,
-   "what": "Check uploads and letters"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2026-12-31",
@@ -511,8 +412,8 @@
   {
    "date": "2027-01-02",
    "cap": 180,
-   "harvard": 75,
-   "what": "Pay and submit"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2027-01-03",
@@ -527,12 +428,12 @@
   {
    "date": "2027-01-05",
    "off": true,
-   "what": "Harvard deadline: 5 pm Boston, 1 am Jan 6 in Kuwait"
+   "what": "Free"
   },
   {
    "date": "2027-01-06",
-   "harvard": 60,
-   "what": "Financial aid form"
+   "off": true,
+   "what": "Free"
   },
   {
    "date": "2027-01-07",
@@ -685,11 +586,6 @@
  ],
  "notes": [
   "Weekdays are two hours after work. Fridays and Saturdays are counted as three. A day over that shows a full bar.",
-  "All 67 GRE chapters would take about 45 hours. That does not fit, so 45 of them are planned before Nov 26 and the other 22 are parked. If you retake, press Re-plan remaining on the GRE page.",
-  "Check the TOEFL first. Harvard asks for it unless your bachelor's was 3 years in person, taught in English, in a listed country. Kuwait is not on that list, so you probably need it.",
-  "Nov 28 to 30 hold three small abstracts you marked as planning. Skip any of them, nothing depends on them.",
-  "Dec 15 to 27 is kept light on purpose: retake seats, a TOEFL backup, and rest.",
-  "Exact essay lengths are only inside the application. Day 1 is to copy them into Notes.",
-  "Harvard's pages were read through a summarising tool. Please glance at the live page for exact wording before relying on a number."
+  "Nov 28 to 30 hold three small abstracts you marked as planning. Skip any of them, nothing depends on them."
  ]
 }
